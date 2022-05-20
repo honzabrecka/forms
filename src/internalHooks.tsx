@@ -121,6 +121,7 @@ export function useFieldRegistration(formId: string) {
           children: state.children.filter((id) => id !== name),
         }));
       },
+    [],
   );
 
   const add = useRecoilCallback(
