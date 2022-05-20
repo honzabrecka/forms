@@ -45,8 +45,14 @@ export type FormState = {
   readyDelay: Promise<unknown>;
 };
 
+export enum FieldType {
+  field,
+  map,
+  list,
+}
+
 export type FieldState = {
-  type: string; // field | map | list
+  type: FieldType;
   id: string;
   formId: string;
   name: string;
@@ -74,7 +80,7 @@ export type SetValuesOptions = {
   equal?: (currentValue: any, newValue: any) => boolean;
 };
 
-export type OnSubmitBag = Bag & {
+export type FormControls = {
   setValues: (values: Dict<any>, options?: SetValuesOptions) => void;
   setErrors: (errors: Dict<ValidationResult>) => void;
   setTouched: (touched: Dict<boolean>) => void;
@@ -82,10 +88,11 @@ export type OnSubmitBag = Bag & {
   setAllToTouched: () => void;
   reset: () => void;
   clear: () => void;
-} & { args: readonly any[] };
+  addFields: (names: string[]) => void;
+  removeFields: (names: string[]) => void;
+};
 
-// alias
-export type FormBag = OnSubmitBag;
+export type OnSubmitBag = Bag & FormControls & { args: readonly any[] };
 
 export type GetBag = () => Promise<Bag>;
 

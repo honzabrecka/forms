@@ -8,6 +8,7 @@ import {
   FormSubmission,
   FormValidationResult,
   ValidationResult,
+  FieldType,
 } from './types';
 
 const last = <T>(xs: T[]) => xs[xs.length - 1];
@@ -53,7 +54,7 @@ export const $field = atomFamily<FieldState, string>({
     return {
       id,
       formId,
-      type: 'field', // field | list | map
+      type: FieldType.field,
       name,
       children: [],
       value: undefined,
@@ -73,7 +74,7 @@ export const $fieldChildren = selectorFamily<string[], string>({
     ({ get }) => {
       const field = get($field(id));
 
-      if (field.type === 'field') {
+      if (field.type === FieldType.field) {
         return [];
       }
 
@@ -95,7 +96,7 @@ export const $fieldValue = selectorFamily<any, string>({
     (id: string) =>
     ({ get }) => {
       const field = get($field(id));
-      if (field.type === 'list') {
+      if (field.type === FieldType.list) {
         const result: any[] = get(
           waitForAll(
             field.children.map((id) => $fieldValue(fieldId(field.formId, id))),
@@ -103,7 +104,7 @@ export const $fieldValue = selectorFamily<any, string>({
         );
         return result;
       }
-      if (field.type === 'map') {
+      if (field.type === FieldType.map) {
         const result: any[] = get(
           waitForAll(
             field.children.map((id) => $fieldValue(fieldId(field.formId, id))),
@@ -128,7 +129,7 @@ export const $fieldInitialValue = selectorFamily<any, string>({
     (id: string) =>
     ({ get }) => {
       const field = get($field(id));
-      if (field.type === 'list') {
+      if (field.type === FieldType.list) {
         const result: any[] = get(
           waitForAll(
             field.children.map((id) =>
@@ -138,7 +139,7 @@ export const $fieldInitialValue = selectorFamily<any, string>({
         );
         return result;
       }
-      if (field.type === 'map') {
+      if (field.type === FieldType.map) {
         const result: any[] = get(
           waitForAll(
             field.children.map((id) =>
@@ -165,7 +166,7 @@ export const $fieldValidation = selectorFamily<FieldValidationResult, string>({
     (id: string) =>
     ({ get }) => {
       const field = get($field(id));
-      if (field.type !== 'field') {
+      if (field.type !== FieldType.field) {
         const result: FieldValidationResult[] = get(
           waitForAll(
             field.children.map((id) =>
@@ -288,7 +289,7 @@ export const $fieldTouched = selectorFamily<boolean, string>({
     (id: string) =>
     ({ get }) => {
       const field = get($field(id));
-      if (field.type !== 'field') {
+      if (field.type !== FieldType.field) {
         const result: boolean[] = get(
           waitForAll(
             field.children.map((id) =>
@@ -363,7 +364,7 @@ export const $fieldDirty = selectorFamily<boolean, string>({
     (id: string) =>
     async ({ get }) => {
       const field = get($field(id));
-      if (field.type !== 'field') {
+      if (field.type !== FieldType.field) {
         const result: boolean[] = get(
           waitForAll(
             field.children.map((id) => $fieldDirty(fieldId(field.formId, id))),

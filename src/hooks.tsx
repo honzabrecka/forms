@@ -16,8 +16,8 @@ import {
 import { FieldIdentification, FieldValidationResult } from './types';
 
 export function useFormId(formId?: string) {
-  const formIdCtx = useContext(FormContext)?.formId;
-  return formId || formIdCtx || '_';
+  const form = useContext(FormContext);
+  return formId || form?.formId || '_';
 }
 
 export function useFormSubmission(formId?: string) {
@@ -80,15 +80,3 @@ export function useFormReady(formId?: string) {
   useRecoilValue($formReadyDelay(formId));
   useRecoilValue($allValues(formId));
 }
-
-// TODO types
-// export function useRefreshableValidator(validator) {
-//   const [key, revalidate] = useReducer((key) => key + 1, 0);
-//   return useMemo(
-//     () => ({
-//       validator: (...args) => validator(...args),
-//       revalidate: () => revalidate(),
-//     }),
-//     [validator, key]
-//   );
-// }

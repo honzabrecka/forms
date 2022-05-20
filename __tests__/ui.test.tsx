@@ -96,12 +96,7 @@ test('forms: basic', async () => {
     });
     return (
       <Form>
-        <Field
-          name="name"
-          label="Name"
-          validateOnMount={false}
-          validateOnChange={false}
-        />
+        <Field name="name" label="Name" />
         <button type="submit">submit</button>
       </Form>
     );
@@ -136,13 +131,7 @@ test('forms: blur & async & submit', async () => {
     });
     return (
       <Form>
-        <AsyncField
-          from={identity}
-          name="name"
-          label="Name"
-          validateOnMount={false}
-          validateOnChange={false}
-        />
+        <AsyncField from={identity} name="name" label="Name" />
         <button type="submit">submit</button>
       </Form>
     );

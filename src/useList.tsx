@@ -4,7 +4,7 @@ import { fieldId, $field } from './selectors';
 import { useFormId } from './hooks';
 import { useFieldRegistration } from './internalHooks';
 import useWarnOnChanged from './useWarnOnChanged';
-import { FieldIdentification, Dict } from './types';
+import { FieldIdentification, Dict, FieldType } from './types';
 import uid from './uid';
 
 const last = <T,>(xs: T[]) => xs[xs.length - 1];
@@ -50,7 +50,7 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
     registration.add(name);
     setFieldState((state) => ({
       ...state,
-      type: 'list',
+      type: FieldType.list,
     }));
     return () => {
       reset();

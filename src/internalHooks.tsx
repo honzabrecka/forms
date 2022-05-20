@@ -11,6 +11,7 @@ import {
   $initialValues,
   $formDirty,
 } from './selectors';
+import { FieldType } from './types';
 
 export function useGetBag(formId: string) {
   return useRecoilCallback(
@@ -132,15 +133,15 @@ export function useFieldRegistration(formId: string) {
         for (let i = 0; i < ns.length - 1; i++) {
           const currentNodeName = nestedName(i + 1, ns);
           set($field(fieldId(formId, currentNodeName)), (state) =>
-            state.type === 'field'
+            state.type === FieldType.field
               ? {
                   ...state,
-                  type: 'map',
+                  type: FieldType.map,
                 }
               : state,
           );
           set($field(fieldId(formId, currentNodeName)), (state) =>
-            state.type !== 'field'
+            state.type !== FieldType.field
               ? {
                   ...state,
                   children: addOnlyIfUnique(

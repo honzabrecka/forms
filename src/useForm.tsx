@@ -23,6 +23,7 @@ import {
   FormState,
   FieldState,
   ValidationResult,
+  FieldType,
 } from './types';
 import uid from './uid';
 import { FormContextProvider } from './FormContext';
@@ -41,7 +42,7 @@ export type UseFormProps = {
 
 const onFieldTypeOnly =
   (f: (state: FieldState) => FieldState) => (state: FieldState) =>
-    state.type === 'field' ? f(state) : state;
+    state.type === FieldType.field ? f(state) : state;
 
 const alwaysFalse = () => false;
 
@@ -73,7 +74,7 @@ export default function useForm({
             const field = get(atom);
             const value = values[id];
 
-            if (field.type === 'field') {
+            if (field.type === FieldType.field) {
               set(atom, (state) =>
                 equal(state.value, value)
                   ? state
@@ -85,7 +86,7 @@ export default function useForm({
                         : state.validation,
                     },
               );
-            } else if (field.type === 'map') {
+            } else if (field.type === FieldType.map) {
               const newValues = Object.entries(value).reduce<Dict<any>>(
                 (acc, [k, v]) => {
                   acc[`${id}.${k}`] = v;
@@ -94,7 +95,7 @@ export default function useForm({
                 {},
               );
               updater(newValues);
-            } else if (field.type === 'list') {
+            } else if (field.type === FieldType.list) {
               // unsupported
             }
           });
@@ -113,12 +114,12 @@ export default function useForm({
             const field = get(atom);
             const value = values[id];
 
-            if (field.type === 'field') {
+            if (field.type === FieldType.field) {
               set(atom, (state) => ({
                 ...state,
                 initialValue: value,
               }));
-            } else if (field.type === 'map') {
+            } else if (field.type === FieldType.map) {
               const newValues = Object.entries(value).reduce<Dict<any>>(
                 (acc, [k, v]) => {
                   acc[`${id}.${k}`] = v;
@@ -127,7 +128,7 @@ export default function useForm({
                 {},
               );
               updater(newValues);
-            } else if (field.type === 'list') {
+            } else if (field.type === FieldType.list) {
               // unsupported
             }
           });
@@ -264,6 +265,14 @@ export default function useForm({
   }, []);
 
   return useMemo(() => {
+    const addFields = (names: string[]) => {
+      names.forEach((name) => registration.add(name));
+    };
+
+    const removeFields = (names: string[]) => {
+      names.forEach((name) => registration.remove(name));
+    };
+
     const submit = async (...args: any[]) => {
       const bag = {
         ...(await getBag()),
@@ -274,6 +283,8 @@ export default function useForm({
         setAllToTouched,
         reset,
         clear,
+        addFields,
+        removeFields,
         args,
       };
 
@@ -295,14 +306,6 @@ export default function useForm({
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       createSubmitPromise(event);
-    };
-
-    const addFields = (names: string[]) => {
-      names.forEach((name) => registration.add(name));
-    };
-
-    const removeFields = (names: string[]) => {
-      names.forEach((name) => registration.remove(name));
     };
 
     const form = {

@@ -1,23 +1,13 @@
 import React, { createContext, ReactNode, FormEvent } from 'react';
-import { Dict, ValidationResult, GetBag } from './types';
+import { GetBag, FormControls } from './types';
 
-type Form = {
+type Form = FormControls & {
   formId: string;
-  setValues: (values: Dict<any>) => void;
-  setInitialValues: (values: Dict<any>) => void;
-  setErrors: (errors: Dict<ValidationResult>) => void;
-  setTouched: (values: Dict<boolean>) => void;
-  resetTouched: () => void;
-  setAllToTouched: () => void;
-  reset: () => void;
-  clear: () => void;
   revalidate: (fieldIds?: string[]) => void;
   getBag: GetBag;
   isSubmitting: boolean;
   submit: (...args: any[]) => Promise<void>;
   handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  addFields: (names: string[]) => void;
-  removeFields: (names: string[]) => void;
 };
 
 export const FormContext = createContext<Form | undefined>(undefined);
