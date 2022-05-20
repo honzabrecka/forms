@@ -213,7 +213,7 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['foo'],
       values: { foo: [] },
-      // allValues: { name: 'John Doe' },
+      allValues: { foo: [] },
       touched: { foo: false },
       initialValues: {},
       dirty: false,
@@ -232,7 +232,7 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['foo'],
       values: { foo: [{ x: 'John Doe' }] },
-      // allValues: { name: 'John Doe' },
+      allValues: { foo: [{ x: 'John Doe' }] },
       touched: { foo: true },
       initialValues: {},
       dirty: true,
@@ -249,7 +249,7 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[2][0], {
       fieldIds: ['foo'],
       values: { foo: [] },
-      // allValues: { name: 'John Doe' },
+      allValues: { foo: [] },
       touched: { foo: false },
       initialValues: {},
       dirty: false,
@@ -266,7 +266,7 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[3][0], {
       fieldIds: ['foo'],
       values: { foo: [{ x: 'foo' }, { x: 'bar' }] },
-      // allValues: { name: 'John Doe' },
+      allValues: { foo: [{ x: 'foo' }, { x: 'bar' }] },
       touched: { foo: false },
       initialValues: {},
       dirty: true,
@@ -283,7 +283,7 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[4][0], {
       fieldIds: ['foo'],
       values: { foo: [] },
-      // allValues: { name: 'John Doe' },
+      allValues: { foo: [] },
       touched: { foo: false },
       initialValues: {},
       dirty: false,
