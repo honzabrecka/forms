@@ -7,5 +7,7 @@ export { default as OnFormReady } from './OnFormReady';
 export * from './hooks';
 export * from './validation';
 
+export { RecoilRoot } from 'recoil';
+
 // TODO export types
 // export type { FormIdProviderProps } from './FormContext';

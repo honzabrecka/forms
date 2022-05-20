@@ -1,8 +1,7 @@
 import React, { Fragment, useEffect, useState } from 'react';
-import { RecoilRoot } from 'recoil';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useForm, useField, List } from '../src/index';
+import { RecoilRoot, useForm, useField, List } from '../src/index';
 
 const wrapper = ({ children }: any) => <RecoilRoot>{children}</RecoilRoot>;
 

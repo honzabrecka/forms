@@ -30,8 +30,6 @@ import { FormContextProvider } from './FormContext';
 
 export type OnSubmit = (bag: OnSubmitBag) => any;
 
-const dummyOnSubmit: OnSubmit = () => undefined;
-
 export type UseFormProps = {
   formId?: string;
   onSubmit?: OnSubmit;
@@ -43,6 +41,8 @@ export type UseFormProps = {
 const onFieldTypeOnly =
   (f: (state: FieldState) => FieldState) => (state: FieldState) =>
     state.type === FieldType.field ? f(state) : state;
+
+const dummyOnSubmit: OnSubmit = () => undefined;
 
 const alwaysFalse = () => false;
 
