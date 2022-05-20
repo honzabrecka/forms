@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { useRecoilValue, useRecoilValueLoadable } from 'recoil';
-import { FormIdContext } from './FormContext';
+import { FormContext } from './FormContext';
 import {
   fieldId,
   $fieldValue,
@@ -16,8 +16,8 @@ import {
 import { FieldIdentification, FieldValidationResult } from './types';
 
 export function useFormId(formId?: string) {
-  const formIdCtx = useContext(FormIdContext);
-  return formId || formIdCtx;
+  const formIdCtx = useContext(FormContext)?.formId;
+  return formId || formIdCtx || '_';
 }
 
 export function useFormSubmission(formId?: string) {

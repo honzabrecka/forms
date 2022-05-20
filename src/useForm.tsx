@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, FormEvent } from 'react';
+import React, { useEffect, useState, useMemo, FormEvent } from 'react';
 import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
@@ -25,7 +25,7 @@ import {
   ValidationResult,
 } from './types';
 import uid from './uid';
-import { FormIdProvider } from './FormContext';
+import { FormContextProvider } from './FormContext';
 
 export type OnSubmit = (bag: OnSubmitBag) => any;
 
@@ -255,8 +255,16 @@ export default function useForm({
     [],
   );
 
-  const submit = useCallback(
-    async (...args: any[]) => {
+  useEffect(() => {
+    setValues(initialValues);
+    setInitialValues(initialValues);
+    return () => {
+      clear();
+    };
+  }, []);
+
+  return useMemo(() => {
+    const submit = async (...args: any[]) => {
       const bag = {
         ...(await getBag()),
         setValues,
@@ -276,66 +284,57 @@ export default function useForm({
       }
 
       await onSubmit(bag);
-    },
-    [onSubmit, onSubmitInvalid, isValidProp],
-  );
+    };
 
-  const createSubmitPromise = useCallback(
-    (...args: any[]) => {
+    const createSubmitPromise = (...args: any[]) => {
       const submission = submit(...args);
       setForm((state: FormState) => ({ ...state, submission }));
       return submission;
-    },
-    [submit],
-  );
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    createSubmitPromise(event);
-  };
-
-  const addFields = (names: string[]) => {
-    names.forEach((name) => registration.add(name));
-  };
-
-  const removeFields = (names: string[]) => {
-    names.forEach((name) => registration.remove(name));
-  };
-
-  useEffect(() => {
-    setValues(initialValues);
-    setInitialValues(initialValues);
-    return () => {
-      clear();
     };
-  }, []);
 
-  return {
-    formId,
-    setValues,
-    setInitialValues,
-    setErrors,
-    setTouched,
-    resetTouched,
-    setAllToTouched,
-    isSubmitting: isSubmitting.state === 'loading',
-    submit: createSubmitPromise,
-    handleSubmit,
-    reset,
-    clear,
-    revalidate,
-    getBag,
-    addFields,
-    removeFields,
-    Form: useCallback(
-      ({ children }: { children: React.ReactNode }) => {
-        return (
-          <FormIdProvider formId={formId}>
-            <form onSubmit={handleSubmit}>{children}</form>
-          </FormIdProvider>
-        );
-      },
-      [createSubmitPromise],
-    ),
-  };
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      createSubmitPromise(event);
+    };
+
+    const addFields = (names: string[]) => {
+      names.forEach((name) => registration.add(name));
+    };
+
+    const removeFields = (names: string[]) => {
+      names.forEach((name) => registration.remove(name));
+    };
+
+    const form = {
+      formId,
+      setValues,
+      setInitialValues,
+      setErrors,
+      setTouched,
+      resetTouched,
+      setAllToTouched,
+      reset,
+      clear,
+      revalidate,
+      getBag,
+      isSubmitting: isSubmitting.state === 'loading',
+      submit: createSubmitPromise,
+      handleSubmit,
+      addFields,
+      removeFields,
+    };
+
+    const Form = ({ children }: { children: React.ReactNode }) => {
+      return (
+        <FormContextProvider form={form}>
+          <form onSubmit={handleSubmit}>{children}</form>
+        </FormContextProvider>
+      );
+    };
+
+    return {
+      ...form,
+      Form,
+    };
+  }, [onSubmit, onSubmitInvalid, isValidProp]);
 }

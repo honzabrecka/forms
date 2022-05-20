@@ -1,4 +1,4 @@
-export { FormIdProvider } from './FormContext';
+export { FormContextProvider } from './FormContext';
 export { default as useForm } from './useForm';
 export { default as useField } from './useField';
 export { default as useList } from './useList';
