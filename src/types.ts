@@ -78,6 +78,7 @@ export type Bag = {
 export type SetValuesOptions = {
   validate?: boolean;
   equal?: (currentValue: any, newValue: any) => boolean;
+  asInitialValues?: boolean;
 };
 
 export type FormControls = {

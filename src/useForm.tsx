@@ -1,8 +1,8 @@
+/* eslint-disable camelcase */
 import React, { useEffect, useState, useMemo, FormEvent } from 'react';
 import {
-  useRecoilCallback,
-  /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
+  useRecoilCallback,
   useRecoilValueLoadable,
   useSetRecoilState,
 } from 'recoil';
@@ -66,7 +66,12 @@ export default function useForm({
     ({ get, set }) =>
       (
         values: Dict<any>,
-        { validate = true, equal = alwaysFalse }: SetValuesOptions = {},
+        {
+          validate = true,
+          equal = alwaysFalse,
+          // for optimization: setValues(v) + setInitialValues(v) => setValues(v, { asInitialValues })
+          asInitialValues = false,
+        }: SetValuesOptions = {},
       ) => {
         const updater = (values: Dict<any>) => {
           Object.keys(values).forEach((id) => {
@@ -84,6 +89,9 @@ export default function useForm({
                       validation: validate
                         ? state.validator(value)
                         : state.validation,
+                      initialValue: asInitialValues
+                        ? value
+                        : state.initialValue,
                     },
               );
             } else if (field.type === FieldType.map) {
@@ -138,7 +146,7 @@ export default function useForm({
     [],
   );
 
-  const setErrors = useRecoilCallback(
+  const setErrors = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
       (errors: Dict<ValidationResult>) => {
         Object.keys(errors).forEach((name) => {
@@ -151,7 +159,7 @@ export default function useForm({
     [],
   );
 
-  const setTouched = useRecoilCallback(
+  const setTouched = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
       (touched: Dict<boolean>) => {
         Object.keys(touched).forEach((id) =>
@@ -168,97 +176,110 @@ export default function useForm({
   );
 
   const resetTouched = useRecoilCallback(
-    ({ snapshot, set }) =>
+    ({ snapshot, transact_UNSTABLE }) =>
       async () => {
         const fieldIds = await snapshot.getPromise($allFieldIds(formId));
-        fieldIds.forEach((id: string) =>
-          set(
-            $field(fieldId(formId, id)),
-            onFieldTypeOnly((state) => ({
-              ...state,
-              touched: false,
-              touchedAfterSubmit: false,
-            })),
-          ),
-        );
+        transact_UNSTABLE(({ set }) => {
+          fieldIds.forEach((id: string) =>
+            set(
+              $field(fieldId(formId, id)),
+              onFieldTypeOnly((state) => ({
+                ...state,
+                touched: false,
+                touchedAfterSubmit: false,
+              })),
+            ),
+          );
+        });
       },
     [],
   );
 
   const setAllToTouched = useRecoilCallback(
-    ({ snapshot, set }) =>
+    ({ snapshot, transact_UNSTABLE }) =>
       async () => {
         const fieldIds = await snapshot.getPromise($allFieldIds(formId));
-        fieldIds.forEach((id: string) =>
-          set(
-            $field(fieldId(formId, id)),
-            onFieldTypeOnly((state) => ({
-              ...state,
-              touched: true,
-              touchedAfterSubmit: true,
-            })),
-          ),
-        );
+        transact_UNSTABLE(({ set }) => {
+          fieldIds.forEach((id: string) =>
+            set(
+              $field(fieldId(formId, id)),
+              onFieldTypeOnly((state) => ({
+                ...state,
+                touched: true,
+                touchedAfterSubmit: true,
+              })),
+            ),
+          );
+        });
       },
     [],
   );
 
   const reset = useRecoilCallback(
-    ({ snapshot, set }) =>
+    ({ snapshot, transact_UNSTABLE }) =>
       async () => {
         const fieldIds = await snapshot.getPromise($allFieldIds(formId));
-        fieldIds.forEach((id: string) =>
-          set(
-            $field(fieldId(formId, id)),
-            onFieldTypeOnly((state) => {
-              const value = state.initialValue;
-              return {
-                ...state,
-                value,
-                touched: false,
-                touchedAfterSubmit: false,
-                validation: state.validator(value),
-              };
-            }),
-          ),
-        );
+        transact_UNSTABLE(({ set }) => {
+          set($form(formId), (state: FormState) => ({
+            ...state,
+            submission: Promise.resolve(null),
+          }));
+          fieldIds.forEach((id: string) =>
+            set(
+              $field(fieldId(formId, id)),
+              onFieldTypeOnly((state) => {
+                const value = state.initialValue;
+                return {
+                  ...state,
+                  value,
+                  touched: false,
+                  touchedAfterSubmit: false,
+                  validation: state.validator(value),
+                };
+              }),
+            ),
+          );
+        });
       },
     [],
   );
 
   const revalidate = useRecoilCallback(
-    ({ snapshot, set }) =>
+    ({ snapshot, transact_UNSTABLE }) =>
       async (fieldIds: string[] = []) => {
         const fieldIdsToValidate =
           fieldIds.length > 0
             ? fieldIds
             : await snapshot.getPromise($allFieldIds(formId));
-        fieldIdsToValidate.forEach((id: string) =>
-          set(
-            $field(fieldId(formId, id)),
-            onFieldTypeOnly((state) => ({
-              ...state,
-              validation: state.validator(state.value),
-            })),
-          ),
-        );
+        transact_UNSTABLE(({ set }) => {
+          fieldIdsToValidate.forEach((id: string) =>
+            set(
+              $field(fieldId(formId, id)),
+              onFieldTypeOnly((state) => ({
+                ...state,
+                validation: state.validator(state.value),
+              })),
+            ),
+          );
+        });
       },
     [],
   );
 
   const clear = useRecoilCallback(
-    ({ reset, snapshot }) =>
+    ({ snapshot, transact_UNSTABLE }) =>
       async () => {
         const fieldIds = await snapshot.getPromise($allFieldIds(formId));
-        reset($form(formId));
-        fieldIds.forEach((id: string) => reset($field(fieldId(formId, id))));
+        transact_UNSTABLE(({ reset }) => {
+          reset($form(formId));
+          fieldIds.forEach((id: string) => reset($field(fieldId(formId, id))));
+        });
       },
     [],
   );
 
   useEffect(() => {
-    setValues(initialValues);
-    setInitialValues(initialValues);
+    setValues(initialValues, { asInitialValues: true });
     return () => {
       clear();
     };
@@ -266,11 +287,11 @@ export default function useForm({
 
   return useMemo(() => {
     const addFields = (names: string[]) => {
-      names.forEach((name) => registration.add(name));
+      registration.add(names);
     };
 
     const removeFields = (names: string[]) => {
-      names.forEach((name) => registration.remove(name));
+      registration.remove(names);
     };
 
     const submit = async (...args: any[]) => {

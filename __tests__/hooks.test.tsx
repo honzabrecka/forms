@@ -1091,7 +1091,9 @@ test('forms: manually added/removed field', async () => {
     fieldIds: [],
   });
 
-  result.current.form.setValues({ a: 'foo' });
+  await act(() => {
+    result.current.form.setValues({ a: 'foo' });
+  });
 
   await expectFormBag(result, {
     fieldIds: [],
@@ -1099,7 +1101,9 @@ test('forms: manually added/removed field', async () => {
     allValues: {},
   });
 
-  result.current.form.addFields(['a']);
+  await act(() => {
+    result.current.form.addFields(['a']);
+  });
 
   await expectFormBag(result, {
     fieldIds: ['a'],
@@ -1107,7 +1111,9 @@ test('forms: manually added/removed field', async () => {
     allValues: { a: 'foo' },
   });
 
-  result.current.form.removeFields(['a']);
+  await act(() => {
+    result.current.form.removeFields(['a']);
+  });
 
   await expectFormBag(result, {
     fieldIds: [],
@@ -1117,8 +1123,10 @@ test('forms: manually added/removed field', async () => {
 
   // id is added just once
   // and its value is preserved
-  result.current.form.addFields(['a']);
-  result.current.form.addFields(['a']);
+  await act(() => {
+    result.current.form.addFields(['a']);
+    result.current.form.addFields(['a']);
+  });
 
   await expectFormBag(result, {
     fieldIds: ['a'],

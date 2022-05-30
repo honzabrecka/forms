@@ -180,7 +180,7 @@ export default function useField({
   );
 
   useEffect(() => {
-    registration.add(name);
+    registration.add([name]);
 
     setFieldState((state) => ({
       ...state,
@@ -199,7 +199,7 @@ export default function useField({
       }
 
       reset();
-      registration.remove(name);
+      registration.remove([name]);
     };
   }, []);
 

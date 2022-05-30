@@ -1,4 +1,8 @@
-import { useRecoilCallback, useSetRecoilState } from 'recoil';
+import {
+  useRecoilCallback,
+  /* eslint-disable-next-line camelcase */
+  useRecoilTransaction_UNSTABLE,
+} from 'recoil';
 import {
   fieldId,
   $field,
@@ -92,77 +96,77 @@ const addOnlyIfUnique = <T,>(xs: T[], x: T) => {
  * where "a" points to "b" and "b" points to "c"
  */
 export function useFieldRegistration(formId: string) {
-  const setFormState = useSetRecoilState($form(formId));
-
-  const addFieldToForm = (name: string) => {
-    setFormState((state) => {
-      const { fieldIds } = state;
-      return {
-        ...state,
-        // it might be already registered (via useForm.addFieldIds() function for example)
-        fieldIds: addOnlyIfUnique(fieldIds, name),
-      };
-    });
-  };
-
-  const removeFieldFromForm = (name: string) => {
-    setFormState((state) => ({
-      ...state,
-      fieldIds: state.fieldIds.filter((id) => id !== name),
-    }));
-  };
-
-  const removeFromParentField = useRecoilCallback(
+  const add = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
-      (name: string) => {
-        const parent = dropRight(1, name.split('.')).join('.');
-        set($field(fieldId(formId, parent)), (state) => ({
+      (names: string[]) => {
+        const toAdd: string[] = [];
+
+        names.forEach((name) => {
+          const ns = name.split('.');
+
+          toAdd.push(ns[0]);
+
+          for (let i = 0; i < ns.length - 1; i++) {
+            const currentNodeName = nestedName(i + 1, ns);
+            set($field(fieldId(formId, currentNodeName)), (state) =>
+              state.type === FieldType.field
+                ? {
+                    ...state,
+                    type: FieldType.map,
+                  }
+                : state,
+            );
+            set($field(fieldId(formId, currentNodeName)), (state) =>
+              state.type !== FieldType.field
+                ? {
+                    ...state,
+                    children: addOnlyIfUnique(
+                      state.children,
+                      nestedName(i + 2, ns),
+                    ),
+                  }
+                : state,
+            );
+          }
+        });
+
+        // add fields to form
+        set($form(formId), (state) => {
+          const { fieldIds } = state;
+          const ids = new Set(fieldIds);
+          return {
+            ...state,
+            // it might be already registered via useField on mount effect
+            fieldIds: fieldIds.concat(toAdd.filter((id) => !ids.has(id))),
+          };
+        });
+      },
+    [],
+  );
+
+  const remove = useRecoilTransaction_UNSTABLE(
+    ({ set }) =>
+      (names: string[]) => {
+        // remove fields from form
+        const ids = new Set(names);
+        set($form(formId), (state) => ({
           ...state,
-          children: state.children.filter((id) => id !== name),
+          fieldIds: state.fieldIds.filter((id) => !ids.has(id)),
         }));
+
+        names.forEach((name) => {
+          // remove from parent field
+          if (name.includes('.')) {
+            const parent = dropRight(1, name.split('.')).join('.');
+            set($field(fieldId(formId, parent)), (state) => ({
+              ...state,
+              children: state.children.filter((id) => id !== name),
+            }));
+          }
+        });
       },
     [],
   );
-
-  const add = useRecoilCallback(
-    ({ set }) =>
-      (name: string) => {
-        const ns = name.split('.');
-
-        addFieldToForm(ns[0]);
-
-        for (let i = 0; i < ns.length - 1; i++) {
-          const currentNodeName = nestedName(i + 1, ns);
-          set($field(fieldId(formId, currentNodeName)), (state) =>
-            state.type === FieldType.field
-              ? {
-                  ...state,
-                  type: FieldType.map,
-                }
-              : state,
-          );
-          set($field(fieldId(formId, currentNodeName)), (state) =>
-            state.type !== FieldType.field
-              ? {
-                  ...state,
-                  children: addOnlyIfUnique(
-                    state.children,
-                    nestedName(i + 2, ns),
-                  ),
-                }
-              : state,
-          );
-        }
-      },
-    [],
-  );
-
-  const remove = (name: string) => {
-    if (name.includes('.')) {
-      removeFromParentField(name);
-    }
-    removeFieldFromForm(name);
-  };
 
   return {
     add,

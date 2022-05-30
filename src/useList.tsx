@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useRecoilCallback, useRecoilState } from 'recoil';
 import { fieldId, $field } from './selectors';
 import { useFormId } from './hooks';
@@ -7,9 +7,10 @@ import useWarnOnChanged from './useWarnOnChanged';
 import { FieldIdentification, Dict, FieldType } from './types';
 import uid from './uid';
 
-const last = <T,>(xs: T[]) => xs[xs.length - 1];
-
-export type UseListProps = FieldIdentification;
+export type UseListProps = FieldIdentification & {
+  // TODO
+  initialValue?: Dict<any>[];
+};
 
 export type UseListResult = {
   fields: string[];
@@ -22,7 +23,6 @@ export type UseListResult = {
   createRows: (rows: any[]) => Dict<any>;
 };
 
-// effectively reuse maximum of existing nodes
 const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
   const formId = useFormId(formIdProp);
 
@@ -34,10 +34,6 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
   );
   const registration = useFieldRegistration(formId);
 
-  // removed ids (nodes - atoms) are stored in a stack
-  // and reused when new row is added (via generateNewName) to maximize memory optimization
-  const namesToReuse = useRef<Set<string>>(new Set([]));
-
   const reset = useRecoilCallback(
     ({ reset }) =>
       () => {
@@ -47,25 +43,19 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
   );
 
   useEffect(() => {
-    registration.add(name);
+    registration.add([name]);
     setFieldState((state) => ({
       ...state,
       type: FieldType.list,
     }));
     return () => {
       reset();
-      registration.remove(name);
+      registration.remove([name]);
     };
   }, []);
 
-  const removeName = (name: string) => {
-    namesToReuse.current.add(last(name.split('.')));
-  };
-
   const generateNewName = () => {
-    const [reusedName] = namesToReuse.current;
-    namesToReuse.current.delete(reusedName);
-    return `${name}.${reusedName || uid()}`;
+    return `${name}.${uid()}`;
   };
 
   const add = () => {
@@ -94,19 +84,12 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
   const remove = (index: number) => {
     setFieldState((state) => ({
       ...state,
-      children: state.children.filter((name, i) => {
-        const x = i !== index;
-        if (!x) {
-          removeName(name);
-        }
-        return x;
-      }),
+      children: state.children.filter((_, i) => i !== index),
     }));
   };
 
   const removeAll = () => {
     setFieldState((state) => {
-      state.children.forEach(removeName);
       return {
         ...state,
         children: [],
