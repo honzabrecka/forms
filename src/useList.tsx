@@ -1,29 +1,42 @@
 import { useEffect } from 'react';
-import { useRecoilCallback, useRecoilState } from 'recoil';
+import {
+  useRecoilCallback,
+  useRecoilState,
+  /* eslint-disable-next-line camelcase */
+  useRecoilTransaction_UNSTABLE,
+} from 'recoil';
 import { fieldId, $field } from './selectors';
 import { useFormId } from './hooks';
 import { useFieldRegistration } from './internalHooks';
 import useWarnOnChanged from './useWarnOnChanged';
-import { FieldIdentification, Dict, FieldType } from './types';
+import { FieldIdentification, Dict, FieldType, DirtyComparator } from './types';
 import uid from './uid';
 
 export type UseListProps = FieldIdentification & {
-  // TODO
   initialValue?: Dict<any>[];
+  dirtyComparator?: DirtyComparator;
+  preserveStateAfterUnmount?: boolean;
 };
 
 export type UseListResult = {
   fields: string[];
-  add: () => string;
-  addAt: (index: number) => string;
+  add: (value?: Dict<any>) => string;
+  addAt: (index: number, value?: Dict<any>) => string;
+  addMany: (values: Dict<any>[]) => string[];
   remove: (index: number) => void;
   removeAll: () => void;
   swap: (a: number, b: number) => void;
   move: (a: number, b: number) => void;
-  createRows: (rows: any[]) => Dict<any>;
+  replace: (value: Dict<any>[]) => void;
 };
 
-const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
+const useList = ({
+  formId: formIdProp,
+  name,
+  initialValue,
+  dirtyComparator,
+  preserveStateAfterUnmount = false,
+}: UseListProps): UseListResult => {
   const formId = useFormId(formIdProp);
 
   useWarnOnChanged('formId', formId);
@@ -42,33 +55,50 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
     [],
   );
 
-  useEffect(() => {
-    registration.add([name]);
-    setFieldState((state) => ({
-      ...state,
-      type: FieldType.list,
-    }));
-    return () => {
-      reset();
-      registration.remove([name]);
-    };
-  }, []);
+  const setValues = useRecoilTransaction_UNSTABLE(
+    ({ get, set }) =>
+      (values: Dict<any>) => {
+        Object.keys(values).forEach((id) => {
+          const atom = $field(fieldId(formId, id));
+          const field = get(atom);
+          const value = values[id];
 
+          if (field.type === FieldType.field) {
+            set(atom, (state) => ({
+              ...state,
+              initialValue: value,
+              value,
+              validation: state.validator(value),
+            }));
+          }
+        });
+      },
+    [],
+  );
+
+  // problem with index as name is that children can be removed or change order
   const generateNewName = () => {
     return `${name}.${uid()}`;
   };
 
-  const add = () => {
-    // problem with index as name is that children can be removed or change order
+  const add = (value?: Dict<any>) => {
     const newName = generateNewName();
     setFieldState((state) => ({
       ...state,
       children: [...state.children, newName],
+      touched: true,
     }));
+    if (value)
+      setValues(
+        Object.entries(value).reduce<Dict<any>>((acc, [k, v]) => {
+          acc[`${newName}.${k}`] = v;
+          return acc;
+        }, {}),
+      );
     return newName;
   };
 
-  const addAt = (index: number) => {
+  const addAt = (index: number, value?: Dict<any>) => {
     const newName = generateNewName();
     setFieldState((state) => {
       const children = [...state.children];
@@ -76,15 +106,28 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
       return {
         ...state,
         children,
+        touched: true,
       };
     });
+    if (value)
+      setValues(
+        Object.entries(value).reduce<Dict<any>>((acc, [k, v]) => {
+          acc[`${newName}.${k}`] = v;
+          return acc;
+        }, {}),
+      );
     return newName;
+  };
+
+  const addMany = (values: Dict<any>[]) => {
+    return values.map(add);
   };
 
   const remove = (index: number) => {
     setFieldState((state) => ({
       ...state,
       children: state.children.filter((_, i) => i !== index),
+      touched: true,
     }));
   };
 
@@ -93,6 +136,7 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
       return {
         ...state,
         children: [],
+        touched: true,
       };
     });
   };
@@ -112,6 +156,7 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
           }
           return x;
         }),
+        touched: true,
       };
     });
   };
@@ -126,32 +171,73 @@ const useList = ({ formId: formIdProp, name }: UseListProps): UseListResult => {
       return {
         ...state,
         children: [...beforeNew, state.children[from], ...afterNew],
+        touched: true,
       };
     });
   };
 
-  // returns structure (dict with fully qualified names) suitable for form.setValues/form.setInitialValues
-  // has side-effects
-  const createRows = (rows: any[]) =>
-    rows.reduce<Dict<any>>((acc, row) => {
-      const rowName = add();
-      Object.entries(row).forEach(([key, value]) => {
-        acc[`${rowName}.${key}`] = value;
-      });
-      return acc;
-    }, {});
+  const createRows = (rows: Dict<any>[]): [string[], Dict<any>] => {
+    const rowNames = rows.map(generateNewName);
+    return [
+      rowNames,
+      rows.reduce<Dict<any>>((acc, row, i) => {
+        const rowName = rowNames[i];
+        Object.entries(row).forEach(([key, value]) => {
+          acc[`${rowName}.${key}`] = value;
+        });
+        return acc;
+      }, {}),
+    ];
+  };
+
+  const replace = (rows: Dict<any>[]) => {
+    removeAll();
+    const [children, values] = createRows(rows);
+    setValues(values);
+    setFieldState((state) => ({
+      ...state,
+      children,
+      initialValue: rows,
+      touched: false,
+    }));
+  };
+
+  useEffect(() => {
+    registration.add([name]);
+
+    const [children, values] = initialValue
+      ? createRows(initialValue)
+      : [[], {}];
+
+    setValues(values);
+    setFieldState((state) => ({
+      ...state,
+      type: FieldType.list,
+      initialValue,
+      dirtyComparator: dirtyComparator || state.dirtyComparator,
+      children: initialValue ? children : state.children,
+    }));
+
+    return () => {
+      if (preserveStateAfterUnmount) {
+        return;
+      }
+
+      reset();
+      registration.remove([name]);
+    };
+  }, []);
 
   return {
     fields: fieldState.children,
-    // manipulation
+    replace,
     add,
     addAt,
+    addMany,
     remove,
     removeAll,
     swap,
     move,
-    // helpers
-    createRows,
   };
 };
 

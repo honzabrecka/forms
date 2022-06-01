@@ -129,16 +129,6 @@ export const $fieldInitialValue = selectorFamily<any, string>({
     (id: string) =>
     ({ get }) => {
       const field = get($field(id));
-      if (field.type === FieldType.list) {
-        const result: any[] = get(
-          waitForAll(
-            field.children.map((id) =>
-              $fieldInitialValue(fieldId(field.formId, id)),
-            ),
-          ),
-        );
-        return result;
-      }
       if (field.type === FieldType.map) {
         const result: any[] = get(
           waitForAll(
@@ -164,9 +154,9 @@ export const $fieldValidation = selectorFamily<FieldValidationResult, string>({
   key: 'form_field_validation',
   get:
     (id: string) =>
-    ({ get }) => {
+    async ({ get }) => {
       const field = get($field(id));
-      if (field.type !== FieldType.field) {
+      if (field.type === FieldType.map) {
         const result: FieldValidationResult[] = get(
           waitForAll(
             field.children.map((id) =>
@@ -175,6 +165,19 @@ export const $fieldValidation = selectorFamily<FieldValidationResult, string>({
           ),
         );
         return { ...multi(result), name: field.name };
+      }
+      if (field.type === FieldType.list) {
+        const result: FieldValidationResult[] = get(
+          waitForAll(
+            field.children.map((id) =>
+              $fieldValidation(fieldId(field.formId, id)),
+            ),
+          ),
+        );
+        return {
+          ...multi([await field.validation, ...result]),
+          name: field.name,
+        };
       }
       return field.validation;
     },
@@ -263,7 +266,7 @@ export const $values = selectorFamily<any, string>({
 });
 
 export const $initialValues = selectorFamily<any, string>({
-  key: 'form_allValues',
+  key: 'form_initialValues',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -289,7 +292,7 @@ export const $fieldTouched = selectorFamily<boolean, string>({
     (id: string) =>
     ({ get }) => {
       const field = get($field(id));
-      if (field.type !== FieldType.field) {
+      if (field.type === FieldType.map) {
         const result: boolean[] = get(
           waitForAll(
             field.children.map((id) =>
@@ -298,6 +301,19 @@ export const $fieldTouched = selectorFamily<boolean, string>({
           ),
         );
         return result.reduce((acc: boolean, x: boolean) => acc || x, false);
+      }
+      if (field.type === FieldType.list) {
+        const result: boolean[] = get(
+          waitForAll(
+            field.children.map((id) =>
+              $fieldTouched(fieldId(field.formId, id)),
+            ),
+          ),
+        );
+        return result.reduce(
+          (acc: boolean, x: boolean) => acc || x,
+          field.touched,
+        );
       }
       return field.touched;
     },
@@ -356,7 +372,8 @@ export const $allFieldIds = selectorFamily<string[], string>({
   },
 });
 
-const isNotEqualByRef = (a: any = null, b: any = null) => a !== b;
+const isNotEqual = (a: any = null, b: any = null) =>
+  JSON.stringify(a) !== JSON.stringify(b);
 
 export const $fieldDirty = selectorFamily<boolean, string>({
   key: 'form_field_dirty',
@@ -364,7 +381,7 @@ export const $fieldDirty = selectorFamily<boolean, string>({
     (id: string) =>
     async ({ get }) => {
       const field = get($field(id));
-      if (field.type !== FieldType.field) {
+      if (field.type === FieldType.map) {
         const result: boolean[] = get(
           waitForAll(
             field.children.map((id) => $fieldDirty(fieldId(field.formId, id))),
@@ -372,7 +389,16 @@ export const $fieldDirty = selectorFamily<boolean, string>({
         );
         return result.reduce<boolean>((acc, x) => acc || x, false);
       }
-      const { dirtyComparator = isNotEqualByRef, initialValue, value } = field;
+      if (field.type === FieldType.list) {
+        const result: any[] = get(
+          waitForAll(
+            field.children.map((id) => $fieldValue(fieldId(field.formId, id))),
+          ),
+        );
+        const { dirtyComparator = isNotEqual, initialValue } = field;
+        return dirtyComparator(result, initialValue);
+      }
+      const { dirtyComparator = isNotEqual, initialValue, value } = field;
       return dirtyComparator(await value, initialValue);
     },
   cachePolicy_UNSTABLE: {

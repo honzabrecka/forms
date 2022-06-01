@@ -75,6 +75,10 @@ export function useFieldValue({ formId, name }: FieldIdentification) {
   return useRecoilValue($fieldValue(fieldId(useFormId(formId), name)));
 }
 
+export function useFieldValueLoadable({ formId, name }: FieldIdentification) {
+  return useRecoilValueLoadable($fieldValue(fieldId(useFormId(formId), name)));
+}
+
 export function useFormReady(formId?: string) {
   formId = useFormId(formId);
   useRecoilValue($formReadyDelay(formId));

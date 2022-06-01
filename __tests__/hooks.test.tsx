@@ -946,7 +946,7 @@ test('forms: dirty - setValues + setInitialValues', async () => {
   });
 });
 
-test('forms: dirty - default dirtyComparator compares by ref', async () => {
+test('forms: dirty - default dirtyComparator compares by value (JSON.stringify)', async () => {
   const { result } = renderHook(
     () => {
       const form = useForm({
@@ -961,6 +961,16 @@ test('forms: dirty - default dirtyComparator compares by ref', async () => {
   await act(() => {
     // new reference
     result.current.form.setValues({ a: { foo: 'bar' } });
+  });
+
+  await expectFormBag(result, {
+    dirty: false,
+    dirtyFieldIds: [],
+  });
+
+  await act(() => {
+    // new value
+    result.current.form.setValues({ a: { foo: 'baz' } });
   });
 
   await expectFormBag(result, {

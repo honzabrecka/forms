@@ -255,6 +255,7 @@ export default function useForm({
           fieldIdsToValidate.forEach((id: string) =>
             set(
               $field(fieldId(formId, id)),
+              // TODO revalidate list?
               onFieldTypeOnly((state) => ({
                 ...state,
                 validation: state.validator(state.value),
