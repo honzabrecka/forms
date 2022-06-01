@@ -7,7 +7,7 @@ import {
   $formSubmission,
   $formValidation,
   $fieldValidation,
-  $allValues,
+  $values,
   $touched,
   $formReadyDelay,
   $fieldDirty,
@@ -82,5 +82,5 @@ export function useFieldValueLoadable({ formId, name }: FieldIdentification) {
 export function useFormReady(formId?: string) {
   formId = useFormId(formId);
   useRecoilValue($formReadyDelay(formId));
-  useRecoilValue($allValues(formId));
+  useRecoilValue($values(formId));
 }

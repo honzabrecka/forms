@@ -67,7 +67,6 @@ export type FieldState = {
 
 export type Bag = {
   values: Dict<any>;
-  allValues: Dict<any>;
   initialValues: Dict<any>;
   touched: Dict<boolean>;
   fieldIds: string[];

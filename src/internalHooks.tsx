@@ -9,7 +9,6 @@ import {
   $form,
   $fieldIds,
   $values,
-  $allValues,
   $formValidation,
   $touched,
   $initialValues,
@@ -21,26 +20,16 @@ export function useGetBag(formId: string) {
   return useRecoilCallback(
     ({ snapshot }) =>
       async () => {
-        const [
-          fieldIds,
-          values,
-          allValues,
-          validation,
-          touched,
-          initialValues,
-          dirty,
-        ] = await Promise.all([
-          snapshot.getPromise($fieldIds(formId)),
+        const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
+        const touched = snapshot.getLoadable($touched(formId)).contents;
+        const [values, validation, initialValues, dirty] = await Promise.all([
           snapshot.getPromise($values(formId)),
-          snapshot.getPromise($allValues(formId)),
           snapshot.getPromise($formValidation(formId)),
-          snapshot.getPromise($touched(formId)),
           snapshot.getPromise($initialValues(formId)),
           snapshot.getPromise($formDirty(formId)),
         ]);
         return {
           values,
-          allValues,
           initialValues,
           touched,
           fieldIds,
@@ -57,18 +46,15 @@ export function useGetBagForValidator(formId: string) {
   return useRecoilCallback(
     ({ snapshot }) =>
       async () => {
-        const [fieldIds, values, allValues, touched, initialValues, dirty] =
-          await Promise.all([
-            snapshot.getPromise($fieldIds(formId)),
-            snapshot.getPromise($values(formId)),
-            snapshot.getPromise($allValues(formId)),
-            snapshot.getPromise($touched(formId)),
-            snapshot.getPromise($initialValues(formId)),
-            snapshot.getPromise($formDirty(formId)),
-          ]);
+        const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
+        const touched = snapshot.getLoadable($touched(formId)).contents;
+        const [values, initialValues, dirty] = await Promise.all([
+          snapshot.getPromise($values(formId)),
+          snapshot.getPromise($initialValues(formId)),
+          snapshot.getPromise($formDirty(formId)),
+        ]);
         return {
           values,
-          allValues,
           initialValues,
           touched,
           fieldIds,

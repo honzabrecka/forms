@@ -26,7 +26,6 @@ const htmlEvent = (value: any) => ({ target: { value } });
 const expectFormBag = async (result: any, expected: any) => {
   const bag = await result.current.form.getBag();
   expect(bag).toHaveProperty('values');
-  expect(bag).toHaveProperty('allValues');
   expect(bag).toHaveProperty('touched');
   expect(bag).toHaveProperty('fieldIds');
   expect(bag).toHaveProperty('validation');
@@ -59,7 +58,6 @@ test('forms: initial values', async () => {
     initialValues: { a: 1, b: 3, c: 4 },
     touched: { a: false, b: false, c: false },
     values: { a: 1, b: 3, c: 4 },
-    allValues: { a: 1, b: 3, c: 4 },
   });
 });
 
@@ -79,8 +77,7 @@ test('forms: setValues', async () => {
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
     touched: { a: false, b: false },
-    values: { a: 2 },
-    allValues: { a: 2, b: undefined },
+    values: { a: 2, b: undefined },
   });
   expect(result.current.a.value).toEqual(2);
   expect(result.current.a.touched).toEqual(false);
@@ -106,7 +103,6 @@ test('forms: setValues with validator', async () => {
   const bag = await validator.mock.calls[2][1]();
   expect(bag).toMatchObject({
     fieldIds: ['a'],
-    allValues: { a: 2 },
     values: { a: 2 },
     touched: { a: false },
     initialValues: {},
@@ -131,8 +127,7 @@ test('forms: setTouched', async () => {
   });
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
-    allValues: { a: undefined, b: undefined },
-    values: {},
+    values: { a: undefined, b: undefined },
     touched: { a: true, b: false },
   });
   expect(result.current.a.value).toEqual(undefined);
@@ -226,8 +221,7 @@ test('forms: setAllToTouched', async () => {
 
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
-    allValues: { a: undefined, b: undefined },
-    values: {},
+    values: { a: undefined, b: undefined },
     touched: { a: true, b: true },
   });
   expect(result.current.a.value).toEqual(undefined);
@@ -263,8 +257,7 @@ test('forms > field: onChange', async () => {
   });
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
-    allValues: { a: 2, b: undefined },
-    values: { a: 2 },
+    values: { a: 2, b: undefined },
     touched: { a: false, b: false },
   });
   expect(result.current.a.value).toEqual(2);
@@ -300,8 +293,7 @@ test('forms > field: onChange with an async value', async () => {
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
     touched: { a: false, b: false },
-    values: { a: 2 },
-    allValues: { a: 2, b: undefined },
+    values: { a: 2, b: undefined },
   });
   expect(result.current.a.value).toEqual(value);
   expect(result.current.a.touched).toEqual(false);
@@ -625,8 +617,7 @@ test('forms: submit valid form', async () => {
 
   expect(onSubmit).toHaveBeenCalledTimes(1);
   const bag = onSubmit.mock.calls[0][0];
-  expect(bag.values).toEqual({ a: 2 });
-  expect(bag.allValues).toEqual({ a: 2, b: undefined });
+  expect(bag.values).toEqual({ a: 2, b: undefined });
   expect(bag.touched).toEqual({ a: false, b: false });
   expect(bag.fieldIds).toEqual(['a', 'b']);
   expect(bag.args).toEqual(['foo', 'bar']);
@@ -685,8 +676,7 @@ test('forms: submit waits for async values', async () => {
 
   expect(onSubmit).toHaveBeenCalledTimes(1);
   const bag = onSubmit.mock.calls[0][0];
-  expect(bag.values).toEqual({ a: 2 });
-  expect(bag.allValues).toEqual({ a: 2, b: undefined });
+  expect(bag.values).toEqual({ a: 2, b: undefined });
 });
 
 test('forms: validate via useFormValidation - without any argument all fields are revalidated', async () => {
@@ -1113,7 +1103,6 @@ test('forms: manually added/removed field', async () => {
   await expectFormBag(result, {
     fieldIds: [],
     values: {},
-    allValues: {},
   });
 
   await act(() => {
@@ -1123,7 +1112,6 @@ test('forms: manually added/removed field', async () => {
   await expectFormBag(result, {
     fieldIds: ['a'],
     values: { a: 'foo' },
-    allValues: { a: 'foo' },
   });
 
   await act(() => {
@@ -1133,7 +1121,6 @@ test('forms: manually added/removed field', async () => {
   await expectFormBag(result, {
     fieldIds: [],
     values: {},
-    allValues: {},
   });
 
   // id is added just once
@@ -1146,7 +1133,6 @@ test('forms: manually added/removed field', async () => {
   await expectFormBag(result, {
     fieldIds: ['a'],
     values: { a: 'foo' },
-    allValues: { a: 'foo' },
   });
 });
 
@@ -1172,7 +1158,6 @@ test('forms: manually added/removed nested field', async () => {
   await expectFormBag(result, {
     fieldIds: [],
     values: {},
-    allValues: {},
   });
 
   await act(() => {
@@ -1182,7 +1167,6 @@ test('forms: manually added/removed nested field', async () => {
   await expectFormBag(result, {
     fieldIds: ['a'],
     values: { a: { b: { c: 'foo' } } },
-    allValues: { a: { b: { c: 'foo' } } },
   });
 
   await act(() => {
@@ -1192,7 +1176,6 @@ test('forms: manually added/removed nested field', async () => {
   await expectFormBag(result, {
     fieldIds: [],
     values: {},
-    allValues: {},
   });
 
   // id is added just once
@@ -1205,6 +1188,5 @@ test('forms: manually added/removed nested field', async () => {
   await expectFormBag(result, {
     fieldIds: ['a'],
     values: { a: { b: { c: 'foo' } } },
-    allValues: { a: { b: { c: 'foo' } } },
   });
 });

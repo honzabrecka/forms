@@ -223,8 +223,8 @@ export const $fields = selectorFamily({
   },
 });
 
-export const $allValues = selectorFamily<Dict<any>, string>({
-  key: 'form_allValues',
+export const $values = selectorFamily<any, string>({
+  key: 'form_values',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -238,27 +238,6 @@ export const $allValues = selectorFamily<Dict<any>, string>({
         ),
       );
       return values;
-    },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
-});
-
-const removeUndefinedValues = (values: Dict<any>) =>
-  Object.entries(values).reduce<Dict<any>>((acc, [key, value]) => {
-    if (value !== undefined) {
-      acc[`${key}`] = value;
-    }
-    return acc;
-  }, {});
-
-export const $values = selectorFamily<any, string>({
-  key: 'form_values',
-  get:
-    (formId: string) =>
-    ({ get }) => {
-      const values = get($allValues(formId));
-      return removeUndefinedValues(values);
     },
   cachePolicy_UNSTABLE: {
     eviction: 'most-recent',

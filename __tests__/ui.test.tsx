@@ -90,7 +90,6 @@ const identity = (x: any) => x;
 
 const expectFormBag = (bag: any, expected: any) => {
   expect(bag).toHaveProperty('values');
-  expect(bag).toHaveProperty('allValues');
   expect(bag).toHaveProperty('touched');
   expect(bag).toHaveProperty('fieldIds');
   expect(bag).toHaveProperty('validation');
@@ -125,8 +124,6 @@ test('forms: basic', async () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['name'],
-      values: { name: 'John Doe' },
-      allValues: { name: 'John Doe' },
       touched: { name: true },
       initialValues: {},
       dirty: true,
@@ -161,7 +158,6 @@ test('forms: blur & async & submit', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['name'],
       values: { name: 'John Doe' },
-      allValues: { name: 'John Doe' },
       touched: { name: true },
       initialValues: {},
       dirty: true,
@@ -231,7 +227,6 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['foo'],
       values: { foo: [{ x: 1 }, { x: 2 }] },
-      allValues: { foo: [{ x: 1 }, { x: 2 }] },
       touched: { foo: false },
       initialValues: { foo: [{ x: 1 }, { x: 2 }] },
       dirty: false,
@@ -250,7 +245,6 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['foo'],
       values: { foo: [{ x: 1 }, { x: 2 }, { x: 'John Doe' }] },
-      allValues: { foo: [{ x: 1 }, { x: 2 }, { x: 'John Doe' }] },
       touched: { foo: true },
       initialValues: { foo: [{ x: 1 }, { x: 2 }] },
       dirty: true,
@@ -267,7 +261,6 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[2][0], {
       fieldIds: ['foo'],
       values: { foo: [{ x: 1 }, { x: 2 }] },
-      allValues: { foo: [{ x: 1 }, { x: 2 }] },
       touched: { foo: true },
       initialValues: { foo: [{ x: 1 }, { x: 2 }] },
       dirty: false,
@@ -284,7 +277,6 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[3][0], {
       fieldIds: ['foo'],
       values: { foo: [{ x: 'foo' }, { x: 'bar' }] },
-      allValues: { foo: [{ x: 'foo' }, { x: 'bar' }] },
       touched: { foo: false },
       initialValues: { foo: [{ x: 'foo' }, { x: 'bar' }] },
       dirty: false,
@@ -301,7 +293,6 @@ test('forms: List', async () => {
     expectFormBag(onSubmitInvalid.mock.calls[0][0], {
       fieldIds: ['foo'],
       values: { foo: [] },
-      allValues: { foo: [] },
       touched: { foo: true },
       initialValues: { foo: [{ x: 'foo' }, { x: 'bar' }] },
       dirty: true,
