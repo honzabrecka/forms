@@ -18,6 +18,11 @@ export type UseListProps = FieldIdentification & {
   preserveStateAfterUnmount?: boolean;
 };
 
+export type MappedFieldProp = {
+  name: string;
+  initialValue: any;
+};
+
 export type UseListResult = {
   fields: string[];
   add: (value?: Dict<any>) => string;
@@ -28,12 +33,15 @@ export type UseListResult = {
   swap: (a: number, b: number) => void;
   move: (a: number, b: number) => void;
   replace: (value: Dict<any>[]) => void;
+  fieldProps: (i: number, name: string) => MappedFieldProp;
 };
+
+const emptyArray: Dict<any>[] = [];
 
 const useList = ({
   formId: formIdProp,
   name,
-  initialValue,
+  initialValue = emptyArray,
   dirtyComparator,
   preserveStateAfterUnmount = false,
 }: UseListProps): UseListResult => {
@@ -205,7 +213,7 @@ const useList = ({
   useEffect(() => {
     registration.add([name]);
 
-    const [children, values] = initialValue
+    const [children, values] = initialValue.length
       ? createRows(initialValue)
       : [[], {}];
 
@@ -215,7 +223,7 @@ const useList = ({
       type: FieldType.list,
       initialValue,
       dirtyComparator: dirtyComparator || state.dirtyComparator,
-      children: initialValue ? children : state.children,
+      children: initialValue.length ? children : state.children,
     }));
 
     return () => {
@@ -238,6 +246,10 @@ const useList = ({
     removeAll,
     swap,
     move,
+    fieldProps: (i: number, name: string) => ({
+      name: `${fieldState.children[i]}.${name}`,
+      initialValue: fieldState.initialValue[i]?.[name],
+    }),
   };
 };
 

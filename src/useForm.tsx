@@ -177,8 +177,8 @@ export default function useForm({
 
   const resetTouched = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
-      async () => {
-        const fieldIds = await snapshot.getPromise($allFieldIds(formId));
+      () => {
+        const fieldIds = snapshot.getLoadable($allFieldIds(formId)).contents;
         transact_UNSTABLE(({ set }) => {
           fieldIds.forEach((id: string) =>
             set(
@@ -197,8 +197,8 @@ export default function useForm({
 
   const setAllToTouched = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
-      async () => {
-        const fieldIds = await snapshot.getPromise($allFieldIds(formId));
+      () => {
+        const fieldIds = snapshot.getLoadable($allFieldIds(formId)).contents;
         transact_UNSTABLE(({ set }) => {
           fieldIds.forEach((id: string) =>
             set(
@@ -217,8 +217,8 @@ export default function useForm({
 
   const reset = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
-      async () => {
-        const fieldIds = await snapshot.getPromise($allFieldIds(formId));
+      () => {
+        const fieldIds = snapshot.getLoadable($allFieldIds(formId)).contents;
         transact_UNSTABLE(({ set }) => {
           set($form(formId), (state: FormState) => ({
             ...state,
@@ -246,11 +246,11 @@ export default function useForm({
 
   const revalidate = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
-      async (fieldIds: string[] = []) => {
+      (fieldIds: string[] = []) => {
         const fieldIdsToValidate =
           fieldIds.length > 0
             ? fieldIds
-            : await snapshot.getPromise($allFieldIds(formId));
+            : snapshot.getLoadable($allFieldIds(formId)).contents;
         transact_UNSTABLE(({ set }) => {
           fieldIdsToValidate.forEach((id: string) =>
             set(
@@ -269,8 +269,8 @@ export default function useForm({
 
   const clear = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
-      async () => {
-        const fieldIds = await snapshot.getPromise($allFieldIds(formId));
+      () => {
+        const fieldIds = snapshot.getLoadable($allFieldIds(formId)).contents;
         transact_UNSTABLE(({ reset }) => {
           reset($form(formId));
           fieldIds.forEach((id: string) => reset($field(fieldId(formId, id))));

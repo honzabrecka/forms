@@ -1,4 +1,5 @@
-import React, { Fragment, useEffect, useState } from 'react';
+/* eslint-disable react/jsx-props-no-spreading */
+import React, { Fragment, useEffect, useState, StrictMode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
@@ -11,7 +12,11 @@ import {
   success,
 } from '../src/index';
 
-const wrapper = ({ children }: any) => <RecoilRoot>{children}</RecoilRoot>;
+const wrapper = ({ children }: any) => (
+  <StrictMode>
+    <RecoilRoot>{children}</RecoilRoot>
+  </StrictMode>
+);
 
 const Field = ({ label, ...props }: any) => {
   const { inited, onChange, onFocus, onBlur, name, id, value } =
@@ -183,11 +188,11 @@ test('forms: List', async () => {
           initialValue={[{ x: 1 }, { x: 2 }]}
           validator={notEmptyList}
         >
-          {({ fields, add, remove, removeAll, replace }) => (
+          {({ fields, fieldProps, add, remove, removeAll, replace }) => (
             <>
               {fields.map((field, i) => (
                 <Fragment key={field}>
-                  <Field name={`${field}.x`} label="x" />
+                  <Field {...fieldProps(i, 'x')} label="x" />
                   <button type="button" onClick={() => remove(i)}>
                     remove
                   </button>

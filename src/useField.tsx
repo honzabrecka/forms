@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useEffect, useState } from 'react';
 import {
   Loadable,
   useRecoilCallback,
@@ -185,9 +185,14 @@ export default function useField({
     setFieldState((state) => ({
       ...state,
       inited: true,
-      value: state.value === undefined ? initialValue : state.value,
+      value:
+        state.value === undefined && initialValue !== undefined
+          ? initialValue
+          : state.value,
       initialValue:
-        state.initialValue === undefined ? initialValue : state.initialValue,
+        state.initialValue === undefined && initialValue !== undefined
+          ? initialValue
+          : state.initialValue,
       dirtyComparator,
     }));
 
@@ -202,8 +207,6 @@ export default function useField({
       registration.remove([name]);
     };
   }, []);
-
-  const runValidatorEffect = useRef(false);
 
   useEffect(() => {
     setFieldState((state) => {
@@ -227,14 +230,11 @@ export default function useField({
         validation:
           // validation runs conditionally on mount
           // or when validator is changed during field's life
-          (!runValidatorEffect.current && validateOnMount) ||
-          runValidatorEffect.current
+          (!inited && validateOnMount) || inited
             ? wrappedValidator(state.value)
             : state.validation,
       };
     });
-
-    runValidatorEffect.current = true;
   }, [validator]);
 
   const transformedValue = useMemo(

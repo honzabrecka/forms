@@ -1,11 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, StrictMode } from 'react';
 import { renderHook, act } from '@testing-library/react';
 import useCallbackInNextRender from '../src/useCallbackInNextRender';
 
 describe('useCallbackInNextRender', () => {
   test('returned function executed with args', () => {
     const cb = jest.fn();
-    const { result } = renderHook(() => useCallbackInNextRender(cb));
+    const { result } = renderHook(() => useCallbackInNextRender(cb), {
+      wrapper: StrictMode,
+    });
     expect(typeof result.current).toBe('function');
     act(() => {
       result.current('foo', 'bar');
@@ -17,12 +19,17 @@ describe('useCallbackInNextRender', () => {
   test('state is up to date in callback', () => {
     const delayedInnerCb = jest.fn();
     const staleInnerCb = jest.fn();
-    const { result } = renderHook(() => {
-      const [state, setState] = useState('foo');
-      const stale = useCallback(() => staleInnerCb(state), [state]);
-      const delayed = useCallbackInNextRender(() => delayedInnerCb(state));
-      return { state, setState, delayed, stale };
-    });
+    const { result } = renderHook(
+      () => {
+        const [state, setState] = useState('foo');
+        const stale = useCallback(() => staleInnerCb(state), [state]);
+        const delayed = useCallbackInNextRender(() => delayedInnerCb(state));
+        return { state, setState, delayed, stale };
+      },
+      {
+        wrapper: StrictMode,
+      },
+    );
     expect(result.current.state).toEqual('foo');
     act(() => {
       // setting state...

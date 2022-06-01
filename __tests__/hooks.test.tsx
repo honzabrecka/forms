@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { StrictMode } from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import {
   RecoilRoot,
@@ -16,7 +16,11 @@ import {
   isError,
 } from '../src/index';
 
-const wrapper = ({ children }: any) => <RecoilRoot>{children}</RecoilRoot>;
+const wrapper = ({ children }: any) => (
+  <StrictMode>
+    <RecoilRoot>{children}</RecoilRoot>
+  </StrictMode>
+);
 const htmlEvent = (value: any) => ({ target: { value } });
 
 const expectFormBag = async (result: any, expected: any) => {
@@ -97,8 +101,9 @@ test('forms: setValues with validator', async () => {
   await act(() => {
     result.current.form.setValues({ a: Promise.resolve(2) });
   });
-  expect(await validator.mock.calls[1][0]).toBe(2);
-  const bag = await validator.mock.calls[1][1]();
+  // NOTE (react 18) in dev mode it mounts 2x
+  expect(await validator.mock.calls[2][0]).toBe(2);
+  const bag = await validator.mock.calls[2][1]();
   expect(bag).toMatchObject({
     fieldIds: ['a'],
     allValues: { a: 2 },
@@ -108,7 +113,7 @@ test('forms: setValues with validator', async () => {
     dirty: true,
   });
   expect(bag).not.toHaveProperty('validation');
-  expect(await validator.mock.calls[1][2]).toBe(undefined);
+  expect(await validator.mock.calls[2][2]).toBe(undefined);
 });
 
 test('forms: setTouched', async () => {
