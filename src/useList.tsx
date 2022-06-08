@@ -24,16 +24,15 @@ export type MappedFieldProp = {
 };
 
 export type UseListResult = {
-  fields: string[];
+  fields: [string, (nested: string) => MappedFieldProp][];
   add: (value?: Dict<any>) => string;
   addAt: (index: number, value?: Dict<any>) => string;
   addMany: (values: Dict<any>[]) => string[];
-  remove: (index: number) => void;
+  remove: (name: string) => void;
   removeAll: () => void;
-  swap: (a: number, b: number) => void;
-  move: (a: number, b: number) => void;
+  swap: (a: string, b: string) => void;
+  move: (name: string, b: number) => void;
   replace: (value: Dict<any>[]) => void;
-  fieldProps: (i: number, name: string) => MappedFieldProp;
 };
 
 const emptyArray: Dict<any>[] = [];
@@ -131,46 +130,45 @@ const useList = ({
     return values.map(add);
   };
 
-  const remove = (index: number) => {
+  const remove = (name: string) => {
     setFieldState((state) => ({
       ...state,
-      children: state.children.filter((_, i) => i !== index),
+      children: state.children.filter((x) => x !== name),
       touched: true,
     }));
   };
 
   const removeAll = () => {
-    setFieldState((state) => {
-      return {
-        ...state,
-        children: [],
-        touched: true,
-      };
-    });
+    setFieldState((state) => ({
+      ...state,
+      children: [],
+      touched: true,
+    }));
   };
 
-  const swap = (a: number, b: number) => {
-    setFieldState((state) => {
-      const ax = state.children[a];
-      const bx = state.children[b];
-      return {
-        ...state,
-        children: state.children.map((x, i) => {
-          if (i === a) {
-            return bx;
-          }
-          if (i === b) {
-            return ax;
-          }
-          return x;
-        }),
-        touched: true,
-      };
-    });
+  const swap = (a: string, b: string) => {
+    setFieldState((state) => ({
+      ...state,
+      children: state.children.map((x) => {
+        if (x === a) {
+          return b;
+        }
+        if (x === b) {
+          return a;
+        }
+        return x;
+      }),
+      touched: true,
+    }));
   };
 
-  const move = (from: number, to: number) => {
+  const move = (name: string, to: number) => {
     setFieldState((state) => {
+      const indicesByName = state.children.reduce<Dict<number>>((acc, x, i) => {
+        acc[x] = i;
+        return acc;
+      }, {});
+      const from = indicesByName[name];
       const before = state.children.slice(0, from);
       const after = state.children.slice(from + 1);
       const tempChildren = [...before, ...after];
@@ -199,7 +197,6 @@ const useList = ({
   };
 
   const replace = (rows: Dict<any>[]) => {
-    removeAll();
     const [children, values] = createRows(rows);
     setValues(values);
     setFieldState((state) => ({
@@ -237,7 +234,13 @@ const useList = ({
   }, []);
 
   return {
-    fields: fieldState.children,
+    fields: fieldState.children.map((name, i) => [
+      name,
+      (nested: string) => ({
+        name: `${name}.${nested}`,
+        initialValue: fieldState.initialValue[i]?.[nested],
+      }),
+    ]),
     replace,
     add,
     addAt,
@@ -246,10 +249,6 @@ const useList = ({
     removeAll,
     swap,
     move,
-    fieldProps: (i: number, name: string) => ({
-      name: `${fieldState.children[i]}.${name}`,
-      initialValue: fieldState.initialValue[i]?.[name],
-    }),
   };
 };
 

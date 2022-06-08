@@ -169,7 +169,7 @@ test('forms: blur & async & submit', async () => {
 const notEmptyList: Validator = (value) =>
   value.length ? success() : error('empty list');
 
-test('forms: List', async () => {
+test.only('forms: List', async () => {
   const onSubmit = jest.fn();
   const onSubmitInvalid = jest.fn();
   const App = () => {
@@ -180,21 +180,21 @@ test('forms: List', async () => {
     return (
       <Form>
         <List
-          name="foo"
-          initialValue={[{ x: 1 }, { x: 2 }]}
+          name="users"
+          initialValue={[{ name: 1 }, { name: 2 }]}
           validator={notEmptyList}
         >
-          {({ fields, fieldProps, add, remove, removeAll, replace }) => (
+          {({ fields, add, remove, removeAll, replace }) => (
             <>
-              {fields.map((field, i) => (
-                <Fragment key={field}>
-                  <Field {...fieldProps(i, 'x')} label="x" />
-                  <button type="button" onClick={() => remove(i)}>
+              {fields.map(([id, field]) => (
+                <Fragment key={id}>
+                  <Field label="Name" {...field('name')} />
+                  <button type="button" onClick={() => remove(id)}>
                     remove
                   </button>
                 </Fragment>
               ))}
-              <button type="button" onClick={add}>
+              <button type="button" onClick={() => add({ name: 'John Doe' })}>
                 add
               </button>
               <button type="button" onClick={removeAll}>
@@ -202,7 +202,7 @@ test('forms: List', async () => {
               </button>
               <button
                 type="button"
-                onClick={() => replace([{ x: 'foo' }, { x: 'bar' }])}
+                onClick={() => replace([{ name: 'users' }, { name: 'bar' }])}
               >
                 fill
               </button>
@@ -225,10 +225,10 @@ test('forms: List', async () => {
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expectFormBag(onSubmit.mock.calls[0][0], {
-      fieldIds: ['foo'],
-      values: { foo: [{ x: 1 }, { x: 2 }] },
-      touched: { foo: false },
-      initialValues: { foo: [{ x: 1 }, { x: 2 }] },
+      fieldIds: ['users'],
+      values: { users: [{ name: 1 }, { name: 2 }] },
+      touched: { users: false },
+      initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: false,
       validation: { isValid: true, isValidStrict: true },
     });
@@ -236,17 +236,15 @@ test('forms: List', async () => {
 
   await user.click(screen.getByText('add'));
 
-  await user.type(screen.getAllByLabelText('x')[2], 'John Doe');
-
   await user.click(screen.getByText('submit'));
 
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledTimes(2);
     expectFormBag(onSubmit.mock.calls[1][0], {
-      fieldIds: ['foo'],
-      values: { foo: [{ x: 1 }, { x: 2 }, { x: 'John Doe' }] },
-      touched: { foo: true },
-      initialValues: { foo: [{ x: 1 }, { x: 2 }] },
+      fieldIds: ['users'],
+      values: { users: [{ name: 1 }, { name: 2 }, { name: 'John Doe' }] },
+      touched: { users: true },
+      initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
     });
@@ -259,10 +257,10 @@ test('forms: List', async () => {
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledTimes(3);
     expectFormBag(onSubmit.mock.calls[2][0], {
-      fieldIds: ['foo'],
-      values: { foo: [{ x: 1 }, { x: 2 }] },
-      touched: { foo: true },
-      initialValues: { foo: [{ x: 1 }, { x: 2 }] },
+      fieldIds: ['users'],
+      values: { users: [{ name: 1 }, { name: 2 }] },
+      touched: { users: true },
+      initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: false,
       validation: { isValid: true, isValidStrict: true },
     });
@@ -275,10 +273,10 @@ test('forms: List', async () => {
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledTimes(4);
     expectFormBag(onSubmit.mock.calls[3][0], {
-      fieldIds: ['foo'],
-      values: { foo: [{ x: 'foo' }, { x: 'bar' }] },
-      touched: { foo: false },
-      initialValues: { foo: [{ x: 'foo' }, { x: 'bar' }] },
+      fieldIds: ['users'],
+      values: { users: [{ name: 'users' }, { name: 'bar' }] },
+      touched: { users: false },
+      initialValues: { users: [{ name: 'users' }, { name: 'bar' }] },
       dirty: false,
       validation: { isValid: true, isValidStrict: true },
     });
@@ -291,10 +289,10 @@ test('forms: List', async () => {
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
     expectFormBag(onSubmitInvalid.mock.calls[0][0], {
-      fieldIds: ['foo'],
-      values: { foo: [] },
-      touched: { foo: true },
-      initialValues: { foo: [{ x: 'foo' }, { x: 'bar' }] },
+      fieldIds: ['users'],
+      values: { users: [] },
+      touched: { users: true },
+      initialValues: { users: [{ name: 'users' }, { name: 'bar' }] },
       dirty: true,
       validation: { isValid: false, isValidStrict: false },
     });

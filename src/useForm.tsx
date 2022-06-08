@@ -217,14 +217,17 @@ export default function useForm({
 
   const reset = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
-      () => {
-        const fieldIds = snapshot.getLoadable($allFieldIds(formId)).contents;
+      (fieldIds: string[] = []) => {
+        const fieldIdsToReset =
+          fieldIds.length > 0
+            ? fieldIds
+            : snapshot.getLoadable($allFieldIds(formId)).contents;
         transact_UNSTABLE(({ set }) => {
           set($form(formId), (state: FormState) => ({
             ...state,
             submission: Promise.resolve(null),
           }));
-          fieldIds.forEach((id: string) =>
+          fieldIdsToReset.forEach((id: string) =>
             set(
               $field(fieldId(formId, id)),
               onFieldTypeOnly((state) => {
@@ -261,6 +264,23 @@ export default function useForm({
                 validation: state.validator(state.value),
               })),
             ),
+          );
+        });
+      },
+    [],
+  );
+
+  const clearFields = useRecoilCallback(
+    ({ snapshot, transact_UNSTABLE }) =>
+      (fieldIds: string[] = []) => {
+        const fieldIdsToClear =
+          fieldIds.length > 0
+            ? fieldIds
+            : snapshot.getLoadable($allFieldIds(formId)).contents;
+        transact_UNSTABLE(({ reset }) => {
+          reset($form(formId));
+          fieldIdsToClear.forEach((id: string) =>
+            reset($field(fieldId(formId, id))),
           );
         });
       },
@@ -340,9 +360,10 @@ export default function useForm({
       setAllToTouched,
       reset,
       clear,
+      clearFields,
       revalidate,
       getBag,
-      isSubmitting: isSubmitting.state === 'loading',
+      submitting: isSubmitting.state === 'loading',
       submit: createSubmitPromise,
       handleSubmit,
       addFields,

@@ -5,7 +5,7 @@ type Form = FormControls & {
   formId: string;
   revalidate: (fieldIds?: string[]) => void;
   getBag: GetBag;
-  isSubmitting: boolean;
+  submitting: boolean;
   submit: (...args: any[]) => Promise<void>;
   handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };

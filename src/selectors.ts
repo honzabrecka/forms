@@ -36,7 +36,7 @@ export const $form = atomFamily<FormState, string>({
 });
 
 export const $formSubmission = selectorFamily<FormSubmission, string>({
-  key: 'form_submission',
+  key: 'form/submission',
   get:
     (id) =>
     ({ get }) =>
@@ -68,7 +68,7 @@ export const $field = atomFamily<FieldState, string>({
 });
 
 export const $fieldChildren = selectorFamily<string[], string>({
-  key: 'form_field_children',
+  key: 'form_field/children',
   get:
     (id: string) =>
     ({ get }) => {
@@ -91,7 +91,7 @@ export const $fieldChildren = selectorFamily<string[], string>({
 });
 
 export const $fieldValue = selectorFamily<any, string>({
-  key: 'form_field_value',
+  key: 'form_field/value',
   get:
     (id: string) =>
     ({ get }) => {
@@ -124,7 +124,7 @@ export const $fieldValue = selectorFamily<any, string>({
 });
 
 export const $fieldInitialValue = selectorFamily<any, string>({
-  key: 'form_field_initialValue',
+  key: 'form_field/initialValue',
   get:
     (id: string) =>
     ({ get }) => {
@@ -151,7 +151,7 @@ export const $fieldInitialValue = selectorFamily<any, string>({
 });
 
 export const $fieldValidation = selectorFamily<FieldValidationResult, string>({
-  key: 'form_field_validation',
+  key: 'form_field/validation',
   get:
     (id: string) =>
     async ({ get }) => {
@@ -187,7 +187,7 @@ export const $fieldValidation = selectorFamily<FieldValidationResult, string>({
 });
 
 export const $formValidation = selectorFamily<FormValidationResult, string>({
-  key: 'form_validation',
+  key: 'form/validation',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -211,7 +211,7 @@ export const $formValidation = selectorFamily<FormValidationResult, string>({
 });
 
 export const $fields = selectorFamily({
-  key: 'form_fields',
+  key: 'form/fields',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -224,7 +224,7 @@ export const $fields = selectorFamily({
 });
 
 export const $values = selectorFamily<any, string>({
-  key: 'form_values',
+  key: 'form/values',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -245,7 +245,7 @@ export const $values = selectorFamily<any, string>({
 });
 
 export const $initialValues = selectorFamily<any, string>({
-  key: 'form_initialValues',
+  key: 'form/initialValues',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -266,7 +266,7 @@ export const $initialValues = selectorFamily<any, string>({
 });
 
 export const $fieldTouched = selectorFamily<boolean, string>({
-  key: 'form_field_touched',
+  key: 'form_field/touched',
   get:
     (id: string) =>
     ({ get }) => {
@@ -302,7 +302,7 @@ export const $fieldTouched = selectorFamily<boolean, string>({
 });
 
 export const $touched = selectorFamily<Dict<boolean>, string>({
-  key: 'form_touched',
+  key: 'form/touched',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -325,7 +325,7 @@ export const $touched = selectorFamily<Dict<boolean>, string>({
 const fieldsToIds = (fields: FieldState[]) => fields.map(({ name }) => name);
 
 export const $fieldIds = selectorFamily({
-  key: 'form_fieldIds',
+  key: 'form/fieldIds',
   get:
     (formId: string) =>
     ({ get }) =>
@@ -336,7 +336,7 @@ export const $fieldIds = selectorFamily({
 });
 
 export const $allFieldIds = selectorFamily<string[], string>({
-  key: 'form_fieldIds',
+  key: 'form/allFieldIds',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -355,7 +355,7 @@ const isNotEqual = (a: any = null, b: any = null) =>
   JSON.stringify(a) !== JSON.stringify(b);
 
 export const $fieldDirty = selectorFamily<boolean, string>({
-  key: 'form_field_dirty',
+  key: 'form_field/dirty',
   get:
     (id: string) =>
     async ({ get }) => {
@@ -386,7 +386,7 @@ export const $fieldDirty = selectorFamily<boolean, string>({
 });
 
 export const $formDirty = selectorFamily({
-  key: 'form_dirty',
+  key: 'form/dirty',
   get:
     (formId: string) =>
     ({ get }) => {
@@ -411,7 +411,7 @@ export const $formDirty = selectorFamily({
 });
 
 export const $formReadyDelay = selectorFamily({
-  key: 'form_readyDelay',
+  key: 'form/readyDelay',
   get:
     (id: string) =>
     ({ get }) =>
