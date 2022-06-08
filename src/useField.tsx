@@ -1,10 +1,5 @@
 import { useCallback, useMemo, useEffect, useState } from 'react';
-import {
-  Loadable,
-  useRecoilCallback,
-  useRecoilState,
-  useRecoilValueLoadable,
-} from 'recoil';
+import { Loadable, useRecoilState, useRecoilValueLoadable } from 'recoil';
 import { fieldId, $field, $fieldValidation } from './selectors';
 import { useFormId } from './hooks';
 import {
@@ -171,28 +166,15 @@ export default function useField({
     [from, onChangeImmediate, validateOnChange],
   );
 
-  const reset = useRecoilCallback(
-    ({ reset }) =>
-      () => {
-        reset($field(fieldId(formId, name)));
-      },
-    [],
-  );
-
   useEffect(() => {
     registration.add([name]);
 
     setFieldState((state) => ({
       ...state,
       inited: true,
-      value:
-        state.value === undefined && initialValue !== undefined
-          ? initialValue
-          : state.value,
+      value: state.value === undefined ? initialValue : state.value,
       initialValue:
-        state.initialValue === undefined && initialValue !== undefined
-          ? initialValue
-          : state.initialValue,
+        state.initialValue === undefined ? initialValue : state.initialValue,
       dirtyComparator,
     }));
 
@@ -203,7 +185,6 @@ export default function useField({
         return;
       }
 
-      reset();
       registration.remove([name]);
     };
   }, []);
