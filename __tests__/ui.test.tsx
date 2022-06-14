@@ -29,7 +29,7 @@ const Field = ({ label, ...props }: any) => {
           type="text"
           id={id}
           name={name}
-          value={value}
+          value={value || ''}
           onChange={onChange}
           onBlur={onBlur}
           onFocus={onFocus}
@@ -55,7 +55,7 @@ const AsyncInput = ({ value, onChange, onBlur, ...props }: any) => {
     <input
       // eslint-disable-next-line
       {...props}
-      value={state}
+      value={state || ''}
       onChange={({ target: { value } }) => setState(value)}
       onBlur={() => {
         onChange(delay(250).then(() => state));
@@ -169,7 +169,7 @@ test('forms: blur & async & submit', async () => {
 const notEmptyList: Validator = (value) =>
   value.length ? success() : error('empty list');
 
-test.only('forms: List', async () => {
+test('forms: List', async () => {
   const onSubmit = jest.fn();
   const onSubmitInvalid = jest.fn();
   const App = () => {
@@ -295,6 +295,120 @@ test.only('forms: List', async () => {
       initialValues: { users: [{ name: 'users' }, { name: 'bar' }] },
       dirty: true,
       validation: { isValid: false, isValidStrict: false },
+    });
+  });
+});
+
+test('forms: field state is preserved in between mounts', async () => {
+  const onSubmit = jest.fn();
+  const App = () => {
+    const [key, setKey] = useState(1);
+    const { Form } = useForm({
+      onSubmit,
+    });
+    return (
+      <Form>
+        <Field name="name" label="Name" key={key} />
+        <button type="submit">submit</button>
+        <button type="button" onClick={() => setKey((k) => k + 1)}>
+          change key
+        </button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.type(screen.getByLabelText('Name'), 'John Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['name'],
+      touched: { name: true },
+      initialValues: {},
+      values: { name: 'John Doe' },
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getByText('change key'));
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['name'],
+      touched: { name: true },
+      initialValues: {},
+      values: { name: 'John Doe' },
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+});
+
+test('forms: field state is cleared', async () => {
+  const onSubmit = jest.fn();
+  const App = () => {
+    const [key, setKey] = useState(1);
+    const { Form, clearFields } = useForm({
+      onSubmit,
+    });
+    return (
+      <Form>
+        <Field name="name" label="Name" key={key} />
+        <button type="submit">submit</button>
+        <button
+          type="button"
+          onClick={() => {
+            clearFields(['name']);
+            setKey((k) => k + 1);
+          }}
+        >
+          change key
+        </button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.type(screen.getByLabelText('Name'), 'John Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['name'],
+      touched: { name: true },
+      initialValues: {},
+      values: { name: 'John Doe' },
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getByText('change key'));
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['name'],
+      touched: { name: false },
+      initialValues: {},
+      values: {},
+      dirty: false,
+      validation: { isValid: true, isValidStrict: true },
     });
   });
 });

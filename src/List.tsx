@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { useSetRecoilState } from 'recoil';
+import { useSetRecoilState, useRecoilCallback } from 'recoil';
 import useList, { UseListProps, UseListResult } from './useList';
-import { $field, fieldId } from './selectors';
+import { $field, $fieldValue, fieldId } from './selectors';
 import { useFieldValueLoadable, useFormId } from './hooks';
 import { useGetBagForValidator } from './internalHooks';
 import { FieldIdentification, Validator, NamedValidator } from './types';
@@ -22,11 +22,12 @@ const ReactiveValidator = ({
   name,
   validator,
 }: ReactiveValdiatorProps) => {
+  const resolvedFormId = useFormId(formId);
   const setFieldState = useSetRecoilState(
-    $field(fieldId(useFormId(formId), name)),
+    $field(fieldId(resolvedFormId, name)),
   );
-  const value = useFieldValueLoadable({ formId, name });
-  const getBagForValidator = useGetBagForValidator(useFormId(formId));
+  const value = useFieldValueLoadable({ formId: resolvedFormId, name });
+  const getBagForValidator = useGetBagForValidator(resolvedFormId);
 
   useEffect(() => {
     if (value.state === 'hasValue') {
@@ -36,6 +37,22 @@ const ReactiveValidator = ({
       }));
     }
   }, [value]);
+
+  const setValidator = useRecoilCallback(
+    ({ set, snapshot }) =>
+      (validator: NamedValidator) => {
+        // do not await on value, validator can wait for it itself
+        const value = snapshot.getPromise(
+          $fieldValue(fieldId(resolvedFormId, name)),
+        );
+        set($field(fieldId(resolvedFormId, name)), (state) => ({
+          ...state,
+          validator,
+          validation: validator(value),
+        }));
+      },
+    [],
+  );
 
   useEffect(() => {
     const wrappedValidator: NamedValidator = async (value) => {
@@ -52,12 +69,7 @@ const ReactiveValidator = ({
         };
       }
     };
-    setFieldState((state) => ({
-      ...state,
-      validator: wrappedValidator,
-      // TODO async value might not be ready yet
-      validation: wrappedValidator(value.contents),
-    }));
+    setValidator(wrappedValidator);
   }, [validator]);
 
   return null;

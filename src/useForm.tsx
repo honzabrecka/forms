@@ -9,6 +9,7 @@ import {
 import {
   fieldId,
   $field,
+  $fieldValue,
   $form,
   $formSubmission,
   $allFieldIds,
@@ -248,24 +249,31 @@ export default function useForm({
   );
 
   const revalidate = useRecoilCallback(
-    ({ snapshot, transact_UNSTABLE }) =>
+    ({ snapshot, set }) =>
       (fieldIds: string[] = []) => {
         const fieldIdsToValidate =
           fieldIds.length > 0
             ? fieldIds
             : snapshot.getLoadable($allFieldIds(formId)).contents;
-        transact_UNSTABLE(({ set }) => {
-          fieldIdsToValidate.forEach((id: string) =>
-            set(
-              $field(fieldId(formId, id)),
-              // TODO revalidate list?
-              onFieldTypeOnly((state) => ({
+        fieldIdsToValidate.forEach((id: string) =>
+          set($field(fieldId(formId, id)), (state) => {
+            if (state.type === FieldType.field) {
+              return {
                 ...state,
                 validation: state.validator(state.value),
-              })),
-            ),
-          );
-        });
+              };
+            }
+            if (state.type === FieldType.list) {
+              return {
+                ...state,
+                validation: state.validator(
+                  snapshot.getPromise($fieldValue(fieldId(formId, id))),
+                ),
+              };
+            }
+            return state;
+          }),
+        );
       },
     [],
   );

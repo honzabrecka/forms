@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
-  useRecoilCallback,
   useRecoilState,
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
@@ -54,14 +53,6 @@ const useList = ({
   );
   const registration = useFieldRegistration(formId);
 
-  const reset = useRecoilCallback(
-    ({ reset }) =>
-      () => {
-        reset($field(fieldId(formId, name)));
-      },
-    [],
-  );
-
   const setValues = useRecoilTransaction_UNSTABLE(
     ({ get, set }) =>
       (values: Dict<any>) => {
@@ -86,6 +77,20 @@ const useList = ({
   // problem with index as name is that children can be removed or change order
   const generateNewName = () => {
     return `${name}.${uid()}`;
+  };
+
+  const createRows = (rows: Dict<any>[]): [string[], Dict<any>] => {
+    const rowNames = rows.map(generateNewName);
+    return [
+      rowNames,
+      rows.reduce<Dict<any>>((acc, row, i) => {
+        const rowName = rowNames[i];
+        Object.entries(row).forEach(([key, value]) => {
+          acc[`${rowName}.${key}`] = value;
+        });
+        return acc;
+      }, {}),
+    ];
   };
 
   const add = (value?: Dict<any>) => {
@@ -127,7 +132,14 @@ const useList = ({
   };
 
   const addMany = (values: Dict<any>[]) => {
-    return values.map(add);
+    const [children, vals] = createRows(values);
+    setValues(vals);
+    setFieldState((state) => ({
+      ...state,
+      children: [...state.children, ...children],
+      touched: false,
+    }));
+    return children;
   };
 
   const remove = (name: string) => {
@@ -182,20 +194,6 @@ const useList = ({
     });
   };
 
-  const createRows = (rows: Dict<any>[]): [string[], Dict<any>] => {
-    const rowNames = rows.map(generateNewName);
-    return [
-      rowNames,
-      rows.reduce<Dict<any>>((acc, row, i) => {
-        const rowName = rowNames[i];
-        Object.entries(row).forEach(([key, value]) => {
-          acc[`${rowName}.${key}`] = value;
-        });
-        return acc;
-      }, {}),
-    ];
-  };
-
   const replace = (rows: Dict<any>[]) => {
     const [children, values] = createRows(rows);
     setValues(values);
@@ -228,19 +226,24 @@ const useList = ({
         return;
       }
 
-      reset();
       registration.remove([name]);
     };
   }, []);
 
+  const fields = useMemo<[string, (nested: string) => MappedFieldProp][]>(
+    () =>
+      fieldState.children.map((name, i) => [
+        name,
+        (nested: string) => ({
+          name: `${name}.${nested}`,
+          initialValue: fieldState.initialValue[i]?.[nested],
+        }),
+      ]),
+    [fieldState.children],
+  );
+
   return {
-    fields: fieldState.children.map((name, i) => [
-      name,
-      (nested: string) => ({
-        name: `${name}.${nested}`,
-        initialValue: fieldState.initialValue[i]?.[nested],
-      }),
-    ]),
+    fields,
     replace,
     add,
     addAt,
