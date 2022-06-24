@@ -1014,8 +1014,8 @@ test('forms: dirty - custom dirtyComparator', async () => {
 });
 
 test('forms: dirty - async values + custom dirtyComparator', async () => {
-  const dirtyComparator = (value: WithY, initialValue: WithY) =>
-    value.y !== initialValue.y;
+  const dirtyComparator = async (value: WithY, initialValue: WithY) =>
+    (await value).y !== initialValue.y;
   const { result } = renderHook(
     () => {
       const form = useForm({

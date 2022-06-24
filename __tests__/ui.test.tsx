@@ -10,6 +10,7 @@ import {
   Validator,
   error,
   success,
+  OnFormReady,
 } from '../src/index';
 
 const wrapper = ({ children }: any) => (
@@ -44,18 +45,32 @@ const delay = (t: number) =>
     setTimeout(() => resolve(), t);
   });
 
-const AsyncInput = ({ value, onChange, onBlur, ...props }: any) => {
-  const [state, setState] = useState('');
+const AsyncInput = ({
+  value,
+  onChange,
+  onBlur,
+  delayedResolve,
+  ...props
+}: any) => {
+  const [state, setState] = useState(delayedResolve || '');
 
   useEffect(() => {
     setState(value);
   }, [value]);
 
+  useEffect(() => {
+    if (delayedResolve) {
+      setState(delayedResolve);
+      onChange(delay(250).then(() => delayedResolve));
+      onBlur();
+    }
+  }, [delayedResolve]);
+
   return (
     <input
       // eslint-disable-next-line
       {...props}
-      value={state || ''}
+      value={state}
       onChange={({ target: { value } }) => setState(value)}
       onBlur={() => {
         onChange(delay(250).then(() => state));
@@ -65,7 +80,7 @@ const AsyncInput = ({ value, onChange, onBlur, ...props }: any) => {
   );
 };
 
-const AsyncField = ({ label, ...props }: any) => {
+const AsyncField = ({ label, delayedResolve, ...props }: any) => {
   const { inited, onChange, onFocus, onBlur, name, id, value } =
     useField(props);
   return (
@@ -80,6 +95,7 @@ const AsyncField = ({ label, ...props }: any) => {
           onChange={onChange}
           onBlur={onBlur}
           onFocus={onFocus}
+          delayedResolve={delayedResolve}
         />
       ) : null}
     </>
@@ -411,4 +427,147 @@ test('forms: field state is cleared', async () => {
       validation: { isValid: true, isValidStrict: true },
     });
   });
+});
+
+const exactLength: Validator = async (value) =>
+  (await value).length === 1 ? success() : error('wrong length');
+
+test('forms: async validation on list', async () => {
+  const onSubmit = jest.fn();
+  const onSubmitInvalid = jest.fn();
+  const App = () => {
+    const { Form, revalidate } = useForm({
+      onSubmit,
+      onSubmitInvalid,
+    });
+    return (
+      <Form>
+        <List name="users" validator={exactLength}>
+          {({ fields, add, remove, removeAll }) => (
+            <>
+              {fields.map(([id, field]) => (
+                <Fragment key={id}>
+                  <AsyncField from={identity} label="Name" {...field('name')} />
+                  <button type="button" onClick={() => remove(id)}>
+                    remove
+                  </button>
+                </Fragment>
+              ))}
+              <button type="button" onClick={() => add()}>
+                add
+              </button>
+              <button type="button" onClick={() => removeAll()}>
+                clear
+              </button>
+              <button type="button" onClick={() => revalidate()}>
+                revalidate
+              </button>
+            </>
+          )}
+        </List>
+        <button type="submit">submit</button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.click(screen.getByText('add'));
+  await user.type(screen.getByLabelText('Name'), 'John Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['users'],
+      values: { users: [{ name: 'John Doe' }] },
+      touched: { users: true },
+      initialValues: {},
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getByText('revalidate'));
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['users'],
+      values: { users: [{ name: 'John Doe' }] },
+      touched: { users: true },
+      initialValues: {},
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getByText('clear'));
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmitInvalid.mock.calls[0][0], {
+      fieldIds: ['users'],
+      values: { users: [] },
+      touched: { users: true },
+      initialValues: {},
+      dirty: false,
+      validation: { isValid: false, isValidStrict: false },
+    });
+  });
+});
+
+test('forms: OnFormReady', async () => {
+  const onSubmit = jest.fn();
+  const App = () => {
+    const { Form, getBag, setInitialValues, submit } = useForm({
+      onSubmit,
+    });
+    const onReady = async () => {
+      const { values } = await getBag();
+      setInitialValues(values);
+      submit();
+    };
+    return (
+      <Form>
+        <OnFormReady cb={onReady} />
+        <AsyncField
+          from={identity}
+          name="name"
+          label="Name"
+          delayedResolve="foo"
+        />
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['name'],
+      values: { name: 'foo' },
+      touched: { name: true },
+      initialValues: { name: 'foo' },
+      dirty: false,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.type(screen.getByLabelText('Name'), 'John Doe');
+
+  // onFormReady callback is called just once
+  await waitFor(
+    () => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    },
+    { interval: 2200, timeout: 2500 },
+  );
 });

@@ -79,8 +79,10 @@ export function useFieldValueLoadable({ formId, name }: FieldIdentification) {
   return useRecoilValueLoadable($fieldValue(fieldId(useFormId(formId), name)));
 }
 
-export function useFormReady(formId?: string) {
+export function useFormReadyLoadable(formId?: string) {
   formId = useFormId(formId);
-  useRecoilValue($formReadyDelay(formId));
-  useRecoilValue($values(formId));
+  return [
+    useRecoilValueLoadable($formReadyDelay(formId)),
+    useRecoilValueLoadable($values(formId)),
+  ].reduce((acc, { state }) => acc && state === 'hasValue', true);
 }

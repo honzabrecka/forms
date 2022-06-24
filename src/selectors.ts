@@ -31,7 +31,7 @@ export const $form = atomFamily<FormState, string>({
     id,
     fieldIds: [],
     submission: Promise.resolve(null),
-    readyDelay: delay(1000),
+    readyDelay: delay(100),
   }),
 });
 
@@ -351,8 +351,8 @@ export const $allFieldIds = selectorFamily<string[], string>({
   },
 });
 
-const isNotEqual = (a: any = null, b: any = null) =>
-  JSON.stringify(a) !== JSON.stringify(b);
+const isNotEqual = async (a: any = null, b: any = null) =>
+  JSON.stringify(await a) !== JSON.stringify(b);
 
 export const $fieldDirty = selectorFamily<boolean, string>({
   key: 'form_field/dirty',
@@ -378,7 +378,7 @@ export const $fieldDirty = selectorFamily<boolean, string>({
         return dirtyComparator(result, initialValue);
       }
       const { dirtyComparator = isNotEqual, initialValue, value } = field;
-      return dirtyComparator(await value, initialValue);
+      return dirtyComparator(value, initialValue);
     },
   cachePolicy_UNSTABLE: {
     eviction: 'most-recent',

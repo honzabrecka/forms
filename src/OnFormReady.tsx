@@ -1,26 +1,24 @@
-import React, { useEffect, Suspense } from 'react';
-import { useFormReady } from './hooks';
+import { useEffect, useRef } from 'react';
+import { useFormReadyLoadable } from './hooks';
 import { Callback0 } from './types';
 
 export type OnFormReadyProps = {
-  formId: string;
+  formId?: string;
   cb: Callback0;
 };
 
-const OnFormReadyInner = ({ cb, formId }: OnFormReadyProps) => {
-  useFormReady(formId);
+const OnFormReady = ({ cb, formId }: OnFormReadyProps) => {
+  const ready = useFormReadyLoadable(formId);
+  const run = useRef(false);
 
   useEffect(() => {
-    cb();
-  }, []);
+    if (ready && !run.current) {
+      cb();
+      run.current = true;
+    }
+  }, [ready]);
 
   return null;
 };
-
-const OnFormReady = ({ cb, formId }: OnFormReadyProps) => (
-  <Suspense fallback={null}>
-    <OnFormReadyInner cb={cb} formId={formId} />
-  </Suspense>
-);
 
 export default OnFormReady;

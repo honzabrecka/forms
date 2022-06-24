@@ -106,4 +106,7 @@ export type FormValidationResult = {
   result: FieldValidationResult[];
 };
 
-export type DirtyComparator = (value: any, initialValue: any) => boolean;
+export type DirtyComparator = (
+  value: any,
+  initialValue: any,
+) => boolean | Promise<boolean>;
