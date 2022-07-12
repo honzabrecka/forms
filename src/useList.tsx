@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   useRecoilState,
   /* eslint-disable-next-line camelcase */
@@ -52,6 +52,7 @@ const useList = ({
     $field(fieldId(formId, name)),
   );
   const registration = useFieldRegistration(formId);
+  const [initialValueByName, setInitialValueByName] = useState<Dict<any>>({});
 
   const setValues = useRecoilTransaction_UNSTABLE(
     ({ get, set }) =>
@@ -221,6 +222,15 @@ const useList = ({
       children: initialValue.length ? children : state.children,
     }));
 
+    if (initialValue.length) {
+      setInitialValueByName(
+        children.reduce<Dict<any>>((acc, name, i) => {
+          acc[name] = initialValue[i];
+          return acc;
+        }, {}),
+      );
+    }
+
     return () => {
       if (preserveStateAfterUnmount) {
         return;
@@ -232,14 +242,14 @@ const useList = ({
 
   const fields = useMemo<[string, (nested: string) => MappedFieldProp][]>(
     () =>
-      fieldState.children.map((name, i) => [
+      fieldState.children.map((name) => [
         name,
         (nested: string) => ({
           name: `${name}.${nested}`,
-          initialValue: fieldState.initialValue[i]?.[nested],
+          initialValue: initialValueByName[name]?.[nested],
         }),
       ]),
-    [fieldState.children],
+    [fieldState.children, initialValueByName],
   );
 
   return {

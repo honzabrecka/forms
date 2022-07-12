@@ -315,6 +315,83 @@ test('forms: List', async () => {
   });
 });
 
+test('forms: List initialValue', async () => {
+  const onSubmit = jest.fn();
+  const onSubmitInvalid = jest.fn();
+  const App = () => {
+    const { Form } = useForm({
+      onSubmit,
+      onSubmitInvalid,
+    });
+    return (
+      <Form>
+        <List
+          name="users"
+          initialValue={[{ name: 1 }, { name: 2 }]}
+          validator={notEmptyList}
+        >
+          {({ fields, add, remove }) => (
+            <>
+              {fields.map(([id, field]) => (
+                <Fragment key={id}>
+                  <Field label="Name" {...field('name')} />
+                  <button type="button" onClick={() => remove(id)}>
+                    remove
+                  </button>
+                </Fragment>
+              ))}
+              <button type="button" onClick={() => add()}>
+                add
+              </button>
+            </>
+          )}
+        </List>
+        <button type="submit">submit</button>
+      </Form>
+    );
+  };
+
+  render(<App />, {
+    wrapper,
+  });
+
+  const user = userEvent.setup();
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['users'],
+      values: { users: [{ name: 1 }, { name: 2 }] },
+      touched: { users: false },
+      initialValues: { users: [{ name: 1 }, { name: 2 }] },
+      dirty: false,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getAllByText('remove')[0]);
+  await user.click(screen.getAllByText('remove')[0]);
+
+  await user.click(screen.getByText('add'));
+  await user.click(screen.getByText('add'));
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['users'],
+      values: { users: [{ name: undefined }, { name: undefined }] },
+      touched: { users: true },
+      initialValues: { users: [{ name: 1 }, { name: 2 }] },
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+});
+
 test('forms: field state is preserved in between mounts', async () => {
   const onSubmit = jest.fn();
   const App = () => {
