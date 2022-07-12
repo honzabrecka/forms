@@ -301,21 +301,25 @@ export const $fieldTouched = selectorFamily<boolean, string>({
   },
 });
 
-export const $touched = selectorFamily<Dict<boolean>, string>({
+export const $touched = selectorFamily({
   key: 'form/touched',
   get:
     (formId: string) =>
     ({ get }) => {
       const { fieldIds } = get($form(formId));
-      const result: Dict<boolean> = get(
-        waitForAll(
-          fieldIds.reduce<any>((acc, id) => {
-            acc[id] = $fieldTouched(fieldId(formId, id));
-            return acc;
-          }, {}),
-        ) as any,
+      const results = get(
+        waitForAll(fieldIds.map((id) => $fieldTouched(fieldId(formId, id)))),
       );
-      return result;
+      const touchedFieldIds = results.reduce<string[]>((acc, result, i) => {
+        if (result === true) {
+          acc.push(fieldIds[i]);
+        }
+        return acc;
+      }, []);
+      return {
+        touched: touchedFieldIds.length > 0,
+        touchedFieldIds,
+      };
     },
   cachePolicy_UNSTABLE: {
     eviction: 'most-recent',

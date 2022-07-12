@@ -31,10 +31,10 @@ export function useGetBag(formId: string) {
         return {
           values,
           initialValues,
-          touched,
           fieldIds,
-          validation,
+          ...touched,
           ...dirty,
+          validation,
         };
       },
     [],
@@ -56,8 +56,8 @@ export function useGetBagForValidator(formId: string) {
         return {
           values,
           initialValues,
-          touched,
           fieldIds,
+          ...touched,
           ...dirty,
         };
       },

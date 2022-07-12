@@ -68,9 +68,11 @@ export type FieldState = {
 export type Bag = {
   values: Dict<any>;
   initialValues: Dict<any>;
-  touched: Dict<boolean>;
   fieldIds: string[];
+  touched: boolean;
+  touchedFieldIds: string[];
   dirty: boolean;
+  dirtyFieldIds: string[];
   validation: FormValidationResult;
 };
 

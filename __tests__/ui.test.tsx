@@ -106,10 +106,11 @@ const identity = (x: any) => x;
 
 const expectFormBag = (bag: any, expected: any) => {
   expect(bag).toHaveProperty('values');
-  expect(bag).toHaveProperty('touched');
+  expect(bag).toHaveProperty('initialValues');
   expect(bag).toHaveProperty('fieldIds');
   expect(bag).toHaveProperty('validation');
-  expect(bag).toHaveProperty('initialValues');
+  expect(bag).toHaveProperty('touched');
+  expect(bag).toHaveProperty('touchedFieldIds');
   expect(bag).toHaveProperty('dirty');
   expect(bag).toHaveProperty('dirtyFieldIds');
   expect(bag).toMatchObject(expected);
@@ -140,9 +141,11 @@ test('forms: basic', async () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['name'],
-      touched: { name: true },
+      touched: true,
+      touchedFieldIds: ['name'],
       initialValues: {},
       dirty: true,
+      dirtyFieldIds: ['name'],
       validation: { isValid: true, isValidStrict: true },
     });
   });
@@ -174,7 +177,8 @@ test('forms: blur & async & submit', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['name'],
       values: { name: 'John Doe' },
-      touched: { name: true },
+      touched: true,
+      touchedFieldIds: ['name'],
       initialValues: {},
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
@@ -243,7 +247,8 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['users'],
       values: { users: [{ name: 1 }, { name: 2 }] },
-      touched: { users: false },
+      touched: false,
+      touchedFieldIds: [],
       initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: false,
       validation: { isValid: true, isValidStrict: true },
@@ -259,7 +264,8 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['users'],
       values: { users: [{ name: 1 }, { name: 2 }, { name: 'John Doe' }] },
-      touched: { users: true },
+      touched: true,
+      touchedFieldIds: ['users'],
       initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
@@ -275,7 +281,8 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[2][0], {
       fieldIds: ['users'],
       values: { users: [{ name: 1 }, { name: 2 }] },
-      touched: { users: true },
+      touched: true,
+      touchedFieldIds: ['users'],
       initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: false,
       validation: { isValid: true, isValidStrict: true },
@@ -291,7 +298,8 @@ test('forms: List', async () => {
     expectFormBag(onSubmit.mock.calls[3][0], {
       fieldIds: ['users'],
       values: { users: [{ name: 'users' }, { name: 'bar' }] },
-      touched: { users: false },
+      touched: false,
+      touchedFieldIds: [],
       initialValues: { users: [{ name: 'users' }, { name: 'bar' }] },
       dirty: false,
       validation: { isValid: true, isValidStrict: true },
@@ -307,7 +315,8 @@ test('forms: List', async () => {
     expectFormBag(onSubmitInvalid.mock.calls[0][0], {
       fieldIds: ['users'],
       values: { users: [] },
-      touched: { users: true },
+      touched: true,
+      touchedFieldIds: ['users'],
       initialValues: { users: [{ name: 'users' }, { name: 'bar' }] },
       dirty: true,
       validation: { isValid: false, isValidStrict: false },
@@ -364,7 +373,8 @@ test('forms: List initialValue', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['users'],
       values: { users: [{ name: 1 }, { name: 2 }] },
-      touched: { users: false },
+      touched: false,
+      touchedFieldIds: [],
       initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: false,
       validation: { isValid: true, isValidStrict: true },
@@ -384,7 +394,8 @@ test('forms: List initialValue', async () => {
     expectFormBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['users'],
       values: { users: [{ name: undefined }, { name: undefined }] },
-      touched: { users: true },
+      touched: true,
+      touchedFieldIds: ['users'],
       initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
@@ -421,7 +432,8 @@ test('forms: field state is preserved in between mounts', async () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['name'],
-      touched: { name: true },
+      touched: true,
+      touchedFieldIds: ['name'],
       initialValues: {},
       values: { name: 'John Doe' },
       dirty: true,
@@ -437,7 +449,8 @@ test('forms: field state is preserved in between mounts', async () => {
     expect(onSubmit).toHaveBeenCalledTimes(2);
     expectFormBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['name'],
-      touched: { name: true },
+      touched: true,
+      touchedFieldIds: ['name'],
       initialValues: {},
       values: { name: 'John Doe' },
       dirty: true,
@@ -481,7 +494,8 @@ test('forms: field state is cleared', async () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['name'],
-      touched: { name: true },
+      touched: true,
+      touchedFieldIds: ['name'],
       initialValues: {},
       values: { name: 'John Doe' },
       dirty: true,
@@ -497,7 +511,8 @@ test('forms: field state is cleared', async () => {
     expect(onSubmit).toHaveBeenCalledTimes(2);
     expectFormBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['name'],
-      touched: { name: false },
+      touched: false,
+      touchedFieldIds: [],
       initialValues: {},
       values: {},
       dirty: false,
@@ -560,7 +575,8 @@ test('forms: async validation on list', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['users'],
       values: { users: [{ name: 'John Doe' }] },
-      touched: { users: true },
+      touched: true,
+      touchedFieldIds: ['users'],
       initialValues: {},
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
@@ -575,7 +591,8 @@ test('forms: async validation on list', async () => {
     expectFormBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['users'],
       values: { users: [{ name: 'John Doe' }] },
-      touched: { users: true },
+      touched: true,
+      touchedFieldIds: ['users'],
       initialValues: {},
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
@@ -590,7 +607,8 @@ test('forms: async validation on list', async () => {
     expectFormBag(onSubmitInvalid.mock.calls[0][0], {
       fieldIds: ['users'],
       values: { users: [] },
-      touched: { users: true },
+      touched: true,
+      touchedFieldIds: ['users'],
       initialValues: {},
       dirty: false,
       validation: { isValid: false, isValidStrict: false },
@@ -631,7 +649,8 @@ test('forms: OnFormReady', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['name'],
       values: { name: 'foo' },
-      touched: { name: true },
+      touched: true,
+      touchedFieldIds: ['name'],
       initialValues: { name: 'foo' },
       dirty: false,
       validation: { isValid: true, isValidStrict: true },

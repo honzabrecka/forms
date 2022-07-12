@@ -26,10 +26,11 @@ const htmlEvent = (value: any) => ({ target: { value } });
 const expectFormBag = async (result: any, expected: any) => {
   const bag = await result.current.form.getBag();
   expect(bag).toHaveProperty('values');
-  expect(bag).toHaveProperty('touched');
+  expect(bag).toHaveProperty('initialValues');
   expect(bag).toHaveProperty('fieldIds');
   expect(bag).toHaveProperty('validation');
-  expect(bag).toHaveProperty('initialValues');
+  expect(bag).toHaveProperty('touched');
+  expect(bag).toHaveProperty('touchedFieldIds');
   expect(bag).toHaveProperty('dirty');
   expect(bag).toHaveProperty('dirtyFieldIds');
   expect(bag).toMatchObject(expected);
@@ -56,7 +57,8 @@ test('forms: initial values', async () => {
   await expectFormBag(result, {
     fieldIds: ['a', 'b', 'c'],
     initialValues: { a: 1, b: 3, c: 4 },
-    touched: { a: false, b: false, c: false },
+    touched: false,
+    touchedFieldIds: [],
     values: { a: 1, b: 3, c: 4 },
   });
 });
@@ -76,7 +78,8 @@ test('forms: setValues', async () => {
   });
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
     values: { a: 2, b: undefined },
   });
   expect(result.current.a.value).toEqual(2);
@@ -104,9 +107,11 @@ test('forms: setValues with validator', async () => {
   expect(bag).toMatchObject({
     fieldIds: ['a'],
     values: { a: 2 },
-    touched: { a: false },
+    touched: false,
+    touchedFieldIds: [],
     initialValues: {},
     dirty: true,
+    dirtyFieldIds: ['a'],
   });
   expect(bag).not.toHaveProperty('validation');
   expect(await validator.mock.calls[2][2]).toBe(undefined);
@@ -128,7 +133,8 @@ test('forms: setTouched', async () => {
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
     values: { a: undefined, b: undefined },
-    touched: { a: true, b: false },
+    touched: true,
+    touchedFieldIds: ['a'],
   });
   expect(result.current.a.value).toEqual(undefined);
   expect(result.current.a.touched).toEqual(true);
@@ -222,7 +228,8 @@ test('forms: setAllToTouched', async () => {
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
     values: { a: undefined, b: undefined },
-    touched: { a: true, b: true },
+    touched: true,
+    touchedFieldIds: ['a', 'b'],
   });
   expect(result.current.a.value).toEqual(undefined);
   expect(result.current.a.touched).toEqual(true);
@@ -258,7 +265,8 @@ test('forms > field: onChange', async () => {
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
     values: { a: 2, b: undefined },
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
   });
   expect(result.current.a.value).toEqual(2);
   expect(result.current.a.touched).toEqual(false);
@@ -270,7 +278,8 @@ test('forms > field: onChange', async () => {
   expect(onChange.mock.calls[0][0]).toEqual({ name: 'a', value: 2 });
   expect(await onChange.mock.calls[0][1]()).toMatchObject({
     values: { a: 2 },
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
     validation: { isValid: true },
   });
 });
@@ -292,7 +301,8 @@ test('forms > field: onChange with an async value', async () => {
   });
   await expectFormBag(result, {
     fieldIds: ['a', 'b'],
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
     values: { a: 2, b: undefined },
   });
   expect(result.current.a.value).toEqual(value);
@@ -303,7 +313,8 @@ test('forms > field: onChange with an async value', async () => {
   expect(onChange.mock.calls[0][0]).toEqual({ name: 'a', value: 2 });
   expect(await onChange.mock.calls[0][1]()).toMatchObject({
     values: { a: 2 },
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
     validation: { isValid: true },
   });
 });
@@ -331,7 +342,8 @@ test('forms > field: onBlur', async () => {
   expect(onBlur.mock.calls[0][0]).toEqual({ name: 'a' });
   expect(await onBlur.mock.calls[0][1]()).toMatchObject({
     values: {},
-    touched: { a: true, b: false },
+    touched: true,
+    touchedFieldIds: ['a'],
     validation: { isValid: true },
   });
 });
@@ -359,7 +371,8 @@ test('forms > field: onFocus', async () => {
   expect(onFocus.mock.calls[0][0]).toEqual({ name: 'a' });
   expect(await onFocus.mock.calls[0][1]()).toMatchObject({
     values: {},
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
     validation: { isValid: true },
   });
 });
@@ -399,7 +412,8 @@ test('forms > field: from/to transformers', async () => {
   expect(onChange.mock.calls[0][0]).toEqual({ name: 'a', value: 2 });
   expect(await onChange.mock.calls[0][1]()).toMatchObject({
     values: { a: 2 },
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
     validation: { isValid: true },
   });
 });
@@ -456,7 +470,8 @@ test('forms > field: onChange validation', async () => {
   expect(validatorA.mock.calls[0][0]).toEqual(2);
   expect(await validatorA.mock.calls[0][1]()).toMatchObject({
     values: { a: 2 },
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
   });
   expect(validatorB).toHaveBeenCalledTimes(0);
 
@@ -490,7 +505,8 @@ test('forms > field: onChange validation', async () => {
   expect(validatorA2.mock.calls[0][0]).toEqual(3);
   expect(await validatorA2.mock.calls[0][1]()).toMatchObject({
     values: { a: 3 },
-    touched: { a: false, b: false },
+    touched: false,
+    touchedFieldIds: [],
   });
   expect(validatorB).toHaveBeenCalledTimes(0);
 });
@@ -618,7 +634,7 @@ test('forms: submit valid form', async () => {
   expect(onSubmit).toHaveBeenCalledTimes(1);
   const bag = onSubmit.mock.calls[0][0];
   expect(bag.values).toEqual({ a: 2, b: undefined });
-  expect(bag.touched).toEqual({ a: false, b: false });
+  expect(bag.touched).toEqual(false);
   expect(bag.fieldIds).toEqual(['a', 'b']);
   expect(bag.args).toEqual(['foo', 'bar']);
 
