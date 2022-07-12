@@ -70,8 +70,6 @@ test('forms: cross field validation', async () => {
   });
 
   await waitFor(async () => {
-    console.log(result.current.av, result.current.bv);
-    // console.log((await result.current.form.getBag()).validation);
     expect((await result.current.form.getBag()).validation).toMatchObject({
       isValid: true,
     });
