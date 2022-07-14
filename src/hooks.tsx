@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { useRecoilValue, useRecoilValueLoadable } from 'recoil';
 import { FormContext } from './FormContext';
 import {
@@ -11,7 +11,7 @@ import {
   $fieldDirty,
   $formDirty,
 } from './selectors';
-import { FieldIdentification, FieldValidationResult } from './types';
+import { FieldIdentification, FieldValidationResult, Validator } from './types';
 
 export function useFormId(formId?: string) {
   const form = useContext(FormContext);
@@ -75,4 +75,12 @@ export function useFieldValue({ formId, name }: FieldIdentification) {
 
 export function useFieldValueLoadable({ formId, name }: FieldIdentification) {
   return useRecoilValueLoadable($fieldValue(fieldId(useFormId(formId), name)));
+}
+
+export function useRefreshableValidator(
+  validator: Validator,
+): [Validator, () => void] {
+  const [state, setState] = useState({ validator });
+  const revalidate = () => setState({ validator });
+  return [state.validator, revalidate];
 }
