@@ -301,7 +301,7 @@ export const $fieldTouched = selectorFamily<boolean, string>({
   },
 });
 
-export const $touched = selectorFamily({
+export const $formTouched = selectorFamily({
   key: 'form/touched',
   get:
     (formId: string) =>

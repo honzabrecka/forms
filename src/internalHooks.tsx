@@ -10,7 +10,7 @@ import {
   $fieldIds,
   $values,
   $formValidation,
-  $touched,
+  $formTouched,
   $initialValues,
   $formDirty,
 } from './selectors';
@@ -21,7 +21,7 @@ export function useGetBag(formId: string) {
     ({ snapshot }) =>
       async () => {
         const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
-        const touched = snapshot.getLoadable($touched(formId)).contents;
+        const touched = snapshot.getLoadable($formTouched(formId)).contents;
         const [values, validation, initialValues, dirty] = await Promise.all([
           snapshot.getPromise($values(formId)),
           snapshot.getPromise($formValidation(formId)),
@@ -47,7 +47,7 @@ export function useGetBagForValidator(formId: string) {
     ({ snapshot }) =>
       async () => {
         const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
-        const touched = snapshot.getLoadable($touched(formId)).contents;
+        const touched = snapshot.getLoadable($formTouched(formId)).contents;
         const [values, initialValues, dirty] = await Promise.all([
           snapshot.getPromise($values(formId)),
           snapshot.getPromise($initialValues(formId)),

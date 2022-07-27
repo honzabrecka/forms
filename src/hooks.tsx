@@ -7,7 +7,7 @@ import {
   $formSubmission,
   $formValidation,
   $fieldValidation,
-  $touched,
+  $formTouched,
   $fieldDirty,
   $formDirty,
 } from './selectors';
@@ -35,7 +35,7 @@ export function useFormValidationLoadable(formId?: string) {
 }
 
 export function useFormTouchedLoadable(formId?: string) {
-  return useRecoilValueLoadable($touched(useFormId(formId)));
+  return useRecoilValueLoadable($formTouched(useFormId(formId)));
 }
 
 export function useFormDirty(formId?: string) {
