@@ -41,9 +41,9 @@ const FieldWithConditionalValidationInner = <P extends object>({
   return <Field {...(props as P)} validator={reactiveValidator} />;
 };
 
-export default function withConditionalValidation<P extends object>(
-  Field: React.ComponentType<P>,
-) {
+export default function withConditionalValidation<
+  P extends { validator?: Validator },
+>(Field: React.ComponentType<P>) {
   return function FieldWithConditionalValidationHOC({
     validatorDependsOn = [],
     ...props

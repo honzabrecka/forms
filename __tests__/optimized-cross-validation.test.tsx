@@ -1,5 +1,5 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React, { useState } from 'react';
+import React, { Fragment, useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { wrapper, expectFormBag, Field as RegularField } from './shared';
@@ -9,9 +9,11 @@ import {
   success,
   error,
   ConditionalValidator,
+  List as RegularList,
 } from '../src/index';
 
 const Field = withConditionalValidation(RegularField);
+const List = withConditionalValidation(RegularList);
 
 const isSame1: ConditionalValidator = (value, _, values) =>
   values.every((x) => x === value) ? success() : error('do not match');
@@ -243,4 +245,128 @@ test('forms: optimized cross validation', async () => {
       },
     });
   });
+});
+
+const isAtLeastOne: ConditionalValidator = (value, _, [otherValue]) =>
+  value.length > 0 || otherValue.length > 0 ? success() : error('invalid');
+
+test('forms: optimized cross validation inside List', async () => {
+  const onSubmit = jest.fn();
+  const onSubmitInvalid = jest.fn();
+  const App = () => {
+    const { Form } = useForm({
+      onSubmit,
+      onSubmitInvalid,
+    });
+    return (
+      <Form>
+        <List name="x" validator={isAtLeastOne} validatorDependsOn={['y']}>
+          {({ fields, add }) => (
+            <>
+              {fields.map(([id, field]) => (
+                <Fragment key={id}>
+                  <Field
+                    label="A"
+                    validator={isSame1}
+                    validatorDependsOn={[field('b').name]}
+                    {...field('a')}
+                  />
+                  <Field
+                    label="B"
+                    validator={isSame1}
+                    validatorDependsOn={[field('a').name]}
+                    {...field('b')}
+                  />
+                </Fragment>
+              ))}
+              <button type="button" onClick={() => add({ a: 'foo', b: 'foo' })}>
+                add to x
+              </button>
+            </>
+          )}
+        </List>
+        <List name="y" validator={isAtLeastOne} validatorDependsOn={['x']}>
+          {({ fields, add }) => (
+            <>
+              {fields.map(([id, field]) => (
+                <Fragment key={id}>
+                  <Field
+                    label="A"
+                    validator={isSame1}
+                    validatorDependsOn={[field('b').name]}
+                    {...field('a')}
+                  />
+                  <Field
+                    label="B"
+                    validator={isSame1}
+                    validatorDependsOn={[field('a').name]}
+                    {...field('b')}
+                  />
+                </Fragment>
+              ))}
+              <button type="button" onClick={() => add({ a: 'foo', b: 'foo' })}>
+                add to y
+              </button>
+            </>
+          )}
+        </List>
+        <button type="submit">submit</button>
+      </Form>
+    );
+  };
+
+  render(<App />, {
+    wrapper,
+  });
+
+  const user = userEvent.setup();
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmitInvalid.mock.calls[0][0], {
+      validation: {
+        isValid: false,
+        isValidStrict: false,
+        errors: [{ name: 'x' }, { name: 'y' }],
+      },
+    });
+  });
+
+  await user.click(screen.getByText('add to x'));
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      values: {
+        x: [{ a: 'foo', b: 'foo' }],
+        y: [],
+      },
+      validation: {
+        isValid: true,
+        isValidStrict: true,
+        errors: [],
+      },
+    });
+  });
+
+  await user.clear(screen.getByLabelText('A'));
+  await user.type(screen.getByLabelText('A'), 'bar');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmitInvalid.mock.calls[1][0], {
+      validation: {
+        isValid: false,
+        isValidStrict: false,
+        errors: [{ name: 'x' }],
+      },
+    });
+  });
+  expect(
+    onSubmitInvalid.mock.calls[1][0].validation.errors[0].value[1].value.length,
+  ).toBe(2);
 });

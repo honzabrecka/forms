@@ -41,10 +41,9 @@ const ReactiveValidator = ({
   const setValidator = useRecoilCallback(
     ({ set, snapshot }) =>
       (validator: NamedValidator) => {
-        // do not await on value, validator can wait for it itself
-        const value = snapshot.getPromise(
-          $fieldValue(fieldId(resolvedFormId, name)),
-        );
+        const value = snapshot
+          .getLoadable($fieldValue(fieldId(resolvedFormId, name)))
+          .valueMaybe();
         set($field(fieldId(resolvedFormId, name)), (state) => ({
           ...state,
           validator,
