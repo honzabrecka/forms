@@ -43,19 +43,11 @@ const Field = ({ label, ...props }: any) => {
 
 const FieldD = withD(Field);
 
-const isSame1: ValidatorD = async (value, _, values) => {
-  const resolvedValues = await Promise.all(values.map((x) => x.toPromise()));
-  return resolvedValues.every((x) => x === value)
-    ? success()
-    : error('do not match');
-};
+const isSame1: ValidatorD = (value, _, values) =>
+  values.every((x) => x === value) ? success() : error('do not match');
 
-const isSame2: ValidatorD = async (value, _, [otherValue]) => {
-  const resolvedOtherValue = await otherValue.toPromise();
-  return value === resolvedOtherValue
-    ? success()
-    : error(`${value} !== ${resolvedOtherValue}`);
-};
+const isSame2: ValidatorD = (value, _, [otherValue]) =>
+  value === otherValue ? success() : error(`${value} !== ${otherValue}`);
 
 ///
 

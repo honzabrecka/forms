@@ -23,8 +23,14 @@ const FieldDInner = ({
     useFieldValueLoadable({ formId, name }),
   );
   const reactiveValidator = useCallback<Validator>(
-    (value, getBag) =>
-      validator ? validator(value, getBag, reactiveValues) : success(),
+    async (value, getBag) =>
+      validator
+        ? validator(
+            value,
+            getBag,
+            await Promise.all(reactiveValues.map((x) => x.toPromise())),
+          )
+        : success(),
     (reactiveValues as any).concat(validator),
   );
   return <Field {...props} validator={reactiveValidator} />;
