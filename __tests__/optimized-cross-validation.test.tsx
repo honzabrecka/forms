@@ -1,0 +1,298 @@
+/* eslint-disable react/jsx-props-no-spreading */
+import React, { StrictMode, useState } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {
+  RecoilRoot,
+  useForm,
+  useField,
+  withD,
+  success,
+  error,
+  ValidatorD,
+} from '../src/index';
+
+const wrapper = ({ children }: any) => (
+  <StrictMode>
+    <RecoilRoot>{children}</RecoilRoot>
+  </StrictMode>
+);
+
+///
+
+const Field = ({ label, ...props }: any) => {
+  const { inited, onChange, onFocus, onBlur, name, id, value } =
+    useField(props);
+  return (
+    <>
+      <label htmlFor={id}>{label}</label>
+      {inited ? (
+        <input
+          type="text"
+          id={id}
+          name={name}
+          value={value || ''}
+          onChange={onChange}
+          onBlur={onBlur}
+          onFocus={onFocus}
+        />
+      ) : null}
+    </>
+  );
+};
+
+const FieldD = withD(Field);
+
+const isSame1: ValidatorD = async (value, _, values) => {
+  const resolvedValues = await Promise.all(values.map((x) => x.toPromise()));
+  return resolvedValues.every((x) => x === value)
+    ? success()
+    : error('do not match');
+};
+
+const isSame2: ValidatorD = async (value, _, [otherValue]) => {
+  const resolvedOtherValue = await otherValue.toPromise();
+  return value === resolvedOtherValue
+    ? success()
+    : error(`${value} !== ${resolvedOtherValue}`);
+};
+
+///
+
+const expectFormBag = (bag: any, expected: any) => {
+  expect(bag).toHaveProperty('values');
+  expect(bag).toHaveProperty('initialValues');
+  expect(bag).toHaveProperty('fieldIds');
+  expect(bag).toHaveProperty('validation');
+  expect(bag).toHaveProperty('touched');
+  expect(bag).toHaveProperty('touchedFieldIds');
+  expect(bag).toHaveProperty('dirty');
+  expect(bag).toHaveProperty('dirtyFieldIds');
+  expect(bag).toMatchObject(expected);
+};
+
+test('forms: optimized cross validation', async () => {
+  const onSubmit = jest.fn();
+  const onSubmitInvalid = jest.fn();
+  const App = () => {
+    const { Form } = useForm({
+      onSubmit,
+      onSubmitInvalid,
+    });
+    const [flags, setFlags] = useState<string[]>([]);
+    return (
+      <Form>
+        <FieldD
+          name="a"
+          label="A"
+          dependsOn={
+            flags.includes('dependsOn:regular') ? ['regular'] : ['b', 'c']
+          }
+          validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}
+        />
+        <FieldD
+          name="b"
+          label="B"
+          dependsOn={
+            flags.includes('dependsOn:regular') ? ['regular'] : ['a', 'c']
+          }
+          validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}
+        />
+        <FieldD
+          name="c"
+          label="C"
+          dependsOn={
+            flags.includes('dependsOn:regular') ? ['regular'] : ['a', 'b']
+          }
+          validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}
+        />
+        <FieldD name="regular" label="Regular" />
+        <button type="submit">submit</button>
+        <button
+          type="button"
+          onClick={() => setFlags((state) => [...state, 'dependsOn:regular'])}
+        >
+          change dependsOn
+        </button>
+        <button
+          type="button"
+          onClick={() => setFlags((state) => [...state, 'validator:isSame2'])}
+        >
+          change validator
+        </button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.type(screen.getByLabelText('Regular'), 'John Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['a', 'b', 'c', 'regular'],
+      touched: true,
+      touchedFieldIds: ['regular'],
+      initialValues: {},
+      dirty: true,
+      dirtyFieldIds: ['regular'],
+      validation: {
+        isValid: true,
+        isValidStrict: true,
+        errors: [],
+      },
+    });
+  });
+
+  await user.type(screen.getByLabelText('A'), 'foo');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmitInvalid.mock.calls[0][0], {
+      fieldIds: ['a', 'b', 'c', 'regular'],
+      touched: true,
+      touchedFieldIds: ['a', 'regular'],
+      initialValues: {},
+      dirty: true,
+      dirtyFieldIds: ['a', 'regular'],
+      validation: {
+        isValid: false,
+        isValidStrict: false,
+        errors: [
+          { name: 'a', value: 'do not match' },
+          { name: 'b', value: 'do not match' },
+          { name: 'c', value: 'do not match' },
+        ],
+      },
+    });
+  });
+
+  await user.type(screen.getByLabelText('B'), 'foo');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmitInvalid.mock.calls[1][0], {
+      fieldIds: ['a', 'b', 'c', 'regular'],
+      touched: true,
+      touchedFieldIds: ['a', 'b', 'c', 'regular'],
+      initialValues: {},
+      dirty: true,
+      dirtyFieldIds: ['a', 'b', 'regular'],
+      validation: {
+        isValid: false,
+        isValidStrict: false,
+        errors: [
+          { name: 'a', value: 'do not match' },
+          { name: 'b', value: 'do not match' },
+          { name: 'c', value: 'do not match' },
+        ],
+      },
+    });
+  });
+
+  await user.type(screen.getByLabelText('C'), 'foo');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['a', 'b', 'c', 'regular'],
+      touched: true,
+      initialValues: {},
+      dirty: true,
+      validation: {
+        isValid: true,
+        isValidStrict: true,
+        errors: [],
+      },
+    });
+  });
+
+  await user.click(screen.getByText('change dependsOn'));
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(3);
+    expectFormBag(onSubmitInvalid.mock.calls[2][0], {
+      touched: true,
+      initialValues: {},
+      dirty: true,
+      validation: {
+        isValid: false,
+        isValidStrict: false,
+        errors: [
+          { name: 'a', value: 'do not match' },
+          { name: 'b', value: 'do not match' },
+          { name: 'c', value: 'do not match' },
+        ],
+      },
+    });
+  });
+
+  await user.clear(screen.getByLabelText('Regular'));
+  await user.type(screen.getByLabelText('Regular'), 'foo');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(3);
+    expectFormBag(onSubmit.mock.calls[2][0], {
+      touched: true,
+      initialValues: {},
+      dirty: true,
+      validation: {
+        isValid: true,
+        isValidStrict: true,
+        errors: [],
+      },
+    });
+  });
+
+  await user.clear(screen.getByLabelText('Regular'));
+  await user.type(screen.getByLabelText('Regular'), 'bar');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(4);
+    expectFormBag(onSubmitInvalid.mock.calls[3][0], {
+      touched: true,
+      initialValues: {},
+      dirty: true,
+      validation: {
+        isValid: false,
+        isValidStrict: false,
+        errors: [
+          { name: 'a', value: 'do not match' },
+          { name: 'b', value: 'do not match' },
+          { name: 'c', value: 'do not match' },
+        ],
+      },
+    });
+  });
+
+  await user.click(screen.getByText('change validator'));
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(5);
+    expectFormBag(onSubmitInvalid.mock.calls[4][0], {
+      touched: true,
+      initialValues: {},
+      dirty: true,
+      validation: {
+        isValid: false,
+        isValidStrict: false,
+        errors: [
+          { name: 'a', value: 'foo !== bar' },
+          { name: 'b', value: 'foo !== bar' },
+          { name: 'c', value: 'foo !== bar' },
+        ],
+      },
+    });
+  });
+});
