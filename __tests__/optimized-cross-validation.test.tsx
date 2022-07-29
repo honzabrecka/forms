@@ -2,15 +2,21 @@
 import React, { useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { wrapper, expectFormBag, Field } from './shared';
-import { useForm, withD, success, error, ValidatorD } from '../src/index';
+import { wrapper, expectFormBag, Field as RegularField } from './shared';
+import {
+  useForm,
+  withConditionalValidation,
+  success,
+  error,
+  ConditionalValidator,
+} from '../src/index';
 
-const FieldD = withD(Field);
+const Field = withConditionalValidation(RegularField);
 
-const isSame1: ValidatorD = (value, _, values) =>
+const isSame1: ConditionalValidator = (value, _, values) =>
   values.every((x) => x === value) ? success() : error('do not match');
 
-const isSame2: ValidatorD = (value, _, [otherValue]) =>
+const isSame2: ConditionalValidator = (value, _, [otherValue]) =>
   value === otherValue ? success() : error(`${value} !== ${otherValue}`);
 
 test('forms: optimized cross validation', async () => {
@@ -24,7 +30,7 @@ test('forms: optimized cross validation', async () => {
     const [flags, setFlags] = useState<string[]>([]);
     return (
       <Form>
-        <FieldD
+        <Field
           name="a"
           label="A"
           validatorDependsOn={
@@ -32,7 +38,7 @@ test('forms: optimized cross validation', async () => {
           }
           validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}
         />
-        <FieldD
+        <Field
           name="b"
           label="B"
           validatorDependsOn={
@@ -40,7 +46,7 @@ test('forms: optimized cross validation', async () => {
           }
           validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}
         />
-        <FieldD
+        <Field
           name="c"
           label="C"
           validatorDependsOn={
@@ -48,7 +54,7 @@ test('forms: optimized cross validation', async () => {
           }
           validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}
         />
-        <FieldD name="regular" label="Regular" />
+        <Field name="regular" label="Regular" />
         <button type="submit">submit</button>
         <button
           type="button"

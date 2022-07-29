@@ -2,27 +2,27 @@
 import React, { useCallback } from 'react';
 import { useFormId, useFieldValueLoadable } from './hooks';
 import { success } from './validation';
-import { Validator, ValidatorD } from './types';
+import { Validator, ConditionalValidator } from './types';
 
-type FieldDProps = {
-  validator?: ValidatorD;
+type FieldWithConditionalValidationInnerProps<P extends object> = {
+  formId?: string;
+  Field: React.ComponentType<P>;
+  validatorDependsOn: string[];
+  validator?: ConditionalValidator;
+};
+
+type FieldWithConditionalValidationProps = {
+  validator?: ConditionalValidator;
   validatorDependsOn?: string[];
 };
 
-type FieldDInnerProps = {
-  formId?: string;
-  Field: any; // TODO
-  validatorDependsOn: string[];
-  validator?: ValidatorD;
-};
-
-const FieldDInner = ({
+const FieldWithConditionalValidationInner = <P extends object>({
   Field,
   formId: formIdProp,
   validatorDependsOn,
   validator,
   ...props
-}: FieldDInnerProps) => {
+}: FieldWithConditionalValidationInnerProps<P>) => {
   const formId = useFormId(formIdProp);
   const reactiveValues = validatorDependsOn.map((name) =>
     useFieldValueLoadable({ formId, name }),
@@ -38,16 +38,18 @@ const FieldDInner = ({
         : success(),
     (reactiveValues as any).concat(validator),
   );
-  return <Field {...props} validator={reactiveValidator} />;
+  return <Field {...(props as P)} validator={reactiveValidator} />;
 };
 
-export default function withD<P extends object>(Field: React.ComponentType<P>) {
-  return function FieldWithD({
+export default function withConditionalValidation<P extends object>(
+  Field: React.ComponentType<P>,
+) {
+  return function FieldWithConditionalValidationHOC({
     validatorDependsOn = [],
     ...props
-  }: Omit<P, 'validator'> & FieldDProps) {
+  }: Omit<P, 'validator'> & FieldWithConditionalValidationProps) {
     return (
-      <FieldDInner
+      <FieldWithConditionalValidationInner
         {...props}
         Field={Field}
         validatorDependsOn={validatorDependsOn}

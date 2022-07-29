@@ -1,4 +1,3 @@
-import { Loadable } from 'recoil';
 import { ERROR, SUCCESS, WARNING } from './validation';
 
 export type Dict<T> = { [K in string]: T };
@@ -29,10 +28,10 @@ export type Validator = (
   getBag: GetBagForValidator,
 ) => ValidationResult | Promise<ValidationResult>;
 
-export type ValidatorD = (
+export type ConditionalValidator = (
   value: any,
   getBag: GetBagForValidator,
-  values: Loadable<any>[],
+  values: any[],
 ) => ValidationResult | Promise<ValidationResult>;
 
 export type FieldValidationResult = {
