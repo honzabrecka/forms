@@ -37,7 +37,7 @@ export type OnChangeEvent = { name: string; value: any };
 export type OnChange = Callback2<OnChangeEvent, GetBag>;
 export type OnChangeImmediate = Callback1<OnChangeEvent>;
 
-type UseFieldProps = {
+export type UseFieldProps = {
   name: string;
   formId?: string;
   initialValue?: any;

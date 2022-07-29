@@ -1,7 +1,6 @@
-import React, { StrictMode } from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { wrapper } from './shared';
 import {
-  RecoilRoot,
   useForm,
   useField,
   useFieldValidationLoadable,
@@ -16,11 +15,6 @@ import {
   isError,
 } from '../src/index';
 
-const wrapper = ({ children }: any) => (
-  <StrictMode>
-    <RecoilRoot>{children}</RecoilRoot>
-  </StrictMode>
-);
 const htmlEvent = (value: any) => ({ target: { value } });
 
 const expectFormBag = async (result: any, expected: any) => {

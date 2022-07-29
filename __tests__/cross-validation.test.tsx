@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
-import { RecoilRoot } from 'recoil';
+import { useCallback } from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { wrapper } from './shared';
 import {
   useForm,
   useField,
@@ -10,8 +10,6 @@ import {
   Validator,
   useRefreshableValidator,
 } from '../src/index';
-
-const wrapper = ({ children }: any) => <RecoilRoot>{children}</RecoilRoot>;
 
 test('static cross field validation', async () => {
   const { result } = renderHook(

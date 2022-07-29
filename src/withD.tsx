@@ -4,22 +4,27 @@ import { useFormId, useFieldValueLoadable } from './hooks';
 import { success } from './validation';
 import { Validator, ValidatorD } from './types';
 
+type FieldDProps = {
+  validator?: ValidatorD;
+  validatorDependsOn?: string[];
+};
+
 type FieldDInnerProps = {
   formId?: string;
-  dependsOn: string[];
-  validator?: ValidatorD;
   Field: any; // TODO
+  validatorDependsOn: string[];
+  validator?: ValidatorD;
 };
 
 const FieldDInner = ({
   Field,
   formId: formIdProp,
-  dependsOn,
+  validatorDependsOn,
   validator,
   ...props
 }: FieldDInnerProps) => {
   const formId = useFormId(formIdProp);
-  const reactiveValues = dependsOn.map((name) =>
+  const reactiveValues = validatorDependsOn.map((name) =>
     useFieldValueLoadable({ formId, name }),
   );
   const reactiveValidator = useCallback<Validator>(
@@ -36,21 +41,17 @@ const FieldDInner = ({
   return <Field {...props} validator={reactiveValidator} />;
 };
 
-type FieldDProps = {
-  dependsOn?: string[];
-  validator?: ValidatorD;
-  name: string;
-  label: string;
-};
-
-export default function withD(Field: any) {
-  return function FieldWithD({ dependsOn = [], ...props }: FieldDProps) {
+export default function withD<P extends object>(Field: React.ComponentType<P>) {
+  return function FieldWithD({
+    validatorDependsOn = [],
+    ...props
+  }: Omit<P, 'validator'> & FieldDProps) {
     return (
       <FieldDInner
         {...props}
         Field={Field}
-        dependsOn={dependsOn}
-        key={dependsOn.join('/')}
+        validatorDependsOn={validatorDependsOn}
+        key={validatorDependsOn.join('/')}
       />
     );
   };

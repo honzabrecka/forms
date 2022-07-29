@@ -1,120 +1,16 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React, { Fragment, useEffect, useState, StrictMode } from 'react';
+import React, { Fragment, useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { wrapper, expectFormBag, Field, AsyncField, identity } from './shared';
 import {
-  RecoilRoot,
   useForm,
-  useField,
   List,
   Validator,
   error,
   success,
   OnFormReady,
 } from '../src/index';
-
-const wrapper = ({ children }: any) => (
-  <StrictMode>
-    <RecoilRoot>{children}</RecoilRoot>
-  </StrictMode>
-);
-
-const Field = ({ label, ...props }: any) => {
-  const { inited, onChange, onFocus, onBlur, name, id, value } =
-    useField(props);
-  return (
-    <>
-      <label htmlFor={id}>{label}</label>
-      {inited ? (
-        <input
-          type="text"
-          id={id}
-          name={name}
-          value={value || ''}
-          onChange={onChange}
-          onBlur={onBlur}
-          onFocus={onFocus}
-        />
-      ) : null}
-    </>
-  );
-};
-
-const delay = (t: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), t);
-  });
-
-const AsyncInput = ({
-  value,
-  onChange,
-  onBlur,
-  delayedResolve,
-  ...props
-}: any) => {
-  const [state, setState] = useState(delayedResolve || '');
-
-  useEffect(() => {
-    setState(value);
-  }, [value]);
-
-  useEffect(() => {
-    if (delayedResolve) {
-      setState(delayedResolve);
-      onChange(delay(250).then(() => delayedResolve));
-      onBlur();
-    }
-  }, [delayedResolve]);
-
-  return (
-    <input
-      // eslint-disable-next-line
-      {...props}
-      value={state}
-      onChange={({ target: { value } }) => setState(value)}
-      onBlur={() => {
-        onChange(delay(250).then(() => state));
-        onBlur();
-      }}
-    />
-  );
-};
-
-const AsyncField = ({ label, delayedResolve, ...props }: any) => {
-  const { inited, onChange, onFocus, onBlur, name, id, value } =
-    useField(props);
-  return (
-    <>
-      <label htmlFor={id}>{label}</label>
-      {inited ? (
-        <AsyncInput
-          type="text"
-          id={id}
-          name={name}
-          value={value}
-          onChange={onChange}
-          onBlur={onBlur}
-          onFocus={onFocus}
-          delayedResolve={delayedResolve}
-        />
-      ) : null}
-    </>
-  );
-};
-
-const identity = (x: any) => x;
-
-const expectFormBag = (bag: any, expected: any) => {
-  expect(bag).toHaveProperty('values');
-  expect(bag).toHaveProperty('initialValues');
-  expect(bag).toHaveProperty('fieldIds');
-  expect(bag).toHaveProperty('validation');
-  expect(bag).toHaveProperty('touched');
-  expect(bag).toHaveProperty('touchedFieldIds');
-  expect(bag).toHaveProperty('dirty');
-  expect(bag).toHaveProperty('dirtyFieldIds');
-  expect(bag).toMatchObject(expected);
-};
 
 test('forms: basic', async () => {
   const onSubmit = jest.fn();

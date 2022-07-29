@@ -1,45 +1,9 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React, { StrictMode, useState } from 'react';
+import React, { useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  RecoilRoot,
-  useForm,
-  useField,
-  withD,
-  success,
-  error,
-  ValidatorD,
-} from '../src/index';
-
-const wrapper = ({ children }: any) => (
-  <StrictMode>
-    <RecoilRoot>{children}</RecoilRoot>
-  </StrictMode>
-);
-
-///
-
-const Field = ({ label, ...props }: any) => {
-  const { inited, onChange, onFocus, onBlur, name, id, value } =
-    useField(props);
-  return (
-    <>
-      <label htmlFor={id}>{label}</label>
-      {inited ? (
-        <input
-          type="text"
-          id={id}
-          name={name}
-          value={value || ''}
-          onChange={onChange}
-          onBlur={onBlur}
-          onFocus={onFocus}
-        />
-      ) : null}
-    </>
-  );
-};
+import { wrapper, expectFormBag, Field } from './shared';
+import { useForm, withD, success, error, ValidatorD } from '../src/index';
 
 const FieldD = withD(Field);
 
@@ -48,20 +12,6 @@ const isSame1: ValidatorD = (value, _, values) =>
 
 const isSame2: ValidatorD = (value, _, [otherValue]) =>
   value === otherValue ? success() : error(`${value} !== ${otherValue}`);
-
-///
-
-const expectFormBag = (bag: any, expected: any) => {
-  expect(bag).toHaveProperty('values');
-  expect(bag).toHaveProperty('initialValues');
-  expect(bag).toHaveProperty('fieldIds');
-  expect(bag).toHaveProperty('validation');
-  expect(bag).toHaveProperty('touched');
-  expect(bag).toHaveProperty('touchedFieldIds');
-  expect(bag).toHaveProperty('dirty');
-  expect(bag).toHaveProperty('dirtyFieldIds');
-  expect(bag).toMatchObject(expected);
-};
 
 test('forms: optimized cross validation', async () => {
   const onSubmit = jest.fn();
@@ -77,7 +27,7 @@ test('forms: optimized cross validation', async () => {
         <FieldD
           name="a"
           label="A"
-          dependsOn={
+          validatorDependsOn={
             flags.includes('dependsOn:regular') ? ['regular'] : ['b', 'c']
           }
           validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}
@@ -85,7 +35,7 @@ test('forms: optimized cross validation', async () => {
         <FieldD
           name="b"
           label="B"
-          dependsOn={
+          validatorDependsOn={
             flags.includes('dependsOn:regular') ? ['regular'] : ['a', 'c']
           }
           validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}
@@ -93,7 +43,7 @@ test('forms: optimized cross validation', async () => {
         <FieldD
           name="c"
           label="C"
-          dependsOn={
+          validatorDependsOn={
             flags.includes('dependsOn:regular') ? ['regular'] : ['a', 'b']
           }
           validator={flags.includes('validator:isSame2') ? isSame2 : isSame1}

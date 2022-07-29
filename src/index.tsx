@@ -10,3 +10,4 @@ export * from './validation';
 export { RecoilRoot } from 'recoil';
 
 export * from './types';
+export * from './useField';
