@@ -32,7 +32,9 @@ test('isError', () => {
 test('multi', () => {
   expect(isSuccess(multi([success(), success()]))).toBe(true);
   expect(isError(multi([success(), error('whatever')]))).toBe(true);
-  expect(isError(multi([warning('whatever'), success()]))).toBe(true);
+  expect(isError(multi([warning('whatever'), success()]))).toBe(false);
+  expect(isWarning(multi([warning('whatever'), success()]))).toBe(true);
+  expect(isError(multi([warning('whatever'), error('whatever')]))).toBe(true);
 });
 
 const ok: Validator = () => success();

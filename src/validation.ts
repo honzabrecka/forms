@@ -24,10 +24,17 @@ export const error = (value: string, other?: any): ValidationResult => ({
   other,
 });
 
-export const multi = (values: ValidationResult[]): ValidationResult => ({
-  type: values.every(isSuccess) ? SUCCESS : ERROR,
-  value: values,
-});
+const getType = (x: ValidationResult | undefined) => (x ? x.type : undefined);
+
+export const multi = (values: ValidationResult[]): ValidationResult => {
+  return {
+    type:
+      getType(values.find(isError)) ||
+      getType(values.find(isWarning)) ||
+      SUCCESS,
+    value: values,
+  };
+};
 
 export const failOnFirst =
   (rules: Validator[]): Validator =>
