@@ -10,6 +10,7 @@ import {
   ValidationResult,
   FieldType,
 } from './types';
+import { nestedFieldSeparator } from './nested';
 
 const last = <T>(xs: T[]) => xs[xs.length - 1];
 
@@ -111,7 +112,9 @@ export const $fieldValue = selectorFamily<any, string>({
           ),
         );
         return result.reduce<Dict<any>>((acc, value, i) => {
-          const id = last(field.children[i].split('.')) as string;
+          const id = last(
+            field.children[i].split(nestedFieldSeparator),
+          ) as string;
           acc[id] = value;
           return acc;
         }, {});
@@ -138,7 +141,9 @@ export const $fieldInitialValue = selectorFamily<any, string>({
           ),
         );
         return result.reduce<any>((acc, value, i) => {
-          const id = last(field.children[i].split('.')) as string;
+          const id = last(
+            field.children[i].split(nestedFieldSeparator),
+          ) as string;
           acc[id] = value;
           return acc;
         }, {});

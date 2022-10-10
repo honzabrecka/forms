@@ -15,6 +15,7 @@ import {
   $formDirty,
 } from './selectors';
 import { FieldType } from './types';
+import { nestedFieldSeparator } from './nested';
 
 export function useGetBag(formId: string) {
   return useRecoilCallback(
@@ -68,7 +69,8 @@ export function useGetBagForValidator(formId: string) {
 const take = <T,>(n: number, xs: T[]) => xs.slice(0, n);
 const dropRight = <T,>(n: number, xs: T[]) => xs.slice(0, xs.length - n);
 
-const nestedName = (i: number, ns: string[]) => take(i, ns).join('.');
+const nestedName = (i: number, ns: string[]) =>
+  take(i, ns).join(nestedFieldSeparator);
 
 const addOnlyIfUnique = <T,>(xs: T[], x: T) => {
   const set = new Set(xs);
@@ -88,7 +90,7 @@ export function useFieldRegistration(formId: string) {
         const toAdd: string[] = [];
 
         names.forEach((name) => {
-          const ns = name.split('.');
+          const ns = name.split(nestedFieldSeparator);
 
           toAdd.push(ns[0]);
 
@@ -142,8 +144,10 @@ export function useFieldRegistration(formId: string) {
 
         names.forEach((name) => {
           // remove from parent field
-          if (name.includes('.')) {
-            const parent = dropRight(1, name.split('.')).join('.');
+          if (name.includes(nestedFieldSeparator)) {
+            const parent = dropRight(1, name.split(nestedFieldSeparator)).join(
+              nestedFieldSeparator,
+            );
             set($field(fieldId(formId, parent)), (state) => ({
               ...state,
               children: state.children.filter((id) => id !== name),

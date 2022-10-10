@@ -28,6 +28,7 @@ import {
 } from './types';
 import uid from './uid';
 import { FormContextProvider } from './FormContext';
+import { createNestedName } from './nested';
 
 export type OnSubmit = (bag: OnSubmitBag) => any;
 
@@ -98,7 +99,7 @@ export default function useForm({
             } else if (field.type === FieldType.map) {
               const newValues = Object.entries(value).reduce<Dict<any>>(
                 (acc, [k, v]) => {
-                  acc[`${id}.${k}`] = v;
+                  acc[createNestedName(id, k)] = v;
                   return acc;
                 },
                 {},
@@ -131,7 +132,7 @@ export default function useForm({
             } else if (field.type === FieldType.map) {
               const newValues = Object.entries(value).reduce<Dict<any>>(
                 (acc, [k, v]) => {
-                  acc[`${id}.${k}`] = v;
+                  acc[createNestedName(id, k)] = v;
                   return acc;
                 },
                 {},

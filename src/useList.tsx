@@ -10,6 +10,7 @@ import { useFieldRegistration } from './internalHooks';
 import useWarnOnChanged from './useWarnOnChanged';
 import { FieldIdentification, Dict, FieldType, DirtyComparator } from './types';
 import uid from './uid';
+import { createNestedName } from './nested';
 
 export type UseListProps = FieldIdentification & {
   initialValue?: Dict<any>[];
@@ -77,7 +78,7 @@ const useList = ({
 
   // problem with index as name is that children can be removed or change order
   const generateNewName = () => {
-    return `${name}.${uid()}`;
+    return createNestedName(name, `${uid()}`);
   };
 
   const createRows = (rows: Dict<any>[]): [string[], Dict<any>] => {
@@ -87,7 +88,7 @@ const useList = ({
       rows.reduce<Dict<any>>((acc, row, i) => {
         const rowName = rowNames[i];
         Object.entries(row).forEach(([key, value]) => {
-          acc[`${rowName}.${key}`] = value;
+          acc[createNestedName(rowName, key)] = value;
         });
         return acc;
       }, {}),
@@ -104,7 +105,7 @@ const useList = ({
     if (value)
       setValues(
         Object.entries(value).reduce<Dict<any>>((acc, [k, v]) => {
-          acc[`${newName}.${k}`] = v;
+          acc[createNestedName(newName, k)] = v;
           return acc;
         }, {}),
       );
@@ -125,7 +126,7 @@ const useList = ({
     if (value)
       setValues(
         Object.entries(value).reduce<Dict<any>>((acc, [k, v]) => {
-          acc[`${newName}.${k}`] = v;
+          acc[createNestedName(newName, k)] = v;
           return acc;
         }, {}),
       );
@@ -245,7 +246,7 @@ const useList = ({
       fieldState.children.map((name) => [
         name,
         (nested: string) => ({
-          name: `${name}.${nested}`,
+          name: createNestedName(name, nested),
           initialValue: initialValueByName[name]?.[nested],
         }),
       ]),
