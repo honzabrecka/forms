@@ -12,7 +12,7 @@ import {
 } from './shared';
 import {
   useForm,
-  useFieldValue,
+  useHasValue,
   List,
   Validator,
   error,
@@ -579,22 +579,24 @@ test.only('forms: dependent field', async () => {
   const onSubmit = jest.fn();
   const onSubmitInvalid = jest.fn();
   const App = () => {
-    const { Form, reset, formId } = useForm({
+    const { Form, formId, reset, addFields, setErrors } = useForm({
       onSubmit,
       onSubmitInvalid,
     });
-    const a = useFieldValue({ formId, name: 'a' });
+    const a = useHasValue({ formId, name: 'a' });
     return (
       <Form>
         <LazyField
           name="a"
           label="A"
           validator={isRequired}
-          onChangeImmediate={() => reset(['b'])}
+          onChangeImmediate={() => {
+            addFields(['b']);
+            reset(['b']);
+            setErrors({ b: error('not ready') });
+          }}
         />
-        {a && a.length > 0 && (
-          <LazyField name="b" label="B" validator={isRequired} />
-        )}
+        {a && <LazyField name="b" label="B" validator={isRequired} />}
         <button type="submit">submit</button>
       </Form>
     );
@@ -618,12 +620,10 @@ test.only('forms: dependent field', async () => {
 
   await user.click(screen.getByText('submit'));
 
-  // this is problematic
-  // "a" was filled, but "b" is not rendered (validated) yet
-  // -> invalid form is submitted
   await waitFor(() => {
-    expect(onSubmit).toHaveBeenCalledTimes(1);
-    expectFormBag(onSubmit.mock.calls[0][0], {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmitInvalid.mock.calls[1][0], {
+      fieldIds: ['a', 'b'],
       values: { a: 'foo' },
     });
   });
@@ -633,8 +633,9 @@ test.only('forms: dependent field', async () => {
   await user.click(screen.getByText('submit'));
 
   await waitFor(() => {
-    expect(onSubmit).toHaveBeenCalledTimes(2);
-    expectFormBag(onSubmit.mock.calls[1][0], {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['a', 'b'],
       values: { a: 'foo', b: 'bar' },
     });
   });
@@ -645,8 +646,9 @@ test.only('forms: dependent field', async () => {
   await user.click(screen.getByText('submit'));
 
   await waitFor(() => {
-    expect(onSubmitInvalid).toHaveBeenCalledTimes(2);
-    expectFormBag(onSubmitInvalid.mock.calls[1][0], {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(3);
+    expectFormBag(onSubmitInvalid.mock.calls[2][0], {
+      fieldIds: ['a', 'b'],
       values: { a: 'baz', b: undefined },
     });
   });
