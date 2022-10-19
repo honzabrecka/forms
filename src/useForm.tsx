@@ -29,6 +29,7 @@ import {
 import uid from './uid';
 import { FormContextProvider } from './FormContext';
 import { createNestedName } from './nested';
+import { error } from './validation';
 
 export type OnSubmit = (bag: OnSubmitBag) => any;
 
@@ -47,6 +48,8 @@ const onFieldTypeOnly =
 const dummyOnSubmit: OnSubmit = () => undefined;
 
 const alwaysFalse = () => false;
+
+const defaultDependentFieldError = error('not ready');
 
 export default function useForm({
   onSubmit = dummyOnSubmit,
@@ -359,6 +362,20 @@ export default function useForm({
       createSubmitPromise(event);
     };
 
+    const handleDependentFields = (
+      names: string[],
+      error = defaultDependentFieldError,
+    ) => {
+      addFields(names);
+      reset(names);
+      setErrors(
+        names.reduce<Dict<ValidationResult>>((acc, name) => {
+          acc[name] = error;
+          return acc;
+        }, {}),
+      );
+    };
+
     const form = {
       formId,
       setValues,
@@ -377,6 +394,7 @@ export default function useForm({
       handleSubmit,
       addFields,
       removeFields,
+      handleDependentFields,
     };
 
     const Form = ({ children }: { children: React.ReactNode }) => {

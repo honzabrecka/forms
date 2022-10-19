@@ -575,11 +575,11 @@ test('forms: OnFormReady', async () => {
 const isRequired: Validator = (value) =>
   value && value.length !== 0 ? success() : error('required');
 
-test.only('forms: dependent field', async () => {
+test('forms: dependent field', async () => {
   const onSubmit = jest.fn();
   const onSubmitInvalid = jest.fn();
   const App = () => {
-    const { Form, formId, reset, addFields, setErrors } = useForm({
+    const { Form, formId, handleDependentFields } = useForm({
       onSubmit,
       onSubmitInvalid,
     });
@@ -590,11 +590,7 @@ test.only('forms: dependent field', async () => {
           name="a"
           label="A"
           validator={isRequired}
-          onChangeImmediate={() => {
-            addFields(['b']);
-            reset(['b']);
-            setErrors({ b: error('not ready') });
-          }}
+          onChangeImmediate={() => handleDependentFields(['b'])}
         />
         {a && <LazyField name="b" label="B" validator={isRequired} />}
         <button type="submit">submit</button>
