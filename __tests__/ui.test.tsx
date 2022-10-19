@@ -2,9 +2,17 @@
 import React, { Fragment, useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { wrapper, expectFormBag, Field, AsyncField, identity } from './shared';
+import {
+  wrapper,
+  expectFormBag,
+  Field,
+  LazyField,
+  AsyncField,
+  identity,
+} from './shared';
 import {
   useForm,
+  useFieldValue,
   List,
   Validator,
   error,
@@ -562,4 +570,84 @@ test('forms: OnFormReady', async () => {
     },
     { interval: 2200, timeout: 2500 },
   );
+});
+
+const isRequired: Validator = (value) =>
+  value && value.length !== 0 ? success() : error('required');
+
+test.only('forms: dependent field', async () => {
+  const onSubmit = jest.fn();
+  const onSubmitInvalid = jest.fn();
+  const App = () => {
+    const { Form, reset, formId } = useForm({
+      onSubmit,
+      onSubmitInvalid,
+    });
+    const a = useFieldValue({ formId, name: 'a' });
+    return (
+      <Form>
+        <LazyField
+          name="a"
+          label="A"
+          validator={isRequired}
+          onChangeImmediate={() => reset(['b'])}
+        />
+        {a && a.length > 0 && (
+          <LazyField name="b" label="B" validator={isRequired} />
+        )}
+        <button type="submit">submit</button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmitInvalid.mock.calls[0][0], {
+      fieldIds: ['a'],
+      values: {},
+    });
+  });
+
+  await user.type(screen.getByLabelText('A'), 'foo');
+
+  await user.click(screen.getByText('submit'));
+
+  // this is problematic
+  // "a" was filled, but "b" is not rendered (validated) yet
+  // -> invalid form is submitted
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      values: { a: 'foo' },
+    });
+  });
+
+  await user.type(screen.getByLabelText('B'), 'bar');
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      values: { a: 'foo', b: 'bar' },
+    });
+  });
+
+  await user.clear(screen.getByLabelText('A'));
+  await user.type(screen.getByLabelText('A'), 'baz');
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmitInvalid.mock.calls[1][0], {
+      values: { a: 'baz', b: undefined },
+    });
+  });
 });

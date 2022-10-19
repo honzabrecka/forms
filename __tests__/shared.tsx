@@ -1,5 +1,5 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import React, { useEffect, useState, StrictMode } from 'react';
+import React, { useEffect, useState, useCallback, StrictMode } from 'react';
 import { RecoilRoot, useField, UseFieldProps } from '../src/index';
 
 export const wrapper = ({ children }: any) => (
@@ -26,6 +26,32 @@ export const Field = ({ label, ...props }: FieldProps) => {
           value={value || ''}
           onChange={onChange}
           onBlur={onBlur}
+          onFocus={onFocus}
+        />
+      ) : null}
+    </>
+  );
+};
+
+export const LazyField = ({ label, ...props }: FieldProps) => {
+  const { inited, onChange, onFocus, onBlur, name, id, value } =
+    useField(props);
+  const [state, setState] = useState<string>(value || '');
+  const localOnBlur = useCallback(() => {
+    onChange({ target: { value: state } });
+    onBlur();
+  }, [state, onChange, onBlur]);
+  return (
+    <>
+      <label htmlFor={id}>{label}</label>
+      {inited ? (
+        <input
+          type="text"
+          id={id}
+          name={name}
+          value={state}
+          onChange={(event) => setState(event.target.value)}
+          onBlur={localOnBlur}
           onFocus={onFocus}
         />
       ) : null}
