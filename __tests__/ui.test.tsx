@@ -575,7 +575,7 @@ test('forms: OnFormReady', async () => {
 const isRequired: Validator = (value) =>
   value && value.length !== 0 ? success() : error('required');
 
-test('forms: dependent field', async () => {
+test.only('forms: dependent field', async () => {
   const onSubmit = jest.fn();
   const onSubmitInvalid = jest.fn();
   const App = () => {
@@ -584,15 +584,36 @@ test('forms: dependent field', async () => {
       onSubmitInvalid,
     });
     const a = useHasValue({ formId, name: 'a' });
+    const b = useHasValue({
+      formId,
+      name: 'b',
+      compare: (value) => value === 'xxx',
+    });
     return (
       <Form>
         <LazyField
           name="a"
           label="A"
           validator={isRequired}
-          onChangeImmediate={() => handleDependentFields(['b'])}
+          onChangeImmediate={({ value }) =>
+            value !== undefined && value !== ''
+              ? handleDependentFields(['b'], ['c'])
+              : handleDependentFields([], ['b', 'c'])
+          }
         />
-        {a && <LazyField name="b" label="B" validator={isRequired} />}
+        {a && (
+          <LazyField
+            name="b"
+            label="B"
+            validator={isRequired}
+            onChangeImmediate={({ value }) =>
+              value === 'xxx'
+                ? handleDependentFields(['c'])
+                : handleDependentFields([], ['c'])
+            }
+          />
+        )}
+        {b && <LazyField name="c" label="C" validator={isRequired} />}
         <button type="submit">submit</button>
       </Form>
     );
@@ -637,15 +658,39 @@ test('forms: dependent field', async () => {
   });
 
   await user.clear(screen.getByLabelText('A'));
-  await user.type(screen.getByLabelText('A'), 'baz');
 
   await user.click(screen.getByText('submit'));
 
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(3);
     expectFormBag(onSubmitInvalid.mock.calls[2][0], {
+      fieldIds: ['a'],
+      values: { a: '' },
+    });
+  });
+
+  await user.type(screen.getByLabelText('A'), 'baz');
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(4);
+    expectFormBag(onSubmitInvalid.mock.calls[3][0], {
       fieldIds: ['a', 'b'],
       values: { a: 'baz', b: undefined },
+    });
+  });
+
+  await user.clear(screen.getByLabelText('B'));
+  await user.type(screen.getByLabelText('B'), 'xxx');
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(5);
+    expectFormBag(onSubmitInvalid.mock.calls[4][0], {
+      fieldIds: ['a', 'b', 'c'],
+      values: { a: 'baz', b: 'xxx', c: undefined },
     });
   });
 });

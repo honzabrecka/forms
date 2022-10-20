@@ -98,6 +98,10 @@ export type FormControls = {
   clear: () => void;
   addFields: (names: string[]) => void;
   removeFields: (names: string[]) => void;
+  handleDependentFields: (
+    requiredInNextStep?: string[],
+    namesToRemove?: string[],
+  ) => void;
 };
 
 export type OnSubmitBag = Bag & FormControls & { args: readonly any[] };

@@ -49,8 +49,6 @@ const dummyOnSubmit: OnSubmit = () => undefined;
 
 const alwaysFalse = () => false;
 
-const defaultDependentFieldError = error('not ready');
-
 export default function useForm({
   onSubmit = dummyOnSubmit,
   onSubmitInvalid = dummyOnSubmit,
@@ -363,17 +361,20 @@ export default function useForm({
     };
 
     const handleDependentFields = (
-      names: string[],
-      error = defaultDependentFieldError,
+      requiredInNextStep: string[] = [],
+      namesToRemove: string[] = [],
     ) => {
-      addFields(names);
-      reset(names);
-      setErrors(
-        names.reduce<Dict<ValidationResult>>((acc, name) => {
-          acc[name] = error;
-          return acc;
-        }, {}),
-      );
+      removeFields(namesToRemove);
+      if (requiredInNextStep.length > 0) {
+        addFields(requiredInNextStep);
+        reset(requiredInNextStep);
+        setErrors(
+          requiredInNextStep.reduce<Dict<ValidationResult>>((acc, name) => {
+            acc[name] = error('not ready');
+            return acc;
+          }, {}),
+        );
+      }
     };
 
     const form = {

@@ -77,11 +77,17 @@ export function useFieldValueLoadable({ formId, name }: FieldIdentification) {
   return useRecoilValueLoadable($fieldValue(fieldId(useFormId(formId), name)));
 }
 
-export function useHasValue({ formId, name }: FieldIdentification): boolean {
+const defaultUseHasValueCompare = (value: any) => value !== undefined;
+
+export function useHasValue({
+  formId,
+  name,
+  compare = defaultUseHasValueCompare,
+}: FieldIdentification & { compare?: (value: any) => boolean }): boolean {
   const value = useRecoilValueLoadable(
     $fieldValue(fieldId(useFormId(formId), name)),
   );
-  return value.valueMaybe() !== undefined;
+  return compare(value.valueMaybe());
 }
 
 export function useRefreshableValidator(
