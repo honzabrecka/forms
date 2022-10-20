@@ -69,12 +69,17 @@ export function useFieldValidationLoadable({
   );
 }
 
-export function useFieldValue({ formId, name }: FieldIdentification) {
-  return useRecoilValue($fieldValue(fieldId(useFormId(formId), name)));
+export function useFieldValue<T>({ formId, name }: FieldIdentification) {
+  return useRecoilValue<T>($fieldValue(fieldId(useFormId(formId), name)));
 }
 
-export function useFieldValueLoadable({ formId, name }: FieldIdentification) {
-  return useRecoilValueLoadable($fieldValue(fieldId(useFormId(formId), name)));
+export function useFieldValueLoadable<T>({
+  formId,
+  name,
+}: FieldIdentification) {
+  return useRecoilValueLoadable<T>(
+    $fieldValue(fieldId(useFormId(formId), name)),
+  );
 }
 
 export type CompareFieldValue<T> = (value: T | undefined) => boolean;
@@ -86,11 +91,13 @@ export function useDependentField<T>({
 }: FieldIdentification & { compare: CompareFieldValue<T> }): [
   boolean,
   CompareFieldValue<T>,
+  T | undefined,
 ] {
-  const value = useRecoilValueLoadable(
+  const value = useRecoilValueLoadable<T>(
     $fieldValue(fieldId(useFormId(formId), name)),
   );
-  return [compare(value.valueMaybe()), compare];
+  const valueMaybe = value.valueMaybe();
+  return [compare(valueMaybe), compare, valueMaybe];
 }
 
 export function useRefreshableValidator(

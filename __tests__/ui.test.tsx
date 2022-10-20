@@ -363,7 +363,7 @@ test('forms: field state is preserved in between mounts', async () => {
   });
 });
 
-test('forms: field state is cleared', async () => {
+test('forms: field state is reset', async () => {
   const onSubmit = jest.fn();
   const App = () => {
     const [key, setKey] = useState(1);
