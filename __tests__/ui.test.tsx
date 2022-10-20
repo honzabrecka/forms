@@ -367,7 +367,7 @@ test('forms: field state is cleared', async () => {
   const onSubmit = jest.fn();
   const App = () => {
     const [key, setKey] = useState(1);
-    const { Form, clearFields } = useForm({
+    const { Form, resetFields } = useForm({
       onSubmit,
     });
     return (
@@ -377,7 +377,7 @@ test('forms: field state is cleared', async () => {
         <button
           type="button"
           onClick={() => {
-            clearFields(['name']);
+            resetFields(['name']);
             setKey((k) => k + 1);
           }}
         >
@@ -575,7 +575,7 @@ test('forms: OnFormReady', async () => {
 const isRequired: Validator = (value) =>
   value && value.length !== 0 ? success() : error('required');
 
-test.only('forms: dependent field', async () => {
+test('forms: dependent field', async () => {
   const onSubmit = jest.fn();
   const onSubmitInvalid = jest.fn();
   const App = () => {

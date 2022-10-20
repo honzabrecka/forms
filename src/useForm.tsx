@@ -250,6 +250,34 @@ export default function useForm({
     [],
   );
 
+  const resetFields = useRecoilCallback(
+    ({ snapshot, transact_UNSTABLE }) =>
+      (fieldIds: string[] = []) => {
+        const fieldIdsToReset =
+          fieldIds.length > 0
+            ? fieldIds
+            : snapshot.getLoadable($allFieldIds(formId)).contents;
+        transact_UNSTABLE(({ set }) => {
+          fieldIdsToReset.forEach((id: string) =>
+            set(
+              $field(fieldId(formId, id)),
+              onFieldTypeOnly((state) => {
+                const value = state.initialValue;
+                return {
+                  ...state,
+                  value,
+                  touched: false,
+                  touchedAfterSubmit: false,
+                  validation: state.validator(value),
+                };
+              }),
+            ),
+          );
+        });
+      },
+    [],
+  );
+
   const revalidate = useRecoilCallback(
     ({ snapshot, set }) =>
       (fieldIds: string[] = []) => {
@@ -276,23 +304,6 @@ export default function useForm({
             return state;
           }),
         );
-      },
-    [],
-  );
-
-  const clearFields = useRecoilCallback(
-    ({ snapshot, transact_UNSTABLE }) =>
-      (fieldIds: string[] = []) => {
-        const fieldIdsToClear =
-          fieldIds.length > 0
-            ? fieldIds
-            : snapshot.getLoadable($allFieldIds(formId)).contents;
-        transact_UNSTABLE(({ reset }) => {
-          reset($form(formId));
-          fieldIdsToClear.forEach((id: string) =>
-            reset($field(fieldId(formId, id))),
-          );
-        });
       },
     [],
   );
@@ -367,7 +378,7 @@ export default function useForm({
       removeFields(namesToRemove);
       if (requiredInNextStep.length > 0) {
         addFields(requiredInNextStep);
-        reset(requiredInNextStep);
+        resetFields(requiredInNextStep);
         setErrors(
           requiredInNextStep.reduce<Dict<ValidationResult>>((acc, name) => {
             acc[name] = error('not ready');
@@ -387,7 +398,7 @@ export default function useForm({
       setAllToTouched,
       reset,
       clear,
-      clearFields,
+      resetFields,
       revalidate,
       getBag,
       submitting: isSubmitting.state === 'loading',

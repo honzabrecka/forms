@@ -95,6 +95,7 @@ export type FormControls = {
   resetTouched: () => void;
   setAllToTouched: () => void;
   reset: () => void;
+  resetFields: (names?: string[]) => void;
   clear: () => void;
   addFields: (names: string[]) => void;
   removeFields: (names: string[]) => void;
