@@ -252,7 +252,7 @@ export default function useForm({
 
   const resetFields = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
-      (fieldIds: string[] = []) => {
+      (fieldIds: string[]) => {
         const fieldIdsToReset =
           fieldIds.length > 0
             ? fieldIds
@@ -336,6 +336,23 @@ export default function useForm({
       registration.remove(names);
     };
 
+    const handleDependentFields = (
+      requiredInNextStep: string[] = [],
+      namesToRemove: string[] = [],
+    ) => {
+      removeFields(namesToRemove);
+      if (requiredInNextStep.length > 0) {
+        addFields(requiredInNextStep);
+        resetFields(requiredInNextStep);
+        setErrors(
+          requiredInNextStep.reduce<Dict<ValidationResult>>((acc, name) => {
+            acc[name] = error('not ready');
+            return acc;
+          }, {}),
+        );
+      }
+    };
+
     const submit = async (...args: any[]) => {
       const bag = {
         ...(await getBag()),
@@ -345,9 +362,11 @@ export default function useForm({
         resetTouched,
         setAllToTouched,
         reset,
+        resetFields,
         clear,
         addFields,
         removeFields,
+        handleDependentFields,
         args,
       };
 
@@ -371,23 +390,6 @@ export default function useForm({
       createSubmitPromise(event);
     };
 
-    const handleDependentFields = (
-      requiredInNextStep: string[] = [],
-      namesToRemove: string[] = [],
-    ) => {
-      removeFields(namesToRemove);
-      if (requiredInNextStep.length > 0) {
-        addFields(requiredInNextStep);
-        resetFields(requiredInNextStep);
-        setErrors(
-          requiredInNextStep.reduce<Dict<ValidationResult>>((acc, name) => {
-            acc[name] = error('not ready');
-            return acc;
-          }, {}),
-        );
-      }
-    };
-
     const form = {
       formId,
       setValues,
@@ -397,9 +399,9 @@ export default function useForm({
       resetTouched,
       setAllToTouched,
       reset,
-      clear,
       resetFields,
       revalidate,
+      clear,
       getBag,
       submitting: isSubmitting.state === 'loading',
       submit: createSubmitPromise,

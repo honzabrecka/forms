@@ -72,6 +72,7 @@ export type FieldState = {
 };
 
 export type Bag = {
+  formId: string;
   values: Dict<any>;
   initialValues: Dict<any>;
   fieldIds: string[];
@@ -95,7 +96,7 @@ export type FormControls = {
   resetTouched: () => void;
   setAllToTouched: () => void;
   reset: () => void;
-  resetFields: (names?: string[]) => void;
+  resetFields: (names: string[]) => void;
   clear: () => void;
   addFields: (names: string[]) => void;
   removeFields: (names: string[]) => void;

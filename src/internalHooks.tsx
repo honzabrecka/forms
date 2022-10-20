@@ -14,11 +14,11 @@ import {
   $initialValues,
   $formDirty,
 } from './selectors';
-import { FieldType } from './types';
+import { FieldType, Bag } from './types';
 import { nestedFieldSeparator } from './nested';
 
 export function useGetBag(formId: string) {
-  return useRecoilCallback(
+  return useRecoilCallback<[], Promise<Bag>>(
     ({ snapshot }) =>
       async () => {
         const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
@@ -30,6 +30,7 @@ export function useGetBag(formId: string) {
           snapshot.getPromise($formDirty(formId)),
         ]);
         return {
+          formId,
           values,
           initialValues,
           fieldIds,
@@ -44,7 +45,7 @@ export function useGetBag(formId: string) {
 
 // same as getBag, but does not return "validation"
 export function useGetBagForValidator(formId: string) {
-  return useRecoilCallback(
+  return useRecoilCallback<[], Promise<Omit<Bag, 'validation'>>>(
     ({ snapshot }) =>
       async () => {
         const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
@@ -55,6 +56,7 @@ export function useGetBagForValidator(formId: string) {
           snapshot.getPromise($formDirty(formId)),
         ]);
         return {
+          formId,
           values,
           initialValues,
           fieldIds,

@@ -12,7 +12,7 @@ import {
 } from './shared';
 import {
   useForm,
-  useHasValue,
+  useDependentField,
   List,
   Validator,
   error,
@@ -583,8 +583,12 @@ test('forms: dependent field', async () => {
       onSubmit,
       onSubmitInvalid,
     });
-    const a = useHasValue({ formId, name: 'a' });
-    const b = useHasValue({
+    const [hasA, compareAValue] = useDependentField<string>({
+      formId,
+      name: 'a',
+      compare: (value) => value !== undefined && value !== '',
+    });
+    const [hasB, compareBValue] = useDependentField<string>({
       formId,
       name: 'b',
       compare: (value) => value === 'xxx',
@@ -596,24 +600,24 @@ test('forms: dependent field', async () => {
           label="A"
           validator={isRequired}
           onChangeImmediate={({ value }) =>
-            value !== undefined && value !== ''
+            compareAValue(value)
               ? handleDependentFields(['b'], ['c'])
               : handleDependentFields([], ['b', 'c'])
           }
         />
-        {a && (
+        {hasA && (
           <LazyField
             name="b"
             label="B"
             validator={isRequired}
             onChangeImmediate={({ value }) =>
-              value === 'xxx'
+              compareBValue(value)
                 ? handleDependentFields(['c'])
                 : handleDependentFields([], ['c'])
             }
           />
         )}
-        {b && <LazyField name="c" label="C" validator={isRequired} />}
+        {hasB && <LazyField name="c" label="C" validator={isRequired} />}
         <button type="submit">submit</button>
       </Form>
     );
