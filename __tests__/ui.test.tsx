@@ -612,7 +612,7 @@ test('forms: dependent field', async () => {
             validator={isRequired}
             onChangeImmediate={({ value }) =>
               compareBValue(value)
-                ? handleDependentFields(['c'])
+                ? handleDependentFields(['c'], [])
                 : handleDependentFields([], ['c'])
             }
           />

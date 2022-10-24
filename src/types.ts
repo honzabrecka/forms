@@ -40,9 +40,18 @@ export type FieldValidationResult = {
   other?: any;
   name: string;
 };
+
 export type NamedValidator = (value: any) => Promise<FieldValidationResult>;
 
-export type FormSubmission = any;
+export type FormValidationResult = {
+  isValid: boolean;
+  isValidStrict: boolean;
+  errors: FieldValidationResult[];
+  warnings: FieldValidationResult[];
+  result: FieldValidationResult[];
+};
+
+export type FormSubmission = FormValidationResult | null;
 
 export type FormState = {
   id: string;
@@ -101,8 +110,9 @@ export type FormControls = {
   addFields: (names: string[]) => void;
   removeFields: (names: string[]) => void;
   handleDependentFields: (
-    requiredInNextStep?: string[],
-    namesToRemove?: string[],
+    requiredInNextStep: string[],
+    namesToRemove: string[],
+    errorValue?: string,
   ) => void;
 };
 
@@ -111,14 +121,6 @@ export type OnSubmitBag = Bag & FormControls & { args: readonly any[] };
 export type GetBag = () => Promise<Bag>;
 
 export type GetBagForValidator = () => Promise<Omit<Bag, 'validation'>>;
-
-export type FormValidationResult = {
-  isValid: boolean;
-  isValidStrict: boolean;
-  errors: FieldValidationResult[];
-  warnings: FieldValidationResult[];
-  result: FieldValidationResult[];
-};
 
 export type DirtyComparator = (
   value: any,

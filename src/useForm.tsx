@@ -337,8 +337,9 @@ export default function useForm({
     };
 
     const handleDependentFields = (
-      requiredInNextStep: string[] = [],
-      namesToRemove: string[] = [],
+      requiredInNextStep: string[],
+      namesToRemove: string[],
+      errorValue = 'not ready',
     ) => {
       removeFields(namesToRemove);
       if (requiredInNextStep.length > 0) {
@@ -346,7 +347,7 @@ export default function useForm({
         resetFields(requiredInNextStep);
         setErrors(
           requiredInNextStep.reduce<Dict<ValidationResult>>((acc, name) => {
-            acc[name] = error('not ready');
+            acc[name] = error(errorValue);
             return acc;
           }, {}),
         );
@@ -370,19 +371,23 @@ export default function useForm({
         args,
       };
 
-      if (!bag.validation[isValidProp]) {
-        setAllToTouched();
-        await onSubmitInvalid(bag);
-        return;
+      try {
+        if (bag.validation[isValidProp]) {
+          await onSubmit(bag);
+        } else {
+          setAllToTouched();
+          await onSubmitInvalid(bag);
+        }
+      } catch (error) {
+        // ignore
       }
 
-      await onSubmit(bag);
+      return bag.validation;
     };
 
     const createSubmitPromise = (...args: any[]) => {
       const submission = submit(...args);
       setForm((state: FormState) => ({ ...state, submission }));
-      return submission;
     };
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

@@ -70,14 +70,16 @@ export function useFieldValidationLoadable({
 }
 
 export function useFieldValue<T>({ formId, name }: FieldIdentification) {
-  return useRecoilValue<T>($fieldValue(fieldId(useFormId(formId), name)));
+  return useRecoilValue<T | undefined>(
+    $fieldValue(fieldId(useFormId(formId), name)),
+  );
 }
 
 export function useFieldValueLoadable<T>({
   formId,
   name,
 }: FieldIdentification) {
-  return useRecoilValueLoadable<T>(
+  return useRecoilValueLoadable<T | undefined>(
     $fieldValue(fieldId(useFormId(formId), name)),
   );
 }
