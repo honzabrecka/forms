@@ -65,6 +65,8 @@ export default function useForm({
   const getBag = useGetBag(formId);
   const registration = useFieldRegistration(formId);
 
+  // NOTE: can cause memory leaks as it can set any field,
+  // but only those registered to form are getting cleared
   const setValues = useRecoilTransaction_UNSTABLE(
     ({ get, set }) =>
       (
@@ -116,6 +118,8 @@ export default function useForm({
     [],
   );
 
+  // NOTE: can cause memory leaks as it can set any field,
+  // but only those registered to form are getting cleared
   const setInitialValues = useRecoilTransaction_UNSTABLE(
     ({ get, set }) =>
       (values: Dict<any>) => {
@@ -149,6 +153,8 @@ export default function useForm({
     [],
   );
 
+  // NOTE: can cause memory leaks as it can set any field,
+  // but only those registered to form are getting cleared
   const setErrors = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
       (errors: Dict<ValidationResult>) => {
@@ -218,6 +224,8 @@ export default function useForm({
     [],
   );
 
+  // NOTE: can cause memory leaks as it can set any field,
+  // but only those registered to form are getting cleared
   const reset = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
       (fieldIds: string[] = []) => {
@@ -250,6 +258,8 @@ export default function useForm({
     [],
   );
 
+  // NOTE: can cause memory leaks as it can set any field,
+  // but only those registered to form are getting cleared
   const resetFields = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
       (fieldIds: string[]) => {
@@ -278,6 +288,8 @@ export default function useForm({
     [],
   );
 
+  // NOTE: can cause memory leaks as it can set any field,
+  // but only those registered to form are getting cleared
   const revalidate = useRecoilCallback(
     ({ snapshot, set }) =>
       (fieldIds: string[] = []) => {
