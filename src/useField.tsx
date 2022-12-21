@@ -1,5 +1,10 @@
 import { useCallback, useMemo, useEffect, useState } from 'react';
-import { Loadable, useRecoilState, useRecoilValueLoadable } from 'recoil';
+import {
+  Loadable,
+  useRecoilState,
+  useRecoilValueLoadable,
+  useResetRecoilState,
+} from 'recoil';
 import { fieldId, $field, $fieldValidation } from './selectors';
 import { useFormId } from './hooks';
 import {
@@ -90,7 +95,7 @@ export default function useField({
   from = defaultFrom,
   to = defaultTo,
   dirtyComparator,
-  preserveStateAfterUnmount = false,
+  preserveStateAfterUnmount = true,
 }: UseFieldProps): UseFieldResult {
   const formId = useFormId(formIdProp);
 
@@ -101,6 +106,7 @@ export default function useField({
   const [fieldState, setFieldState] = useRecoilState(
     $field(fieldId(formId, name)),
   );
+  const reset = useResetRecoilState($field(fieldId(formId, name)));
   const validationResult: Loadable<FieldValidationResult> =
     useRecoilValueLoadable($fieldValidation(fieldId(formId, name)));
   const getBag = useGetBag(formId);
@@ -181,10 +187,9 @@ export default function useField({
     setInited(true);
 
     return () => {
-      if (preserveStateAfterUnmount) {
-        return;
+      if (!preserveStateAfterUnmount) {
+        reset();
       }
-
       registration.remove([name]);
     };
   }, []);

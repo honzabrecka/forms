@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   useRecoilState,
+  useResetRecoilState,
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
 } from 'recoil';
@@ -42,7 +43,7 @@ const useList = ({
   name,
   initialValue = emptyArray,
   dirtyComparator,
-  preserveStateAfterUnmount = false,
+  preserveStateAfterUnmount = true,
 }: UseListProps): UseListResult => {
   const formId = useFormId(formIdProp);
 
@@ -52,6 +53,7 @@ const useList = ({
   const [fieldState, setFieldState] = useRecoilState(
     $field(fieldId(formId, name)),
   );
+  const reset = useResetRecoilState($field(fieldId(formId, name)));
   const registration = useFieldRegistration(formId);
   const [initialValueByName, setInitialValueByName] = useState<Dict<any>>({});
 
@@ -233,10 +235,9 @@ const useList = ({
     }
 
     return () => {
-      if (preserveStateAfterUnmount) {
-        return;
+      if (!preserveStateAfterUnmount) {
+        reset();
       }
-
       registration.remove([name]);
     };
   }, []);
