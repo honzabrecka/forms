@@ -261,21 +261,21 @@ test('forms: optimized cross validation inside List', async () => {
     return (
       <Form>
         <List name="x" validator={isAtLeastOne} validatorDependsOn={['y']}>
-          {({ fields, add }) => (
+          {({ rows, add }) => (
             <>
-              {fields.map(([id, field]) => (
-                <Fragment key={id}>
+              {rows.map((row) => (
+                <Fragment key={row.id}>
                   <Field
                     label="A"
                     validator={isSame1}
-                    validatorDependsOn={[field('b').name]}
-                    {...field('a')}
+                    validatorDependsOn={[row.field('b').name]}
+                    {...row.field('a')}
                   />
                   <Field
                     label="B"
                     validator={isSame1}
-                    validatorDependsOn={[field('a').name]}
-                    {...field('b')}
+                    validatorDependsOn={[row.field('a').name]}
+                    {...row.field('b')}
                   />
                 </Fragment>
               ))}
@@ -286,21 +286,21 @@ test('forms: optimized cross validation inside List', async () => {
           )}
         </List>
         <List name="y" validator={isAtLeastOne} validatorDependsOn={['x']}>
-          {({ fields, add }) => (
+          {({ rows, add }) => (
             <>
-              {fields.map(([id, field]) => (
-                <Fragment key={id}>
+              {rows.map((row) => (
+                <Fragment key={row.id}>
                   <Field
                     label="A"
                     validator={isSame1}
-                    validatorDependsOn={[field('b').name]}
-                    {...field('a')}
+                    validatorDependsOn={[row.field('b').name]}
+                    {...row.field('a')}
                   />
                   <Field
                     label="B"
                     validator={isSame1}
-                    validatorDependsOn={[field('a').name]}
-                    {...field('b')}
+                    validatorDependsOn={[row.field('a').name]}
+                    {...row.field('b')}
                   />
                 </Fragment>
               ))}

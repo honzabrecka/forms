@@ -2,14 +2,29 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   useRecoilState,
   useResetRecoilState,
+  useRecoilCallback,
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
 } from 'recoil';
-import { fieldId, $field } from './selectors';
+import {
+  fieldId,
+  $field,
+  $fieldValue,
+  $fieldTouched,
+  $fieldDirty,
+  $fieldValidation,
+  $fieldInitialValue,
+} from './selectors';
 import { useFormId } from './hooks';
 import { useFieldRegistration } from './internalHooks';
 import useWarnOnChanged from './useWarnOnChanged';
-import { FieldIdentification, Dict, FieldType, DirtyComparator } from './types';
+import {
+  FieldIdentification,
+  Dict,
+  FieldType,
+  DirtyComparator,
+  FieldValidationResult,
+} from './types';
 import uid from './uid';
 import { createNestedName } from './nested';
 
@@ -24,8 +39,23 @@ export type MappedFieldProp = {
   initialValue: any;
 };
 
+export type Row = {
+  id: string;
+  field: (nested: string) => MappedFieldProp;
+  getBag: () => Promise<RowBag>;
+};
+
+export type RowBag = {
+  value: Dict<any>;
+  initialValue: Dict<any>;
+  touched: boolean;
+  dirty: boolean;
+  validation: FieldValidationResult;
+};
+
 export type UseListResult = {
-  fields: [string, (nested: string) => MappedFieldProp][];
+  rows: Row[];
+  rowIds: string[];
   add: (value?: Dict<any>) => string;
   addAt: (index: number, value?: Dict<any>) => string;
   addMany: (values: Dict<any>[]) => string[];
@@ -33,7 +63,9 @@ export type UseListResult = {
   removeAll: () => void;
   swap: (a: string, b: string) => void;
   move: (name: string, b: number) => void;
-  replace: (value: Dict<any>[]) => void;
+  replaceAll: (value: Dict<any>[]) => void;
+  getRowBag: (id: string) => Promise<RowBag>;
+  getFieldName: (rowId: string, name: string) => string;
 };
 
 const emptyArray: Dict<any>[] = [];
@@ -198,7 +230,7 @@ const useList = ({
     });
   };
 
-  const replace = (rows: Dict<any>[]) => {
+  const replaceAll = (rows: Dict<any>[]) => {
     const [children, values] = createRows(rows);
     setValues(values);
     setFieldState((state) => ({
@@ -208,6 +240,23 @@ const useList = ({
       touched: false,
     }));
   };
+
+  const getRowBag = useRecoilCallback(
+    ({ snapshot }) =>
+      async (id: string): Promise<RowBag> => {
+        const touched = snapshot.getLoadable(
+          $fieldTouched(fieldId(formId, id)),
+        ).contents;
+        const [value, dirty, validation, initialValue] = await Promise.all([
+          snapshot.getPromise($fieldValue(fieldId(formId, id))),
+          snapshot.getPromise($fieldDirty(fieldId(formId, id))),
+          snapshot.getPromise($fieldValidation(fieldId(formId, id))),
+          snapshot.getPromise($fieldInitialValue(fieldId(formId, id))),
+        ]);
+        return { value, touched, dirty, validation, initialValue };
+      },
+    [],
+  );
 
   useEffect(() => {
     registration.add([name]);
@@ -242,21 +291,26 @@ const useList = ({
     };
   }, []);
 
-  const fields = useMemo<[string, (nested: string) => MappedFieldProp][]>(
+  const rows = useMemo<Row[]>(
     () =>
-      fieldState.children.map((name) => [
-        name,
-        (nested: string) => ({
+      fieldState.children.map((name) => ({
+        id: name,
+        field: (nested: string) => ({
           name: createNestedName(name, nested),
           initialValue: initialValueByName[name]?.[nested],
         }),
-      ]),
+        getBag: () => getRowBag(name),
+      })),
     [fieldState.children, initialValueByName],
   );
 
+  const getFieldName = (rowId: string, name: string) =>
+    createNestedName(rowId, name);
+
   return {
-    fields,
-    replace,
+    rows,
+    rowIds: fieldState.children,
+    replaceAll,
     add,
     addAt,
     addMany,
@@ -264,6 +318,8 @@ const useList = ({
     removeAll,
     swap,
     move,
+    getRowBag,
+    getFieldName,
   };
 };
 
