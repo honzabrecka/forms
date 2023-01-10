@@ -20,6 +20,7 @@ import {
   OnFormReady,
   useFormId,
   useFormSubmissionLoadable,
+  Dict,
 } from '../src/index';
 
 const SubmitButton = ({ children }: any) => {
@@ -132,6 +133,7 @@ const notEmptyList: Validator = (value) =>
 test('forms: List', async () => {
   const onSubmit = jest.fn();
   const onSubmitInvalid = jest.fn();
+  let rowBag: any;
   const App = () => {
     const { Form } = useForm({
       onSubmit,
@@ -144,13 +146,21 @@ test('forms: List', async () => {
           initialValue={[{ name: 1 }, { name: 2 }]}
           validator={notEmptyList}
         >
-          {({ fields, add, remove, removeAll, replace }) => (
+          {({ rows, add, remove, removeAll, replaceAll }) => (
             <>
-              {fields.map(([id, field]) => (
-                <Fragment key={id}>
-                  <Field label="Name" {...field('name')} />
-                  <button type="button" onClick={() => remove(id)}>
+              {rows.map((row) => (
+                <Fragment key={row.id}>
+                  <Field label="Name" {...row.field('name')} />
+                  <button type="button" onClick={() => remove(row.id)}>
                     remove
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      rowBag = row.getBag();
+                    }}
+                  >
+                    get bag
                   </button>
                 </Fragment>
               ))}
@@ -162,7 +172,7 @@ test('forms: List', async () => {
               </button>
               <button
                 type="button"
-                onClick={() => replace([{ name: 'users' }, { name: 'bar' }])}
+                onClick={() => replaceAll([{ name: 'users' }, { name: 'bar' }])}
               >
                 fill
               </button>
@@ -209,6 +219,16 @@ test('forms: List', async () => {
       initialValues: { users: [{ name: 1 }, { name: 2 }] },
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getAllByText('get bag')[2]);
+  await waitFor(async () => {
+    expect(await rowBag).toMatchObject({
+      value: { name: 'John Doe' },
+      touched: false,
+      initialValue: { name: 'John Doe' },
+      dirty: false,
     });
   });
 
@@ -279,12 +299,12 @@ test('forms: List initialValue', async () => {
           initialValue={[{ name: 1 }, { name: 2 }]}
           validator={notEmptyList}
         >
-          {({ fields, add, remove }) => (
+          {({ rows, add, remove }) => (
             <>
-              {fields.map(([id, field]) => (
-                <Fragment key={id}>
-                  <Field label="Name" {...field('name')} />
-                  <button type="button" onClick={() => remove(id)}>
+              {rows.map((row) => (
+                <Fragment key={row.id}>
+                  <Field label="Name" {...row.field('name')} />
+                  <button type="button" onClick={() => remove(row.id)}>
                     remove
                   </button>
                 </Fragment>
@@ -537,12 +557,16 @@ test('forms: async validation on list', async () => {
     return (
       <Form>
         <List name="users" validator={exactLength}>
-          {({ fields, add, remove, removeAll }) => (
+          {({ rows, add, remove, removeAll }) => (
             <>
-              {fields.map(([id, field]) => (
-                <Fragment key={id}>
-                  <AsyncField from={identity} label="Name" {...field('name')} />
-                  <button type="button" onClick={() => remove(id)}>
+              {rows.map((row) => (
+                <Fragment key={row.id}>
+                  <AsyncField
+                    from={identity}
+                    label="Name"
+                    {...row.field('name')}
+                  />
+                  <button type="button" onClick={() => remove(row.id)}>
                     remove
                   </button>
                 </Fragment>
@@ -793,6 +817,123 @@ test('forms: dependent field', async () => {
     expectFormBag(onSubmitInvalid.mock.calls[4][0], {
       fieldIds: ['a', 'b', 'c'],
       values: { a: 'baz', b: 'xxx', c: undefined },
+    });
+  });
+});
+
+test('forms: List row values manipulation', async () => {
+  const onSubmit = jest.fn();
+  const App = () => {
+    const { Form, setValues } = useForm({
+      onSubmit,
+    });
+    return (
+      <Form>
+        <List
+          name="users"
+          initialValue={[
+            { firstName: 'John', lastName: 'Doe' },
+            { firstName: 'Melissa', lastName: 'Woo' },
+          ]}
+        >
+          {({ rows, getFieldName }) => (
+            <>
+              {rows.map((row) => (
+                <Fragment key={row.id}>
+                  <Field label="First Name" {...row.field('firstName')} />
+                  <Field label="Last Name" {...row.field('lastName')} />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const { value } = await row.getBag();
+                      setValues(
+                        Object.entries(value).reduce<Dict<any>>(
+                          (acc, [name, value]) => {
+                            acc[getFieldName(row.id, name)] = `saved: ${value}`;
+                            return acc;
+                          },
+                          {},
+                        ),
+                      );
+                    }}
+                  >
+                    save
+                  </button>
+                </Fragment>
+              ))}
+            </>
+          )}
+        </List>
+        <button type="submit">submit</button>
+      </Form>
+    );
+  };
+
+  render(<App />, {
+    wrapper,
+  });
+
+  const user = userEvent.setup();
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['users'],
+      values: {
+        users: [
+          { firstName: 'John', lastName: 'Doe' },
+          { firstName: 'Melissa', lastName: 'Woo' },
+        ],
+      },
+      touched: false,
+      touchedFieldIds: [],
+      initialValues: {
+        users: [
+          { firstName: 'John', lastName: 'Doe' },
+          { firstName: 'Melissa', lastName: 'Woo' },
+        ],
+      },
+      dirty: false,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getAllByText('save')[0]);
+
+  await waitFor(() => {
+    expect(
+      screen.getAllByLabelText<HTMLInputElement>('First Name')[0].value,
+    ).toBe('saved: John');
+    expect(
+      screen.getAllByLabelText<HTMLInputElement>('Last Name')[0].value,
+    ).toBe('saved: Doe');
+  });
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['users'],
+      values: {
+        users: [
+          { firstName: 'saved: John', lastName: 'saved: Doe' },
+          { firstName: 'Melissa', lastName: 'Woo' },
+        ],
+      },
+      // setValues does not set touched to true (it's up to developer to call setTouched)
+      touched: false,
+      touchedFieldIds: [],
+      initialValues: {
+        users: [
+          { firstName: 'John', lastName: 'Doe' },
+          { firstName: 'Melissa', lastName: 'Woo' },
+        ],
+      },
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
     });
   });
 });
