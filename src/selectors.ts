@@ -14,7 +14,7 @@ import { nestedFieldSeparator } from './nested';
 
 const last = <T>(xs: T[]) => xs[xs.length - 1];
 
-const delay = (t: number) =>
+export const delay = (t: number) =>
   new Promise((res) => {
     setTimeout(res, t);
   });

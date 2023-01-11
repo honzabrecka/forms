@@ -3,7 +3,6 @@ import React, { useEffect, useState, useMemo, FormEvent } from 'react';
 import {
   useRecoilTransaction_UNSTABLE,
   useRecoilCallback,
-  useRecoilValueLoadable,
   useSetRecoilState,
 } from 'recoil';
 import {
@@ -11,9 +10,9 @@ import {
   $field,
   $fieldValue,
   $form,
-  $formSubmission,
   $allFieldIds,
   createNamedValidation,
+  delay,
 } from './selectors';
 import { useGetBag, useFieldRegistration } from './internalHooks';
 import useWarnOnChanged from './useWarnOnChanged';
@@ -60,7 +59,6 @@ export default function useForm({
   useWarnOnChanged('formId', formId);
 
   const setForm = useSetRecoilState($form(formId));
-  const isSubmitting = useRecoilValueLoadable($formSubmission(formId));
 
   const getBag = useGetBag(formId);
   const registration = useFieldRegistration(formId);
@@ -394,6 +392,8 @@ export default function useForm({
         // ignore
       }
 
+      await delay(0);
+
       return bag.validation;
     };
 
@@ -420,7 +420,6 @@ export default function useForm({
       revalidate,
       clear,
       getBag,
-      submitting: isSubmitting.state === 'loading',
       submit: createSubmitPromise,
       handleSubmit,
       addFields,

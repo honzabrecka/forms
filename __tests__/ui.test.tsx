@@ -18,7 +18,18 @@ import {
   error,
   success,
   OnFormReady,
+  useFormId,
+  useFormSubmissionLoadable,
 } from '../src/index';
+
+const SubmitButton = ({ children }: any) => {
+  const { state } = useFormSubmissionLoadable(useFormId());
+  return (
+    <button disabled={state === 'loading'} type="submit">
+      {children}
+    </button>
+  );
+};
 
 test('forms: basic', async () => {
   const onSubmit = jest.fn();
@@ -52,6 +63,31 @@ test('forms: basic', async () => {
       dirtyFieldIds: ['name'],
       validation: { isValid: true, isValidStrict: true },
     });
+  });
+});
+
+test('forms: double click is ignored', async () => {
+  const onSubmit = jest.fn();
+  const App = () => {
+    const { Form } = useForm({
+      onSubmit,
+    });
+    return (
+      <Form>
+        <Field name="name" label="Name" />
+        <SubmitButton>submit</SubmitButton>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.dblClick(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });
 

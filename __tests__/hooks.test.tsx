@@ -1079,8 +1079,10 @@ test('forms: validator that throws is converted to one that returns error', asyn
     },
   );
 
-  await waitFor(() => {
+  await waitFor(async () => {
     expect(result.current.a.inited).toBe(true);
+    // TODO has to be so getBag gets up to date validation (don't know why yet)
+    await result.current.a.validation;
   });
 
   const bag = await result.current.form.getBag();
