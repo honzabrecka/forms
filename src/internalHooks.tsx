@@ -1,3 +1,4 @@
+import { useCallback, useRef, useEffect } from 'react';
 import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
@@ -165,3 +166,13 @@ export function useFieldRegistration(formId: string) {
     remove,
   };
 }
+
+export const useEventCallback = (cb: any) => {
+  const cbRef = useRef(cb);
+
+  useEffect(() => {
+    cbRef.current = cb;
+  });
+
+  return useCallback((...args: any[]) => cbRef.current(...args), []);
+};

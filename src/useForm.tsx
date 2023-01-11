@@ -14,7 +14,11 @@ import {
   createNamedValidation,
   delay,
 } from './selectors';
-import { useGetBag, useFieldRegistration } from './internalHooks';
+import {
+  useGetBag,
+  useFieldRegistration,
+  useEventCallback,
+} from './internalHooks';
 import useWarnOnChanged from './useWarnOnChanged';
 import {
   Dict,
@@ -62,6 +66,9 @@ export default function useForm({
 
   const getBag = useGetBag(formId);
   const registration = useFieldRegistration(formId);
+
+  const onSubmitStable = useEventCallback(onSubmit);
+  const onSubmitInvalidStable = useEventCallback(onSubmitInvalid);
 
   // NOTE: can cause memory leaks as it can set any field,
   // but only those registered to form are getting cleared
@@ -383,10 +390,10 @@ export default function useForm({
 
       try {
         if (bag.validation[isValidProp]) {
-          await onSubmit(bag);
+          await onSubmitStable(bag);
         } else {
           setAllToTouched();
-          await onSubmitInvalid(bag);
+          await onSubmitInvalidStable(bag);
         }
       } catch (error) {
         // ignore
@@ -439,5 +446,5 @@ export default function useForm({
       ...form,
       Form,
     };
-  }, [onSubmit, onSubmitInvalid, isValidProp]);
+  }, [isValidProp]);
 }

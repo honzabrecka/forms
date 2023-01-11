@@ -11,6 +11,7 @@ import {
   useGetBag,
   useGetBagForValidator,
   useFieldRegistration,
+  useEventCallback,
 } from './internalHooks';
 import useCallbackInNextRender from './useCallbackInNextRender';
 import useWarnOnChanged from './useWarnOnChanged';
@@ -32,6 +33,8 @@ export const emptyValidator = (/* value */) => Promise.resolve(success());
 
 export type ExportTransformer = (value: any) => any;
 export type ImportTransformer = (value: any) => any;
+
+const noop = () => undefined;
 
 const defaultFrom: ExportTransformer = ({ target: { value } }) => value;
 const defaultTo: ImportTransformer = <T,>(value: T): T => value;
@@ -88,10 +91,10 @@ export default function useField({
   validateOnFocus = false,
   validateOnBlur = false,
   validateOnChange = true,
-  onFocus: onFocusCb,
-  onBlur: onBlurCb,
-  onChange: onChangeCb,
-  onChangeImmediate,
+  onFocus: onFocusCb = noop,
+  onBlur: onBlurCb = noop,
+  onChange: onChangeCb = noop,
+  onChangeImmediate = noop,
   from = defaultFrom,
   to = defaultTo,
   dirtyComparator,
@@ -101,6 +104,8 @@ export default function useField({
 
   useWarnOnChanged('formId', formId);
   useWarnOnChanged('name', name);
+
+  const onChangeImmediateStable = useEventCallback(onChangeImmediate);
 
   const [inited, setInited] = useState(false);
   const [fieldState, setFieldState] = useRecoilState(
@@ -113,8 +118,8 @@ export default function useField({
   const getBagForValidator = useGetBagForValidator(formId);
   const registration = useFieldRegistration(formId);
 
-  const delayedOnFocus = useCallbackInNextRender(
-    () => onFocusCb && onFocusCb({ name }, getBag),
+  const delayedOnFocus = useCallbackInNextRender(() =>
+    onFocusCb({ name }, getBag),
   );
 
   const onFocus = useCallback(() => {
@@ -126,8 +131,8 @@ export default function useField({
     delayedOnFocus();
   }, [validateOnFocus]);
 
-  const delayedOnBlur = useCallbackInNextRender(
-    () => onBlurCb && onBlurCb({ name }, getBag),
+  const delayedOnBlur = useCallbackInNextRender(() =>
+    onBlurCb({ name }, getBag),
   );
 
   const onBlur = useCallback(() => {
@@ -143,7 +148,6 @@ export default function useField({
 
   const delayedOnChange = useCallbackInNextRender(
     async ({ name, value }: OnChangeEvent) =>
-      onChangeCb &&
       onChangeCb(
         {
           name,
@@ -165,11 +169,11 @@ export default function useField({
       }));
       // onChangeImmediate is called at the same render,
       // so updated state is not available yet
-      if (onChangeImmediate) onChangeImmediate({ name, value });
+      onChangeImmediateStable({ name, value });
       // while onChange is delayed for one render, so updated state is available
       delayedOnChange({ name, value });
     },
-    [from, onChangeImmediate, validateOnChange],
+    [from, validateOnChange],
   );
 
   useEffect(() => {
