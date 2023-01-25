@@ -261,21 +261,21 @@ test('forms: optimized cross validation inside List', async () => {
     return (
       <Form>
         <List name="x" validator={isAtLeastOne} validatorDependsOn={['y']}>
-          {({ rows, add }) => (
+          {({ rows, add, getFieldName }) => (
             <>
               {rows.map((row) => (
                 <Fragment key={row.id}>
                   <Field
                     label="A"
                     validator={isSame1}
-                    validatorDependsOn={[row.field('b').name]}
-                    {...row.field('a')}
+                    validatorDependsOn={[getFieldName(row.id, 'b')]}
+                    {...row.fieldProps('a')}
                   />
                   <Field
                     label="B"
                     validator={isSame1}
-                    validatorDependsOn={[row.field('a').name]}
-                    {...row.field('b')}
+                    validatorDependsOn={[getFieldName(row.id, 'a')]}
+                    {...row.fieldProps('b')}
                   />
                 </Fragment>
               ))}
@@ -286,21 +286,21 @@ test('forms: optimized cross validation inside List', async () => {
           )}
         </List>
         <List name="y" validator={isAtLeastOne} validatorDependsOn={['x']}>
-          {({ rows, add }) => (
+          {({ rows, add, getFieldName }) => (
             <>
               {rows.map((row) => (
                 <Fragment key={row.id}>
                   <Field
                     label="A"
                     validator={isSame1}
-                    validatorDependsOn={[row.field('b').name]}
-                    {...row.field('a')}
+                    validatorDependsOn={[getFieldName(row.id, 'b')]}
+                    {...row.fieldProps('a')}
                   />
                   <Field
                     label="B"
                     validator={isSame1}
-                    validatorDependsOn={[row.field('a').name]}
-                    {...row.field('b')}
+                    validatorDependsOn={[getFieldName(row.id, 'a')]}
+                    {...row.fieldProps('b')}
                   />
                 </Fragment>
               ))}

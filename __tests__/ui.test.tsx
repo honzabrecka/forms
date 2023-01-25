@@ -150,7 +150,7 @@ test('forms: List', async () => {
             <>
               {rows.map((row) => (
                 <Fragment key={row.id}>
-                  <Field label="Name" {...row.field('name')} />
+                  <Field label="Name" {...row.fieldProps('name')} />
                   <button type="button" onClick={() => remove(row.id)}>
                     remove
                   </button>
@@ -303,7 +303,7 @@ test('forms: List initialValue', async () => {
             <>
               {rows.map((row) => (
                 <Fragment key={row.id}>
-                  <Field label="Name" {...row.field('name')} />
+                  <Field label="Name" {...row.fieldProps('name')} />
                   <button type="button" onClick={() => remove(row.id)}>
                     remove
                   </button>
@@ -564,7 +564,7 @@ test('forms: async validation on list', async () => {
                   <AsyncField
                     from={identity}
                     label="Name"
-                    {...row.field('name')}
+                    {...row.fieldProps('name')}
                   />
                   <button type="button" onClick={() => remove(row.id)}>
                     remove
@@ -840,8 +840,8 @@ test('forms: List row values manipulation', async () => {
             <>
               {rows.map((row) => (
                 <Fragment key={row.id}>
-                  <Field label="First Name" {...row.field('firstName')} />
-                  <Field label="Last Name" {...row.field('lastName')} />
+                  <Field label="First Name" {...row.fieldProps('firstName')} />
+                  <Field label="Last Name" {...row.fieldProps('lastName')} />
                   <button
                     type="button"
                     onClick={async () => {

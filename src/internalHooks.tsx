@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
@@ -15,7 +15,7 @@ import {
   $initialValues,
   $formDirty,
 } from './selectors';
-import { FieldType, Bag } from './types';
+import { FieldType, Bag, VariadicCallback } from './types';
 import { nestedFieldSeparator } from './nested';
 
 export function useGetBag(formId: string) {
@@ -167,7 +167,34 @@ export function useFieldRegistration(formId: string) {
   };
 }
 
-export const useEventCallback = (cb: any) => {
+export function useCallbackInNextRender(cb: VariadicCallback) {
+  const [args, rerender] = useState<any[] | undefined>();
+
+  useEffect(() => {
+    if (args) {
+      cb(...args);
+    }
+  }, [args]);
+
+  return useCallback((...args: any[]) => {
+    rerender(args);
+  }, []);
+}
+
+export function useWarnOnChanged(name: string, value: any) {
+  const original = useRef(value);
+
+  useEffect(() => {
+    // TODO use invariant or DEV only
+    if (original.current !== value) {
+      console.warn(
+        `property ${name} should not be changed from ${original.current} to ${value}`,
+      );
+    }
+  }, [value]);
+}
+
+export function useEventCallback(cb: any) {
   const cbRef = useRef(cb);
 
   useEffect(() => {
@@ -175,4 +202,4 @@ export const useEventCallback = (cb: any) => {
   });
 
   return useCallback((...args: any[]) => cbRef.current(...args), []);
-};
+}

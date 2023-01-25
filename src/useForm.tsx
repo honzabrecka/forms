@@ -18,8 +18,8 @@ import {
   useGetBag,
   useFieldRegistration,
   useEventCallback,
+  useWarnOnChanged,
 } from './internalHooks';
-import useWarnOnChanged from './useWarnOnChanged';
 import {
   Dict,
   OnSubmitBag,

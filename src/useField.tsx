@@ -12,9 +12,9 @@ import {
   useGetBagForValidator,
   useFieldRegistration,
   useEventCallback,
+  useWarnOnChanged,
+  useCallbackInNextRender,
 } from './internalHooks';
-import useCallbackInNextRender from './useCallbackInNextRender';
-import useWarnOnChanged from './useWarnOnChanged';
 import { success, error } from './validation';
 import {
   Callback1,
@@ -86,6 +86,7 @@ export default function useField({
   name,
   formId: formIdProp,
   initialValue,
+  // NOTE: should be memoized - when its ref changed -> revalidate
   validator = emptyValidator,
   validateOnMount = true,
   validateOnFocus = false,
@@ -96,7 +97,9 @@ export default function useField({
   onChange: onChangeCb = noop,
   onChangeImmediate = noop,
   from = defaultFrom,
+  // NOTE: called only when value has changed
   to = defaultTo,
+  // NOTE: should be unchanged - used only when initializing, any other update has no effect
   dirtyComparator,
   preserveStateAfterUnmount = true,
 }: UseFieldProps): UseFieldResult {
@@ -106,6 +109,8 @@ export default function useField({
   useWarnOnChanged('name', name);
 
   const onChangeImmediateStable = useEventCallback(onChangeImmediate);
+  const fromStable = useEventCallback(from);
+  const toStable = useEventCallback(to);
 
   const [inited, setInited] = useState(false);
   const [fieldState, setFieldState] = useRecoilState(
@@ -159,7 +164,7 @@ export default function useField({
 
   const onChange = useCallback(
     (value: any) => {
-      value = from(value);
+      value = fromStable(value);
       setFieldState((state) => ({
         ...state,
         value,
@@ -173,7 +178,7 @@ export default function useField({
       // while onChange is delayed for one render, so updated state is available
       delayedOnChange({ name, value });
     },
-    [from, validateOnChange],
+    [validateOnChange],
   );
 
   useEffect(() => {
@@ -228,8 +233,8 @@ export default function useField({
   }, [validator]);
 
   const transformedValue = useMemo(
-    () => to(fieldState.value),
-    [to, fieldState.value],
+    () => toStable(fieldState.value),
+    [fieldState.value],
   );
 
   return {

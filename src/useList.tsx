@@ -16,8 +16,7 @@ import {
   $fieldInitialValue,
 } from './selectors';
 import { useFormId } from './hooks';
-import { useFieldRegistration } from './internalHooks';
-import useWarnOnChanged from './useWarnOnChanged';
+import { useFieldRegistration, useWarnOnChanged } from './internalHooks';
 import {
   FieldIdentification,
   Dict,
@@ -41,7 +40,7 @@ export type MappedFieldProp = {
 
 export type Row = {
   id: string;
-  field: (nested: string) => MappedFieldProp;
+  fieldProps: (nestedFieldName: string) => MappedFieldProp;
   getBag: () => Promise<RowBag>;
 };
 
@@ -74,6 +73,7 @@ const useList = ({
   formId: formIdProp,
   name,
   initialValue = emptyArray,
+  // should be unchanged - used only when initializing, any other update has no effect
   dirtyComparator,
   preserveStateAfterUnmount = true,
 }: UseListProps): UseListResult => {
@@ -241,6 +241,7 @@ const useList = ({
     }));
   };
 
+  // to get row (by its id) values, errors, etc.
   const getRowBag = useRecoilCallback(
     ({ snapshot }) =>
       async (id: string): Promise<RowBag> => {
@@ -295,9 +296,9 @@ const useList = ({
     () =>
       fieldState.children.map((name) => ({
         id: name,
-        field: (nested: string) => ({
-          name: createNestedName(name, nested),
-          initialValue: initialValueByName[name]?.[nested],
+        fieldProps: (nestedFieldName: string) => ({
+          name: createNestedName(name, nestedFieldName),
+          initialValue: initialValueByName[name]?.[nestedFieldName],
         }),
         getBag: () => getRowBag(name),
       })),

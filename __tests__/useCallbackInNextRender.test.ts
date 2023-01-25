@@ -1,6 +1,6 @@
 import { useState, useCallback, StrictMode } from 'react';
 import { renderHook, act } from '@testing-library/react';
-import useCallbackInNextRender from '../src/useCallbackInNextRender';
+import { useCallbackInNextRender } from '../src/internalHooks';
 
 describe('useCallbackInNextRender', () => {
   test('returned function executed with args', () => {
