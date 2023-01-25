@@ -82,6 +82,45 @@ test('forms: setValues', async () => {
   expect(result.current.b.touched).toEqual(false);
 });
 
+test('forms: setValues with equal', async () => {
+  const { result } = renderHook(
+    () => {
+      const form = useForm();
+      const a = useField({
+        formId: form.formId,
+        name: 'a',
+        initialValue: { id: 'foo', x: 'bar' },
+      });
+      return { form, a };
+    },
+    { wrapper },
+  );
+  await act(() => {
+    result.current.form.setValues(
+      { a: { id: 'foo', x: 'baz' } },
+      { equal: (a, b) => a.id === b.id },
+    );
+  });
+  await expectFormBag(result, {
+    fieldIds: ['a'],
+    touched: false,
+    touchedFieldIds: [],
+    values: { a: { id: 'foo', x: 'bar' } },
+  });
+  await act(() => {
+    result.current.form.setValues(
+      { a: { id: 'new', x: 'baz' } },
+      { equal: (a, b) => a.id === b.id },
+    );
+  });
+  await expectFormBag(result, {
+    fieldIds: ['a'],
+    touched: false,
+    touchedFieldIds: [],
+    values: { a: { id: 'new', x: 'baz' } },
+  });
+});
+
 test('forms: setValues with validator', async () => {
   const validator = jest.fn().mockReturnValue(success());
   const { result } = renderHook(
