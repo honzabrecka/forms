@@ -1,13 +1,5 @@
-import React, { createContext, ReactNode, FormEvent } from 'react';
-import { GetBag, FormControls } from './types';
-
-type Form = FormControls & {
-  formId: string;
-  revalidate: (fieldIds?: string[]) => void;
-  getBag: GetBag;
-  submit: (...args: any[]) => void;
-  handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
-};
+import React, { createContext, ReactNode } from 'react';
+import { Form } from './types';
 
 export const FormContext = createContext<Form | undefined>(undefined);
 

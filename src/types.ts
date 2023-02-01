@@ -1,3 +1,4 @@
+import { FormEvent } from 'react';
 import { ERROR, SUCCESS, WARNING } from './validation';
 
 export type Dict<T> = { [K in string]: T };
@@ -57,6 +58,7 @@ export type FormState = {
   id: string;
   fieldIds: string[];
   submission: Promise<FormSubmission>;
+  readyDelayKey: number;
   readyDelay: Promise<unknown>;
 };
 
@@ -100,6 +102,7 @@ export type SetValuesOptions = {
 
 export type FormControls = {
   setValues: (values: Dict<any>, options?: SetValuesOptions) => void;
+  setInitialValues: (values: Dict<any>) => void;
   setErrors: (errors: Dict<ValidationResult>) => void;
   setTouched: (touched: Dict<boolean>) => void;
   resetTouched: () => void;
@@ -116,7 +119,17 @@ export type FormControls = {
   ) => void;
 };
 
+export type Form = FormControls & {
+  formId: string;
+  revalidate: (fieldIds?: string[]) => void;
+  getBag: GetBag;
+  submit: (...args: any[]) => void;
+  handleSubmit: (event: FormEvent<HTMLFormElement>) => void;
+};
+
 export type OnSubmitBag = Bag & FormControls & { args: readonly any[] };
+
+export type OnReadyBag = Form;
 
 export type GetBag = () => Promise<Bag>;
 

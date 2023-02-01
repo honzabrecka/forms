@@ -17,7 +17,6 @@ import {
   Validator,
   error,
   success,
-  OnFormReady,
   useFormId,
   useFormSubmissionLoadable,
   Dict,
@@ -645,23 +644,25 @@ test('forms: async validation on list', async () => {
 test('forms: OnFormReady', async () => {
   const onSubmit = jest.fn();
   const App = () => {
-    const { Form, getBag, setInitialValues, submit } = useForm({
+    const { Form, reset } = useForm({
       onSubmit,
+      onReady: async ({ getBag, setInitialValues, submit }) => {
+        const { values } = await getBag();
+        setInitialValues(values);
+        submit();
+      },
     });
-    const onReady = async () => {
-      const { values } = await getBag();
-      setInitialValues(values);
-      submit();
-    };
     return (
       <Form>
-        <OnFormReady cb={onReady} />
         <AsyncField
           from={identity}
           name="name"
           label="Name"
           delayedResolve="foo"
         />
+        <button type="button" onClick={() => reset()}>
+          reset
+        </button>
       </Form>
     );
   };
@@ -689,6 +690,32 @@ test('forms: OnFormReady', async () => {
   await waitFor(
     () => {
       expect(onSubmit).toHaveBeenCalledTimes(1);
+    },
+    { interval: 2200, timeout: 2500 },
+  );
+
+  await user.click(screen.getByText('reset'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['name'],
+      values: { name: 'foo' },
+      // field is not remounted -> inner inputs does not call it's onMount effect
+      touched: false,
+      touchedFieldIds: [],
+      initialValues: { name: 'foo' },
+      dirty: false,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.type(screen.getByLabelText('Name'), 'Melisa Woo');
+
+  // onFormReady callback is called just once (again)
+  await waitFor(
+    () => {
+      expect(onSubmit).toHaveBeenCalledTimes(2);
     },
     { interval: 2200, timeout: 2500 },
   );

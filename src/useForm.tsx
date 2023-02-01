@@ -13,6 +13,7 @@ import {
   $allFieldIds,
   createNamedValidation,
   delay,
+  defaultReadyDelayTimeout,
 } from './selectors';
 import {
   useGetBag,
@@ -23,6 +24,7 @@ import {
 import {
   Dict,
   OnSubmitBag,
+  OnReadyBag,
   SetValuesOptions,
   FormState,
   FieldState,
@@ -33,6 +35,7 @@ import uid from './uid';
 import { FormContextProvider } from './FormContext';
 import { createNestedName } from './nested';
 import { error } from './validation';
+import OnFormReady from './OnFormReady';
 
 export type OnSubmit = (bag: OnSubmitBag) => any;
 
@@ -40,6 +43,7 @@ export type UseFormProps = {
   formId?: string;
   onSubmit?: OnSubmit;
   onSubmitInvalid?: OnSubmit;
+  onReady?: (bag: OnReadyBag) => any;
   initialValues?: Dict<any>;
   isValidProp?: 'isValid' | 'isValidStrict';
 };
@@ -48,13 +52,14 @@ const onFieldTypeOnly =
   (f: (state: FieldState) => FieldState) => (state: FieldState) =>
     state.type === FieldType.field ? f(state) : state;
 
-const dummyOnSubmit: OnSubmit = () => undefined;
+const noop = () => undefined;
 
 const alwaysFalse = () => false;
 
 export default function useForm({
-  onSubmit = dummyOnSubmit,
-  onSubmitInvalid = dummyOnSubmit,
+  onSubmit = noop,
+  onSubmitInvalid = noop,
+  onReady = noop,
   initialValues = {},
   isValidProp = 'isValid',
 }: UseFormProps = {}) {
@@ -114,7 +119,9 @@ export default function useForm({
               );
               updater(newValues);
             } else if (field.type === FieldType.list) {
-              // unsupported
+              throw new Error(
+                `setValues: unsupported operation: [${id}] is list`,
+              );
             }
           });
         };
@@ -149,7 +156,9 @@ export default function useForm({
               );
               updater(newValues);
             } else if (field.type === FieldType.list) {
-              // unsupported
+              throw new Error(
+                `setValues: unsupported operation: [${id}] is list`,
+              );
             }
           });
         };
@@ -242,6 +251,8 @@ export default function useForm({
           set($form(formId), (state: FormState) => ({
             ...state,
             submission: Promise.resolve(null),
+            readyDelayKey: state.readyDelayKey + 1,
+            readyDelay: delay(defaultReadyDelayTimeout),
           }));
           fieldIdsToReset.forEach((id: string) =>
             set(
@@ -437,7 +448,10 @@ export default function useForm({
     const Form = ({ children }: { children: React.ReactNode }) => {
       return (
         <FormContextProvider form={form}>
-          <form onSubmit={handleSubmit}>{children}</form>
+          <form onSubmit={handleSubmit}>
+            <OnFormReady cb={() => onReady(form)} />
+            {children}
+          </form>
         </FormContextProvider>
       );
     };

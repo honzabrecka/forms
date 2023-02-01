@@ -26,13 +26,16 @@ export const createNamedValidation = (
 
 export const fieldId = (formId: string, name: string) => `${formId}:${name}`;
 
+export const defaultReadyDelayTimeout = 100;
+
 export const $form = atomFamily<FormState, string>({
   key: `form`,
   default: (id: string) => ({
     id,
     fieldIds: [],
     submission: Promise.resolve(null),
-    readyDelay: delay(100),
+    readyDelayKey: 0,
+    readyDelay: delay(defaultReadyDelayTimeout),
   }),
 });
 
@@ -425,6 +428,17 @@ export const $formReadyDelay = selectorFamily({
     (id: string) =>
     ({ get }) =>
       get($form(id)).readyDelay,
+  cachePolicy_UNSTABLE: {
+    eviction: 'most-recent',
+  },
+});
+
+export const $formReadyDelayKey = selectorFamily({
+  key: 'form/readyDelayKey',
+  get:
+    (id: string) =>
+    ({ get }) =>
+      get($form(id)).readyDelayKey,
   cachePolicy_UNSTABLE: {
     eviction: 'most-recent',
   },
