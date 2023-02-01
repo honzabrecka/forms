@@ -182,6 +182,8 @@ export default function useForm({
     [],
   );
 
+  // NOTE: can cause memory leaks as it can set any field,
+  // but only those registered to form are getting cleared
   const setTouched = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
       (touched: Dict<boolean>) => {
