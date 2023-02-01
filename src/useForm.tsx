@@ -23,8 +23,7 @@ import {
 } from './internalHooks';
 import {
   Dict,
-  OnSubmitBag,
-  OnReadyBag,
+  UseFormProps,
   SetValuesOptions,
   FormState,
   FieldState,
@@ -36,17 +35,6 @@ import { FormContextProvider } from './FormContext';
 import { createNestedName } from './nested';
 import { error } from './validation';
 import OnFormReady from './OnFormReady';
-
-export type OnSubmit = (bag: OnSubmitBag) => any;
-
-export type UseFormProps = {
-  formId?: string;
-  onSubmit?: OnSubmit;
-  onSubmitInvalid?: OnSubmit;
-  onReady?: (bag: OnReadyBag) => any;
-  initialValues?: Dict<any>;
-  isValidProp?: 'isValid' | 'isValidStrict';
-};
 
 const onFieldTypeOnly =
   (f: (state: FieldState) => FieldState) => (state: FieldState) =>

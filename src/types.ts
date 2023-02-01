@@ -1,4 +1,5 @@
 import { FormEvent } from 'react';
+import { Loadable } from 'recoil';
 import { ERROR, SUCCESS, WARNING } from './validation';
 
 export type Dict<T> = { [K in string]: T };
@@ -139,3 +140,65 @@ export type DirtyComparator = (
   value: any,
   initialValue: any,
 ) => boolean | Promise<boolean>;
+
+export type FromTransformer = (value: any) => any;
+
+export type ToTransformer = (value: any) => any;
+
+export type OnFocus = Callback2<{ name: string }, GetBag>;
+
+export type OnBlur = Callback2<{ name: string }, GetBag>;
+
+export type OnChangeEvent = { name: string; value: any };
+
+export type OnChange = Callback2<OnChangeEvent, GetBag>;
+
+export type OnChangeImmediate = Callback1<OnChangeEvent>;
+
+export type OnSubmit = (bag: OnSubmitBag) => any;
+
+export type UseFormProps = {
+  formId?: string;
+  onSubmit?: OnSubmit;
+  onSubmitInvalid?: OnSubmit;
+  onReady?: (bag: OnReadyBag) => any;
+  initialValues?: Dict<any>;
+  isValidProp?: 'isValid' | 'isValidStrict';
+};
+
+export type UseFieldProps = {
+  name: string;
+  formId?: string;
+  initialValue?: any;
+  validator?: Validator;
+  validateOnMount?: boolean;
+  validateOnFocus?: boolean;
+  validateOnBlur?: boolean;
+  validateOnChange?: boolean;
+  onFocus?: OnFocus;
+  onBlur?: OnBlur;
+  onChange?: OnChange;
+  onChangeImmediate?: OnChangeImmediate;
+  from?: FromTransformer;
+  to?: ToTransformer;
+  required?: boolean;
+  dirtyComparator?: DirtyComparator;
+  preserveStateAfterUnmount?: boolean;
+};
+
+export type UseFieldResult = {
+  formId: string;
+  touched: boolean;
+  inited: boolean;
+  onChange: (value: any) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  name: string;
+  id: string;
+  value: any;
+  initialValue?: any;
+  dirtyComparator?: DirtyComparator;
+  validator: NamedValidator;
+  validation: Promise<FieldValidationResult>;
+  validationResult: Loadable<FieldValidationResult>;
+};

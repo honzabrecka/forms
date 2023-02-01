@@ -17,13 +17,13 @@ import {
 } from './internalHooks';
 import { success, error } from './validation';
 import {
-  Callback1,
-  Callback2,
-  DirtyComparator,
   FieldValidationResult,
-  GetBag,
   NamedValidator,
-  Validator,
+  FromTransformer,
+  ToTransformer,
+  OnChangeEvent,
+  UseFieldProps,
+  UseFieldResult,
 } from './types';
 
 const isPromise = (value: any) =>
@@ -31,56 +31,10 @@ const isPromise = (value: any) =>
 
 export const emptyValidator = (/* value */) => Promise.resolve(success());
 
-export type ExportTransformer = (value: any) => any;
-export type ImportTransformer = (value: any) => any;
-
 const noop = () => undefined;
 
-const defaultFrom: ExportTransformer = ({ target: { value } }) => value;
-const defaultTo: ImportTransformer = <T,>(value: T): T => value;
-
-export type OnFocus = Callback2<{ name: string }, GetBag>;
-export type OnBlur = Callback2<{ name: string }, GetBag>;
-export type OnChangeEvent = { name: string; value: any };
-export type OnChange = Callback2<OnChangeEvent, GetBag>;
-export type OnChangeImmediate = Callback1<OnChangeEvent>;
-
-export type UseFieldProps = {
-  name: string;
-  formId?: string;
-  initialValue?: any;
-  validator?: Validator;
-  validateOnMount?: boolean;
-  validateOnFocus?: boolean;
-  validateOnBlur?: boolean;
-  validateOnChange?: boolean;
-  onFocus?: OnFocus;
-  onBlur?: OnBlur;
-  onChange?: OnChange;
-  onChangeImmediate?: OnChangeImmediate;
-  from?: ExportTransformer;
-  to?: ImportTransformer;
-  required?: boolean;
-  dirtyComparator?: DirtyComparator;
-  preserveStateAfterUnmount?: boolean;
-};
-
-export type UseFieldResult = {
-  formId: string;
-  touched: boolean;
-  inited: boolean;
-  onChange: (value: any) => void;
-  onFocus: () => void;
-  onBlur: () => void;
-  name: string;
-  id: string;
-  value: any;
-  initialValue?: any;
-  dirtyComparator?: DirtyComparator;
-  validator: NamedValidator;
-  validation: Promise<FieldValidationResult>;
-  validationResult: Loadable<FieldValidationResult>;
-};
+const getEventTargetValue: FromTransformer = ({ target: { value } }) => value;
+const identity: ToTransformer = <T,>(value: T): T => value;
 
 export default function useField({
   name,
@@ -96,9 +50,9 @@ export default function useField({
   onBlur: onBlurCb = noop,
   onChange: onChangeCb = noop,
   onChangeImmediate = noop,
-  from = defaultFrom,
+  from = getEventTargetValue,
   // NOTE: called only when value has changed
-  to = defaultTo,
+  to = identity,
   // NOTE: should be unchanged - used only when initializing, any other update has no effect
   dirtyComparator,
   preserveStateAfterUnmount = true,
