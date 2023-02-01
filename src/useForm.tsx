@@ -412,6 +412,7 @@ export default function useForm({
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      event.stopPropagation();
       createSubmitPromise(event);
     };
 
