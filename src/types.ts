@@ -202,3 +202,48 @@ export type UseFieldResult = {
   validation: Promise<FieldValidationResult>;
   validationResult: Loadable<FieldValidationResult>;
 };
+
+export type UseListProps = FieldIdentification & {
+  initialValue?: Dict<any>[];
+  dirtyComparator?: DirtyComparator;
+  preserveStateAfterUnmount?: boolean;
+};
+
+export type MappedFieldProp = {
+  name: string;
+  initialValue: any;
+};
+
+export type Row = {
+  id: string;
+  fieldProps: (nestedFieldName: string) => MappedFieldProp;
+  getBag: () => Promise<RowBag>;
+};
+
+export type RowBag = {
+  value: Dict<any>;
+  initialValue: Dict<any>;
+  touched: boolean;
+  dirty: boolean;
+  validation: FieldValidationResult;
+};
+
+export type UseListResult = {
+  rows: Row[];
+  rowIds: string[];
+  add: (value?: Dict<any>) => string;
+  addAt: (index: number, value?: Dict<any>) => string;
+  addMany: (values: Dict<any>[]) => string[];
+  remove: (name: string) => void;
+  removeAll: () => void;
+  swap: (a: string, b: string) => void;
+  move: (name: string, b: number) => void;
+  replaceAll: (value: Dict<any>[]) => void;
+  getRowBag: (id: string) => Promise<RowBag>;
+  getFieldName: (rowId: string, name: string) => string;
+};
+
+export type ListProps = UseListProps & {
+  children: (list: UseListResult) => JSX.Element;
+  validator?: Validator;
+};

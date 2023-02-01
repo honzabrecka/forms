@@ -1,17 +1,17 @@
 import React, { useEffect } from 'react';
 import { useSetRecoilState, useRecoilCallback } from 'recoil';
-import useList, { UseListProps, UseListResult } from './useList';
+import useList from './useList';
 import { $field, $fieldValue, fieldId } from './selectors';
 import { useFieldValueLoadable, useFormId } from './hooks';
 import { useGetBagForValidator } from './internalHooks';
-import { FieldIdentification, Validator, NamedValidator } from './types';
+import {
+  FieldIdentification,
+  Validator,
+  NamedValidator,
+  ListProps,
+} from './types';
 import { emptyValidator } from './useField';
 import { error } from './validation';
-
-export type ListProps = UseListProps & {
-  children: (list: UseListResult) => JSX.Element;
-  validator?: Validator;
-};
 
 type ReactiveValdiatorProps = FieldIdentification & {
   validator: Validator;
