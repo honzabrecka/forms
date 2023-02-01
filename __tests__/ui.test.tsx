@@ -20,6 +20,7 @@ import {
   useFormId,
   useFormSubmissionLoadable,
   Dict,
+  OnChangeImmediate,
 } from '../src/index';
 
 const SubmitButton = ({ children }: any) => {
@@ -959,6 +960,71 @@ test('forms: List row values manipulation', async () => {
           { firstName: 'Melissa', lastName: 'Woo' },
         ],
       },
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+});
+
+test('forms: lazy cross validation', async () => {
+  const onSubmit = jest.fn();
+  const onSubmitInvalid = jest.fn();
+  const validator: Validator = async (_, getBag) => {
+    const { values } = await getBag();
+    return ['a', 'b'].some((name) => values[name])
+      ? success()
+      : error('missing field');
+  };
+  const App = () => {
+    const { Form, setValues } = useForm({
+      onSubmit,
+      onSubmitInvalid,
+    });
+    const onChange: OnChangeImmediate = ({ name }) => {
+      // reset other field
+      setValues({ [name === 'a' ? 'b' : 'a']: null });
+    };
+    return (
+      <Form>
+        <LazyField
+          name="a"
+          label="A"
+          onChangeImmediate={onChange}
+          validator={validator}
+        />
+        <LazyField
+          name="b"
+          label="B"
+          onChangeImmediate={onChange}
+          validator={validator}
+        />
+        <button type="submit">submit</button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+  });
+
+  await user.type(screen.getByLabelText('A'), 'x');
+  await user.type(screen.getByLabelText('B'), 'y');
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectFormBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['a', 'b'],
+      values: { a: null, b: 'y' },
+      touched: true,
+      touchedFieldIds: ['a', 'b'],
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
     });
