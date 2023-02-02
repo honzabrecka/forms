@@ -400,7 +400,7 @@ export default function useForm({
         // ignore
       }
 
-      await delay(0);
+      await delay(0); // to prevent double submit
 
       return bag.validation;
     };
