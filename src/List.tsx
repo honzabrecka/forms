@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useSetRecoilState, useRecoilCallback } from 'recoil';
 import useList from './useList';
-import { $field, $fieldValue, fieldId } from './selectors';
+import { delay, $field, $fieldValue, fieldId } from './selectors';
 import { useFieldValueLoadable, useFormId } from './hooks';
 import { useGetBagForValidator } from './internalHooks';
 import {
@@ -56,6 +56,7 @@ const ReactiveValidator = ({
   useEffect(() => {
     const wrappedValidator: NamedValidator = async (value) => {
       try {
+        await delay(0); // to get fresh bag
         const result = await validator(value, getBagForValidator);
         return {
           name,

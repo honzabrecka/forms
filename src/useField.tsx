@@ -5,7 +5,7 @@ import {
   useRecoilValueLoadable,
   useResetRecoilState,
 } from 'recoil';
-import { fieldId, $field, $fieldValidation } from './selectors';
+import { delay, fieldId, $field, $fieldValidation } from './selectors';
 import { useFormId } from './hooks';
 import {
   useGetBag,
@@ -161,6 +161,7 @@ export default function useField({
     setFieldState((state) => {
       const wrappedValidator: NamedValidator = async (value) => {
         try {
+          await delay(0); // to get fresh bag
           const result = await validator(value, getBagForValidator);
           return {
             name,

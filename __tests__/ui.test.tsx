@@ -969,7 +969,7 @@ test('forms: List row values manipulation', async () => {
 test('forms: lazy cross validation', async () => {
   const onSubmit = jest.fn();
   const onSubmitInvalid = jest.fn();
-  const validator: Validator = async (_, getBag) => {
+  const validator: Validator = async (_value, getBag) => {
     const { values } = await getBag();
     return ['a', 'b'].some((name) => values[name])
       ? success()
@@ -1013,7 +1013,6 @@ test('forms: lazy cross validation', async () => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
   });
 
-  await user.type(screen.getByLabelText('A'), 'x');
   await user.type(screen.getByLabelText('B'), 'y');
 
   await user.click(screen.getByText('submit'));
@@ -1023,6 +1022,23 @@ test('forms: lazy cross validation', async () => {
     expectFormBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['a', 'b'],
       values: { a: null, b: 'y' },
+      touched: true,
+      // "a" as well because previous invalid submit marks all fields as touched
+      touchedFieldIds: ['a', 'b'],
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.type(screen.getByLabelText('A'), 'x');
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectFormBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['a', 'b'],
+      values: { a: 'x', b: null },
       touched: true,
       touchedFieldIds: ['a', 'b'],
       dirty: true,

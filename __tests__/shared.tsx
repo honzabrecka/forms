@@ -41,6 +41,9 @@ export const LazyField = ({ label, ...props }: FieldProps) => {
     onChange({ target: { value: state } });
     onBlur();
   }, [state, onChange, onBlur]);
+  useEffect(() => {
+    setState(value || '');
+  }, [value]);
   return (
     <>
       <label htmlFor={id}>{label}</label>
