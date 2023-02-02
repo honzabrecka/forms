@@ -20,7 +20,7 @@ import {
   useFormId,
   useFormSubmissionLoadable,
   Dict,
-  OnChangeImmediate,
+  OnChange,
 } from '../src/index';
 
 const SubmitButton = ({ children }: any) => {
@@ -980,7 +980,7 @@ test('forms: lazy cross validation', async () => {
       onSubmit,
       onSubmitInvalid,
     });
-    const onChange: OnChangeImmediate = ({ name }) => {
+    const onChange: OnChange = ({ name }) => {
       // reset other field
       setValues({ [name === 'a' ? 'b' : 'a']: null });
     };
@@ -989,13 +989,13 @@ test('forms: lazy cross validation', async () => {
         <LazyField
           name="a"
           label="A"
-          onChangeImmediate={onChange}
+          onChange={onChange}
           validator={validator}
         />
         <LazyField
           name="b"
           label="B"
-          onChangeImmediate={onChange}
+          onChange={onChange}
           validator={validator}
         />
         <button type="submit">submit</button>
