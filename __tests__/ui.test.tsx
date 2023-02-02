@@ -749,7 +749,7 @@ test('forms: dependent field', async () => {
           name="a"
           label="A"
           validator={isRequired}
-          onChangeImmediate={({ value }) =>
+          onChange={({ value }) =>
             compareAValue(value)
               ? handleDependentFields(['b'], ['c'])
               : handleDependentFields([], ['b', 'c'])
@@ -760,7 +760,7 @@ test('forms: dependent field', async () => {
             name="b"
             label="B"
             validator={isRequired}
-            onChangeImmediate={({ value }) =>
+            onChange={({ value }) =>
               compareBValue(value)
                 ? handleDependentFields(['c'], [])
                 : handleDependentFields([], ['c'])

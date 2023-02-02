@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect, useState } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
@@ -15,7 +15,7 @@ import {
   $initialValues,
   $formDirty,
 } from './selectors';
-import { FieldType, Bag, VariadicCallback } from './types';
+import { FieldType, Bag } from './types';
 import { nestedFieldSeparator } from './nested';
 
 export function useGetBag(formId: string) {
@@ -165,20 +165,6 @@ export function useFieldRegistration(formId: string) {
     add,
     remove,
   };
-}
-
-export function useCallbackInNextRender(cb: VariadicCallback) {
-  const [args, rerender] = useState<any[] | undefined>();
-
-  useEffect(() => {
-    if (args) {
-      cb(...args);
-    }
-  }, [args]);
-
-  return useCallback((...args: any[]) => {
-    rerender(args);
-  }, []);
 }
 
 export function useWarnOnChanged(name: string, value: any) {

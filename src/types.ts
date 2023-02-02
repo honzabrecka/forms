@@ -153,8 +153,6 @@ export type OnChangeEvent = { name: string; value: any };
 
 export type OnChange = Callback2<OnChangeEvent, GetBag>;
 
-export type OnChangeImmediate = Callback1<OnChangeEvent>;
-
 export type OnSubmit = (bag: OnSubmitBag) => any;
 
 export type UseFormProps = {
@@ -178,7 +176,6 @@ export type UseFieldProps = {
   onFocus?: OnFocus;
   onBlur?: OnBlur;
   onChange?: OnChange;
-  onChangeImmediate?: OnChangeImmediate;
   from?: FromTransformer;
   to?: ToTransformer;
   required?: boolean;

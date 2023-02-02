@@ -13,7 +13,6 @@ import {
   useFieldRegistration,
   useEventCallback,
   useWarnOnChanged,
-  useCallbackInNextRender,
 } from './internalHooks';
 import { success, error } from './validation';
 import {
@@ -49,7 +48,6 @@ export default function useField({
   onFocus: onFocusCb = noop,
   onBlur: onBlurCb = noop,
   onChange: onChangeCb = noop,
-  onChangeImmediate = noop,
   from = getEventTargetValue,
   // NOTE: called only when value has changed
   to = identity,
@@ -62,7 +60,6 @@ export default function useField({
   useWarnOnChanged('formId', formId);
   useWarnOnChanged('name', name);
 
-  const onChangeImmediateStable = useEventCallback(onChangeImmediate);
   const fromStable = useEventCallback(from);
   const toStable = useEventCallback(to);
 
@@ -77,9 +74,7 @@ export default function useField({
   const getBagForValidator = useGetBagForValidator(formId);
   const registration = useFieldRegistration(formId);
 
-  const delayedOnFocus = useCallbackInNextRender(() =>
-    onFocusCb({ name }, getBag),
-  );
+  const onFocusStable = useEventCallback(() => onFocusCb({ name }, getBag));
 
   const onFocus = useCallback(() => {
     if (validateOnFocus)
@@ -87,12 +82,10 @@ export default function useField({
         ...state,
         validation: state.validator(state.value),
       }));
-    delayedOnFocus();
+    onFocusStable();
   }, [validateOnFocus]);
 
-  const delayedOnBlur = useCallbackInNextRender(() =>
-    onBlurCb({ name }, getBag),
-  );
+  const onBlurStable = useEventCallback(() => onBlurCb({ name }, getBag));
 
   const onBlur = useCallback(() => {
     setFieldState((state) => ({
@@ -102,10 +95,10 @@ export default function useField({
         ? state.validator(state.value)
         : state.validation,
     }));
-    delayedOnBlur();
+    onBlurStable();
   }, [validateOnBlur]);
 
-  const delayedOnChange = useCallbackInNextRender(
+  const onChangeStable = useEventCallback(
     async ({ name, value }: OnChangeEvent) =>
       onChangeCb(
         {
@@ -126,11 +119,7 @@ export default function useField({
           ? state.validator(value)
           : state.validation,
       }));
-      // onChangeImmediate is called at the same render,
-      // so updated state is not available yet
-      onChangeImmediateStable({ name, value });
-      // while onChange is delayed for one render, so updated state is available
-      delayedOnChange({ name, value });
+      onChangeStable({ name, value });
     },
     [validateOnChange],
   );

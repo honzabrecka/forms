@@ -272,7 +272,6 @@ test('forms: setAllToTouched', async () => {
 
 test('forms > field: onChange', async () => {
   const onChange = jest.fn();
-  const onChangeImmediate = jest.fn();
   const { result } = renderHook(
     () => {
       const form = useForm();
@@ -280,13 +279,11 @@ test('forms > field: onChange', async () => {
         formId: form.formId,
         name: 'a',
         onChange,
-        onChangeImmediate,
       });
       const b = useField({
         formId: form.formId,
         name: 'b',
         onChange,
-        onChangeImmediate,
       });
       return { form, a, b };
     },
@@ -305,8 +302,6 @@ test('forms > field: onChange', async () => {
   expect(result.current.a.touched).toEqual(false);
   expect(result.current.b.value).toEqual(undefined);
   expect(result.current.b.touched).toEqual(false);
-  expect(onChangeImmediate).toHaveBeenCalledTimes(1);
-  expect(onChangeImmediate.mock.calls[0][0]).toEqual({ name: 'a', value: 2 });
   expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange.mock.calls[0][0]).toEqual({ name: 'a', value: 2 });
   expect(await onChange.mock.calls[0][1]()).toMatchObject({
