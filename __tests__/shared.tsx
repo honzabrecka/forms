@@ -1,6 +1,12 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import React, { useEffect, useState, useCallback, StrictMode } from 'react';
-import { RecoilRoot, useField, UseFieldProps } from '../src/index';
+import {
+  RecoilRoot,
+  useField,
+  UseFieldProps,
+  useFormId,
+  useFormIsSubmitting,
+} from '../src/index';
 
 export const wrapper = ({ children }: any) => (
   <StrictMode>
@@ -129,6 +135,15 @@ export const AsyncField = ({
         />
       ) : null}
     </>
+  );
+};
+
+export const SubmitButton = ({ children }: any) => {
+  const isSubmitting = useFormIsSubmitting(useFormId());
+  return (
+    <button disabled={isSubmitting} type="submit">
+      {children}
+    </button>
   );
 };
 

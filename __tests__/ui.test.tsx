@@ -9,6 +9,7 @@ import {
   LazyField,
   AsyncField,
   identity,
+  SubmitButton,
 } from './shared';
 import {
   useForm,
@@ -17,21 +18,10 @@ import {
   Validator,
   error,
   success,
-  useFormId,
-  useFormSubmissionLoadable,
   useFormIsSubmitting,
   Dict,
   OnChange,
 } from '../src/index';
-
-const SubmitButton = ({ children }: any) => {
-  const { state } = useFormSubmissionLoadable(useFormId());
-  return (
-    <button disabled={state === 'loading'} type="submit">
-      {children}
-    </button>
-  );
-};
 
 test('forms: basic', async () => {
   const onSubmit = jest.fn();

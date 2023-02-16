@@ -1,18 +1,16 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-const { DIR, EXT = 'ts' } = process.env;
-
 module.exports = {
   mode: 'development',
   devtool: 'cheap-module-source-map',
-  entry: `./examples/${DIR}/src/index.${EXT}`,
+  entry: `./example/index.tsx`,
   output: {
     publicPath: '/',
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: `./examples/${DIR}/public/index.html`,
+      template: `./example/index.html`,
     }),
   ],
   module: {
@@ -33,7 +31,7 @@ module.exports = {
   devServer: {
     port: process.env.PORT || '8080',
     static: {
-      directory: `./examples/${DIR}/public`,
+      directory: `./example`,
     },
     historyApiFallback: true,
   },
