@@ -39,7 +39,11 @@
     "preset": "ts-jest/presets/js-with-ts",
     "testPathIgnorePatterns": [
       "node_modules",
+      "__tests__/setup.ts",
       "__tests__/shared.tsx"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/__tests__/setup.ts"
     ]
   },
   "keywords": [
@@ -54,6 +58,7 @@
     "recoil": "^0.7.6"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
     "@types/jest": "^29.2.4",

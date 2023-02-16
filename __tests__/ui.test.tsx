@@ -19,6 +19,7 @@ import {
   success,
   useFormId,
   useFormSubmissionLoadable,
+  useFormIsSubmitting,
   Dict,
   OnChange,
 } from '../src/index';
@@ -1044,5 +1045,46 @@ test('forms: lazy cross validation', async () => {
       dirty: true,
       validation: { isValid: true, isValidStrict: true },
     });
+  });
+});
+
+test('forms: isSubmitting', async () => {
+  const onSubmit = jest.fn();
+  const App = () => {
+    const { Form, formId } = useForm({
+      onSubmit,
+    });
+    const isSubmitting = useFormIsSubmitting(formId);
+    return (
+      <Form>
+        <AsyncField from={identity} name="name" label="Name" />
+        <button type="submit" disabled={isSubmitting}>
+          submit
+        </button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await waitFor(() => {
+    expect(screen.getByText('submit')).toBeEnabled();
+  });
+
+  await user.type(screen.getByLabelText('Name'), 'John Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(screen.getByText('submit')).toBeDisabled();
+  });
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText('submit')).toBeEnabled();
   });
 });

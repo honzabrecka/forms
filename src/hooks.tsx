@@ -26,6 +26,11 @@ export function useFormSubmissionLoadable(formId?: string) {
   return useRecoilValueLoadable($formSubmission(useFormId(formId)));
 }
 
+export function useFormIsSubmitting(formId?: string) {
+  const { state } = useFormSubmissionLoadable(formId);
+  return state === 'loading';
+}
+
 export function useFormValidation(formId?: string) {
   return useRecoilValue($formValidation(useFormId(formId)));
 }
