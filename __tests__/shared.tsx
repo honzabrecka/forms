@@ -134,7 +134,7 @@ export const AsyncField = ({
 
 export const identity = <T,>(x: T): T => x;
 
-export const expectFormBag = (bag: any, expected: any) => {
+export const expectBag = (bag: any, expected: any) => {
   expect(bag).toHaveProperty('values');
   expect(bag).toHaveProperty('initialValues');
   expect(bag).toHaveProperty('fieldIds');
@@ -145,3 +145,6 @@ export const expectFormBag = (bag: any, expected: any) => {
   expect(bag).toHaveProperty('dirtyFieldIds');
   expect(bag).toMatchObject(expected);
 };
+
+export const expectFormViaGetBag = async (result: any, expected: any) =>
+  expectBag(await result.current.form.getBag(), expected);

@@ -2,7 +2,7 @@
 import React, { Fragment, useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { wrapper, expectFormBag, Field as RegularField } from './shared';
+import { wrapper, expectBag, Field as RegularField } from './shared';
 import {
   useForm,
   withConditionalValidation,
@@ -83,7 +83,7 @@ test('forms: optimized cross validation', async () => {
 
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expectFormBag(onSubmit.mock.calls[0][0], {
+    expectBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['a', 'b', 'c', 'regular'],
       touched: true,
       touchedFieldIds: ['regular'],
@@ -103,7 +103,7 @@ test('forms: optimized cross validation', async () => {
 
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
-    expectFormBag(onSubmitInvalid.mock.calls[0][0], {
+    expectBag(onSubmitInvalid.mock.calls[0][0], {
       fieldIds: ['a', 'b', 'c', 'regular'],
       touched: true,
       touchedFieldIds: ['a', 'regular'],
@@ -127,7 +127,7 @@ test('forms: optimized cross validation', async () => {
 
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(2);
-    expectFormBag(onSubmitInvalid.mock.calls[1][0], {
+    expectBag(onSubmitInvalid.mock.calls[1][0], {
       fieldIds: ['a', 'b', 'c', 'regular'],
       touched: true,
       touchedFieldIds: ['a', 'b', 'c', 'regular'],
@@ -151,7 +151,7 @@ test('forms: optimized cross validation', async () => {
 
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledTimes(2);
-    expectFormBag(onSubmit.mock.calls[1][0], {
+    expectBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['a', 'b', 'c', 'regular'],
       touched: true,
       initialValues: {},
@@ -169,7 +169,7 @@ test('forms: optimized cross validation', async () => {
 
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(3);
-    expectFormBag(onSubmitInvalid.mock.calls[2][0], {
+    expectBag(onSubmitInvalid.mock.calls[2][0], {
       touched: true,
       initialValues: {},
       dirty: true,
@@ -191,7 +191,7 @@ test('forms: optimized cross validation', async () => {
 
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledTimes(3);
-    expectFormBag(onSubmit.mock.calls[2][0], {
+    expectBag(onSubmit.mock.calls[2][0], {
       touched: true,
       initialValues: {},
       dirty: true,
@@ -209,7 +209,7 @@ test('forms: optimized cross validation', async () => {
 
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(4);
-    expectFormBag(onSubmitInvalid.mock.calls[3][0], {
+    expectBag(onSubmitInvalid.mock.calls[3][0], {
       touched: true,
       initialValues: {},
       dirty: true,
@@ -230,7 +230,7 @@ test('forms: optimized cross validation', async () => {
 
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(5);
-    expectFormBag(onSubmitInvalid.mock.calls[4][0], {
+    expectBag(onSubmitInvalid.mock.calls[4][0], {
       touched: true,
       initialValues: {},
       dirty: true,
@@ -325,7 +325,7 @@ test('forms: optimized cross validation inside List', async () => {
 
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
-    expectFormBag(onSubmitInvalid.mock.calls[0][0], {
+    expectBag(onSubmitInvalid.mock.calls[0][0], {
       validation: {
         isValid: false,
         isValidStrict: false,
@@ -339,7 +339,7 @@ test('forms: optimized cross validation inside List', async () => {
 
   await waitFor(() => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
-    expectFormBag(onSubmit.mock.calls[0][0], {
+    expectBag(onSubmit.mock.calls[0][0], {
       values: {
         x: [{ a: 'foo', b: 'foo' }],
         y: [],
@@ -358,7 +358,7 @@ test('forms: optimized cross validation inside List', async () => {
 
   await waitFor(() => {
     expect(onSubmitInvalid).toHaveBeenCalledTimes(2);
-    expectFormBag(onSubmitInvalid.mock.calls[1][0], {
+    expectBag(onSubmitInvalid.mock.calls[1][0], {
       validation: {
         isValid: false,
         isValidStrict: false,

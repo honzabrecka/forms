@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { wrapper } from './shared';
+import { wrapper, expectFormViaGetBag } from './shared';
 import {
   useForm,
   useField,
@@ -13,22 +13,10 @@ import {
   isSuccess,
   isWarning,
   isError,
+  createNestedName,
 } from '../src/index';
 
 const htmlEvent = (value: any) => ({ target: { value } });
-
-const expectFormBag = async (result: any, expected: any) => {
-  const bag = await result.current.form.getBag();
-  expect(bag).toHaveProperty('values');
-  expect(bag).toHaveProperty('initialValues');
-  expect(bag).toHaveProperty('fieldIds');
-  expect(bag).toHaveProperty('validation');
-  expect(bag).toHaveProperty('touched');
-  expect(bag).toHaveProperty('touchedFieldIds');
-  expect(bag).toHaveProperty('dirty');
-  expect(bag).toHaveProperty('dirtyFieldIds');
-  expect(bag).toMatchObject(expected);
-};
 
 test('forms: initial values', async () => {
   const { result } = renderHook(
@@ -48,7 +36,7 @@ test('forms: initial values', async () => {
   expect(result.current.a.value).toEqual(1);
   expect(result.current.b.value).toEqual(3);
   expect(result.current.c.value).toEqual(4);
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a', 'b', 'c'],
     initialValues: { a: 1, b: 3, c: 4 },
     touched: false,
@@ -70,7 +58,7 @@ test('forms: setValues', async () => {
   await act(() => {
     result.current.form.setValues({ a: 2 });
   });
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a', 'b'],
     touched: false,
     touchedFieldIds: [],
@@ -101,7 +89,7 @@ test('forms: setValues with equal', async () => {
       { equal: (a, b) => a.id === b.id },
     );
   });
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a'],
     touched: false,
     touchedFieldIds: [],
@@ -113,7 +101,7 @@ test('forms: setValues with equal', async () => {
       { equal: (a, b) => a.id === b.id },
     );
   });
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a'],
     touched: false,
     touchedFieldIds: [],
@@ -163,7 +151,7 @@ test('forms: setTouched', async () => {
   await act(() => {
     result.current.form.setTouched({ a: true });
   });
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a', 'b'],
     values: { a: undefined, b: undefined },
     touched: true,
@@ -258,7 +246,7 @@ test('forms: setAllToTouched', async () => {
     result.current.form.setAllToTouched();
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a', 'b'],
     values: { a: undefined, b: undefined },
     touched: true,
@@ -292,7 +280,7 @@ test('forms > field: onChange', async () => {
   await act(() => {
     result.current.a.onChange(htmlEvent(2));
   });
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a', 'b'],
     values: { a: 2, b: undefined },
     touched: false,
@@ -327,7 +315,7 @@ test('forms > field: onChange with an async value', async () => {
   await act(() => {
     result.current.a.onChange(htmlEvent(value));
   });
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a', 'b'],
     touched: false,
     touchedFieldIds: [],
@@ -838,7 +826,7 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   expect(result.current.formDirty.contents.dirtyFieldIds).toEqual([]);
   expect(result.current.fieldDirty.contents).toBe(false);
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: [],
     initialValues: { a: 3 },
@@ -858,7 +846,7 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(['a']);
   expect(result.current.fieldDirty.contents).toBe(true);
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: ['a'],
     initialValues: { a: 3 },
@@ -879,7 +867,7 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   expect(result.current.formDirty.contents.dirtyFieldIds).toEqual([]);
   expect(result.current.fieldDirty.contents).toBe(false);
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: [],
     initialValues: { a: 3 },
@@ -899,7 +887,7 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(['a']);
   expect(result.current.fieldDirty.contents).toBe(true);
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: ['a'],
     initialValues: { a: 1 },
@@ -925,7 +913,7 @@ test('forms: dirty - setValues + setInitialValues', async () => {
 
   expect(result.current.dirty.contents.dirty).toBe(false);
   expect(result.current.dirty.contents.dirtyFieldIds).toEqual([]);
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: [],
     values: { a: 3 },
@@ -942,7 +930,7 @@ test('forms: dirty - setValues + setInitialValues', async () => {
 
   expect(result.current.dirty.contents.dirty).toBe(true);
   expect(result.current.dirty.contents.dirtyFieldIds).toEqual(['a']);
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: ['a'],
     values: { a: 2 },
@@ -960,7 +948,7 @@ test('forms: dirty - setValues + setInitialValues', async () => {
 
   expect(result.current.dirty.contents.dirty).toBe(false);
   expect(result.current.dirty.contents.dirtyFieldIds).toEqual([]);
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: [],
     values: { a: 3 },
@@ -977,7 +965,7 @@ test('forms: dirty - setValues + setInitialValues', async () => {
 
   expect(result.current.dirty.contents.dirty).toBe(true);
   expect(result.current.dirty.contents.dirtyFieldIds).toEqual(['a']);
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: ['a'],
     values: { a: 3 },
@@ -1002,7 +990,7 @@ test('forms: dirty - default dirtyComparator compares by value (JSON.stringify)'
     result.current.form.setValues({ a: { foo: 'bar' } });
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: [],
   });
@@ -1012,7 +1000,7 @@ test('forms: dirty - default dirtyComparator compares by value (JSON.stringify)'
     result.current.form.setValues({ a: { foo: 'baz' } });
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: ['a'],
   });
@@ -1042,7 +1030,7 @@ test('forms: dirty - custom dirtyComparator', async () => {
     result.current.form.setValues({ a: { x: 5, y: 6, z: 7 } });
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: ['a'],
   });
@@ -1051,7 +1039,7 @@ test('forms: dirty - custom dirtyComparator', async () => {
     result.current.form.setValues({ a: { x: 5, y: 2, z: 7 } });
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: [],
   });
@@ -1079,7 +1067,7 @@ test('forms: dirty - async values + custom dirtyComparator', async () => {
     result.current.form.setValues({ a: Promise.resolve({ x: 5, y: 6, z: 7 }) });
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: ['a'],
   });
@@ -1088,7 +1076,7 @@ test('forms: dirty - async values + custom dirtyComparator', async () => {
     result.current.form.setValues({ a: Promise.resolve({ x: 5, y: 2, z: 7 }) });
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: [],
   });
@@ -1138,7 +1126,7 @@ test('forms: manually added/removed field', async () => {
     },
   );
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: [],
   });
 
@@ -1146,7 +1134,7 @@ test('forms: manually added/removed field', async () => {
     result.current.form.setValues({ a: 'foo' });
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: [],
     values: {},
   });
@@ -1155,7 +1143,7 @@ test('forms: manually added/removed field', async () => {
     result.current.form.addFields(['a']);
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a'],
     values: { a: 'foo' },
   });
@@ -1164,7 +1152,7 @@ test('forms: manually added/removed field', async () => {
     result.current.form.removeFields(['a']);
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: [],
     values: {},
   });
@@ -1176,7 +1164,7 @@ test('forms: manually added/removed field', async () => {
     result.current.form.addFields(['a']);
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a'],
     values: { a: 'foo' },
   });
@@ -1193,24 +1181,24 @@ test('forms: manually added/removed nested field', async () => {
     },
   );
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: [],
   });
 
   await act(() => {
-    result.current.form.setValues({ 'a.b.c': 'foo' });
+    result.current.form.setValues({ [createNestedName('a', 'b', 'c')]: 'foo' });
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: [],
     values: {},
   });
 
   await act(() => {
-    result.current.form.addFields(['a.b.c']);
+    result.current.form.addFields([createNestedName('a', 'b', 'c')]);
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a'],
     values: { a: { b: { c: 'foo' } } },
   });
@@ -1219,7 +1207,7 @@ test('forms: manually added/removed nested field', async () => {
     result.current.form.removeFields(['a']);
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: [],
     values: {},
   });
@@ -1227,11 +1215,11 @@ test('forms: manually added/removed nested field', async () => {
   // id is added just once
   // and its value is preserved
   await act(() => {
-    result.current.form.addFields(['a.b.c']);
-    result.current.form.addFields(['a.b.c']);
+    result.current.form.addFields([createNestedName('a', 'b', 'c')]);
+    result.current.form.addFields([createNestedName('a', 'b', 'c')]);
   });
 
-  await expectFormBag(result, {
+  await expectFormViaGetBag(result, {
     fieldIds: ['a'],
     values: { a: { b: { c: 'foo' } } },
   });
