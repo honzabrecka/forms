@@ -199,7 +199,6 @@ export default function useForm({
               onFieldTypeOnly((state) => ({
                 ...state,
                 touched: false,
-                touchedAfterSubmit: false,
               })),
             ),
           );
@@ -219,44 +218,7 @@ export default function useForm({
               onFieldTypeOnly((state) => ({
                 ...state,
                 touched: true,
-                touchedAfterSubmit: true,
               })),
-            ),
-          );
-        });
-      },
-    [],
-  );
-
-  // NOTE: can cause memory leaks as it can set any field,
-  // but only those registered to form are getting cleared
-  const reset = useRecoilCallback(
-    ({ snapshot, transact_UNSTABLE }) =>
-      (fieldIds: string[] = []) => {
-        const fieldIdsToReset =
-          fieldIds.length > 0
-            ? fieldIds
-            : snapshot.getLoadable($allFieldIds(formId)).contents;
-        transact_UNSTABLE(({ set }) => {
-          set($form(formId), (state: FormState) => ({
-            ...state,
-            submission: Promise.resolve(null),
-            readyDelayKey: state.readyDelayKey + 1,
-            readyDelay: delay(defaultReadyDelayTimeout),
-          }));
-          fieldIdsToReset.forEach((id: string) =>
-            set(
-              $field(fieldId(formId, id)),
-              onFieldTypeOnly((state) => {
-                const value = state.initialValue;
-                return {
-                  ...state,
-                  value,
-                  touched: false,
-                  touchedAfterSubmit: false,
-                  validation: state.validator(value, undefined),
-                };
-              }),
             ),
           );
         });
@@ -283,7 +245,6 @@ export default function useForm({
                   ...state,
                   value,
                   touched: false,
-                  touchedAfterSubmit: false,
                   validation: state.validator(value, undefined),
                 };
               }),
@@ -371,6 +332,18 @@ export default function useForm({
           }, {}),
         );
       }
+    };
+
+    // NOTE: can cause memory leaks as it can set any field,
+    // but only those registered to form are getting cleared
+    const reset = (fieldIds: string[] = []) => {
+      setForm((state: FormState) => ({
+        ...state,
+        submission: Promise.resolve(null),
+        readyDelayKey: state.readyDelayKey + 1,
+        readyDelay: delay(defaultReadyDelayTimeout),
+      }));
+      resetFields(fieldIds);
     };
 
     const submit = async (...args: any[]) => {
