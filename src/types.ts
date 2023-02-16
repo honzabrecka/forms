@@ -28,11 +28,13 @@ export type ValidationResult = {
 export type Validator = (
   value: any,
   getBag: GetBagForValidator,
+  meta: any,
 ) => ValidationResult | Promise<ValidationResult>;
 
 export type ConditionalValidator = (
   value: any,
   getBag: GetBagForValidator,
+  meta: any,
   values: any[],
 ) => ValidationResult | Promise<ValidationResult>;
 
@@ -43,7 +45,10 @@ export type FieldValidationResult = {
   name: string;
 };
 
-export type NamedValidator = (value: any) => Promise<FieldValidationResult>;
+export type NamedValidator = (
+  value: any,
+  meta: any,
+) => Promise<FieldValidationResult>;
 
 export type FormValidationResult = {
   isValid: boolean;
@@ -76,6 +81,7 @@ export type FieldState = {
   name: string;
   children: string[];
   value: any;
+  meta: any;
   initialValue?: any;
   dirtyComparator?: DirtyComparator;
   touched: boolean;
@@ -149,7 +155,7 @@ export type OnFocus = Callback2<{ name: string }, GetBag>;
 
 export type OnBlur = Callback2<{ name: string }, GetBag>;
 
-export type OnChangeEvent = { name: string; value: any };
+export type OnChangeEvent = { name: string; value: any; meta: any };
 
 export type OnChange = Callback2<OnChangeEvent, GetBag>;
 
@@ -187,7 +193,7 @@ export type UseFieldResult = {
   formId: string;
   touched: boolean;
   inited: boolean;
-  onChange: (value: any) => void;
+  onChange: (value: any, meta?: any) => void;
   onFocus: () => void;
   onBlur: () => void;
   name: string;

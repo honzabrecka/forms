@@ -38,12 +38,12 @@ export const multi = (values: ValidationResult[]): ValidationResult => {
 
 export const failOnFirst =
   (rules: Validator[]): Validator =>
-  (value, getBag) => {
+  (value, getBag, meta) => {
     async function $([rule, ...rules]: Validator[]): Promise<ValidationResult> {
       if (!rule) {
         return success();
       }
-      const result = await rule(value, getBag);
+      const result = await rule(value, getBag, meta);
       if (!isSuccess(result)) {
         return result;
       }
@@ -54,5 +54,5 @@ export const failOnFirst =
 
 export const all =
   (rules: Validator[]): Validator =>
-  async (value, getBag) =>
-    multi(await Promise.all(rules.map((rule) => rule(value, getBag))));
+  async (value, getBag, meta) =>
+    multi(await Promise.all(rules.map((rule) => rule(value, getBag, meta))));

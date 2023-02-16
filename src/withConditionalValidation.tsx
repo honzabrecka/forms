@@ -27,15 +27,20 @@ const FieldWithConditionalValidationInner = <P extends object>({
   const reactiveValues = validatorDependsOn.map((name) =>
     useFieldValueLoadable({ formId, name }),
   );
-  const reactiveValidator = useCallback<Validator>(async (value, getBag) => {
-    if (!validator) return success();
-    if (validator.length === 2) return (validator as Validator)(value, getBag);
-    return (validator as ConditionalValidator)(
-      value,
-      getBag,
-      await Promise.all(reactiveValues.map((x) => x.toPromise())),
-    );
-  }, (reactiveValues as any).concat(validator));
+  const reactiveValidator = useCallback<Validator>(
+    async (value, getBag, meta) => {
+      if (!validator) return success();
+      if (validator.length === 3)
+        return (validator as Validator)(value, getBag, meta);
+      return (validator as ConditionalValidator)(
+        value,
+        getBag,
+        meta,
+        await Promise.all(reactiveValues.map((x) => x.toPromise())),
+      );
+    },
+    (reactiveValues as any).concat(validator),
+  );
   return <Field {...(props as P)} validator={reactiveValidator} />;
 };
 

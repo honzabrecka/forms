@@ -62,6 +62,7 @@ export const $field = atomFamily<FieldState, string>({
       name,
       children: [],
       value: undefined,
+      meta: undefined,
       initialValue: undefined,
       dirtyComparator: undefined,
       touched: false,

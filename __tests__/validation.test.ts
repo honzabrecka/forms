@@ -42,24 +42,26 @@ const fail: Validator = () => error('failed');
 
 const fakeGetBagDoNotCall: any = () => ({});
 
+const meta = 'some metadata';
+
 test('all execute validator', async () => {
   const validator = jest.fn().mockReturnValueOnce(success());
-  await all([validator])('whatever', fakeGetBagDoNotCall);
-  expect(validator).toHaveBeenCalledWith('whatever', fakeGetBagDoNotCall);
+  await all([validator])('whatever', fakeGetBagDoNotCall, meta);
+  expect(validator).toHaveBeenCalledWith('whatever', fakeGetBagDoNotCall, meta);
 });
 
 test('all result', async () => {
-  expect(isSuccess(await all([ok, ok])('whatever', fakeGetBagDoNotCall))).toBe(
-    true,
-  );
-  expect(isError(await all([ok, fail])('whatever', fakeGetBagDoNotCall))).toBe(
-    true,
-  );
+  expect(
+    isSuccess(await all([ok, ok])('whatever', fakeGetBagDoNotCall, meta)),
+  ).toBe(true);
+  expect(
+    isError(await all([ok, fail])('whatever', fakeGetBagDoNotCall, meta)),
+  ).toBe(true);
 });
 
 test('failOnFirst returns success when no validator given', async () => {
   expect(
-    isSuccess(await failOnFirst([])('whatever', fakeGetBagDoNotCall)),
+    isSuccess(await failOnFirst([])('whatever', fakeGetBagDoNotCall, meta)),
   ).toBe(true);
 });
 
@@ -67,18 +69,26 @@ test('failOnFirst fails on first error', async () => {
   const a = jest.fn().mockReturnValueOnce(success());
   const b = jest.fn().mockReturnValueOnce(error('a'));
   const c = jest.fn().mockReturnValueOnce(success());
-  const result = await failOnFirst([a, b])('whatever', fakeGetBagDoNotCall);
-  expect(a).toHaveBeenCalledWith('whatever', fakeGetBagDoNotCall);
-  expect(b).toHaveBeenCalledWith('whatever', fakeGetBagDoNotCall);
+  const result = await failOnFirst([a, b])(
+    'whatever',
+    fakeGetBagDoNotCall,
+    meta,
+  );
+  expect(a).toHaveBeenCalledWith('whatever', fakeGetBagDoNotCall, meta);
+  expect(b).toHaveBeenCalledWith('whatever', fakeGetBagDoNotCall, meta);
   expect(c).toHaveBeenCalledTimes(0);
   expect(isError(result)).toBe(true);
 });
 
 test('failOnFirst result', async () => {
   expect(
-    isSuccess(await failOnFirst([ok, ok])('whatever', fakeGetBagDoNotCall)),
+    isSuccess(
+      await failOnFirst([ok, ok])('whatever', fakeGetBagDoNotCall, meta),
+    ),
   ).toBe(true);
   expect(
-    isError(await failOnFirst([ok, fail])('whatever', fakeGetBagDoNotCall)),
+    isError(
+      await failOnFirst([ok, fail])('whatever', fakeGetBagDoNotCall, meta),
+    ),
   ).toBe(true);
 });

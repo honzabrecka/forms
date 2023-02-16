@@ -90,7 +90,7 @@ export default function useForm({
                       ...state,
                       value,
                       validation: validate
-                        ? state.validator(value)
+                        ? state.validator(value, state.meta)
                         : state.validation,
                       initialValue: asInitialValues
                         ? value
@@ -254,7 +254,7 @@ export default function useForm({
                   value,
                   touched: false,
                   touchedAfterSubmit: false,
-                  validation: state.validator(value),
+                  validation: state.validator(value, undefined),
                 };
               }),
             ),
@@ -284,7 +284,7 @@ export default function useForm({
                   value,
                   touched: false,
                   touchedAfterSubmit: false,
-                  validation: state.validator(value),
+                  validation: state.validator(value, undefined),
                 };
               }),
             ),
@@ -308,7 +308,7 @@ export default function useForm({
             if (state.type === FieldType.field) {
               return {
                 ...state,
-                validation: state.validator(state.value),
+                validation: state.validator(state.value, state.meta),
               };
             }
             if (state.type === FieldType.list) {
@@ -316,6 +316,7 @@ export default function useForm({
                 ...state,
                 validation: state.validator(
                   snapshot.getPromise($fieldValue(fieldId(formId, id))),
+                  state.meta,
                 ),
               };
             }

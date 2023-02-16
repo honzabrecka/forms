@@ -15,10 +15,10 @@ import {
 const Field = withConditionalValidation(RegularField);
 const List = withConditionalValidation(RegularList);
 
-const isSame1: ConditionalValidator = (value, _, values) =>
+const isSame1: ConditionalValidator = (value, _, __, values) =>
   values.every((x) => x === value) ? success() : error('do not match');
 
-const isSame2: ConditionalValidator = (value, _, [otherValue]) =>
+const isSame2: ConditionalValidator = (value, _, __, [otherValue]) =>
   value === otherValue ? success() : error(`${value} !== ${otherValue}`);
 
 test('forms: optimized cross validation', async () => {
@@ -247,7 +247,7 @@ test('forms: optimized cross validation', async () => {
   });
 });
 
-const isAtLeastOne: ConditionalValidator = (value, _, [otherValue]) =>
+const isAtLeastOne: ConditionalValidator = (value, _, __, [otherValue]) =>
   value.length > 0 || otherValue.length > 0 ? success() : error('invalid');
 
 test('forms: optimized cross validation inside List', async () => {

@@ -63,7 +63,7 @@ const useList = ({
               ...state,
               initialValue: value,
               value,
-              validation: state.validator(value),
+              validation: state.validator(value, state.meta),
             }));
           }
         });

@@ -33,7 +33,7 @@ const ReactiveValidator = ({
     if (value.state === 'hasValue') {
       setFieldState((state) => ({
         ...state,
-        validation: state.validator(value.contents),
+        validation: state.validator(value.contents, state.meta),
       }));
     }
   }, [value]);
@@ -47,17 +47,17 @@ const ReactiveValidator = ({
         set($field(fieldId(resolvedFormId, name)), (state) => ({
           ...state,
           validator,
-          validation: validator(value),
+          validation: validator(value, state.meta),
         }));
       },
     [],
   );
 
   useEffect(() => {
-    const wrappedValidator: NamedValidator = async (value) => {
+    const wrappedValidator: NamedValidator = async (value, meta) => {
       try {
         await delay(0); // to get fresh bag
-        const result = await validator(value, getBagForValidator);
+        const result = await validator(value, getBagForValidator, meta);
         return {
           name,
           ...result,

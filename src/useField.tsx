@@ -80,7 +80,7 @@ export default function useField({
     if (validateOnFocus)
       setFieldState((state) => ({
         ...state,
-        validation: state.validator(state.value),
+        validation: state.validator(state.value, state.meta),
       }));
     onFocusStable();
   }, [validateOnFocus]);
@@ -92,34 +92,36 @@ export default function useField({
       ...state,
       touched: true,
       validation: validateOnBlur
-        ? state.validator(state.value)
+        ? state.validator(state.value, state.meta)
         : state.validation,
     }));
     onBlurStable();
   }, [validateOnBlur]);
 
   const onChangeStable = useEventCallback(
-    async ({ name, value }: OnChangeEvent) =>
+    async ({ name, value, meta }: OnChangeEvent) =>
       onChangeCb(
         {
           name,
           value: isPromise(value) ? await value : value,
+          meta: isPromise(meta) ? await meta : meta,
         },
         getBag,
       ),
   );
 
   const onChange = useCallback(
-    (value: any) => {
+    (value: any, meta: any) => {
       value = fromStable(value);
       setFieldState((state) => ({
         ...state,
         value,
+        meta,
         validation: validateOnChange
-          ? state.validator(value)
+          ? state.validator(value, meta)
           : state.validation,
       }));
-      onChangeStable({ name, value });
+      onChangeStable({ name, value, meta });
     },
     [validateOnChange],
   );
@@ -148,10 +150,10 @@ export default function useField({
 
   useEffect(() => {
     setFieldState((state) => {
-      const wrappedValidator: NamedValidator = async (value) => {
+      const wrappedValidator: NamedValidator = async (value, meta) => {
         try {
           await delay(0); // to get fresh bag
-          const result = await validator(value, getBagForValidator);
+          const result = await validator(value, getBagForValidator, meta);
           return {
             name,
             ...result,
@@ -170,7 +172,7 @@ export default function useField({
           // validation runs conditionally on mount
           // or when validator is changed during field's life
           (!inited && validateOnMount) || inited
-            ? wrappedValidator(state.value)
+            ? wrappedValidator(state.value, state.meta)
             : state.validation,
       };
     });
