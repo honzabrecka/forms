@@ -6,6 +6,9 @@ import { Callback0 } from './types';
 
 const undef = Symbol('undef');
 
+const isPromise = (value: TODO) =>
+  value && typeof value === 'object' && typeof value.then === 'function';
+
 type TODO = any;
 
 enum StoredType {
@@ -13,9 +16,12 @@ enum StoredType {
   selector,
 }
 
+type LoadableState = 'hasValue' | 'loading' | 'hasError';
+
 type Atom = {
   type: StoredType.atom;
   value: TODO;
+  state: LoadableState;
   dependents: Set<Stored>;
   listeners: Set<Callback0>;
 };
@@ -28,6 +34,7 @@ type Selector = {
   type: StoredType.selector;
   factory: ({ get }: SelectorFactoryProps) => TODO;
   value: TODO;
+  state: LoadableState;
   dependents: Set<Stored>;
   listeners: Set<Callback0>;
 };
@@ -36,10 +43,9 @@ type Stored = Atom | Selector;
 
 const store = new Map<string, Stored>(); // new WeakMap();
 
-const read = (atom: Stored) => {
+const readPlain = (atom: Stored) => {
   if (atom.type === StoredType.atom) return atom.value;
   if (atom.type === StoredType.selector) {
-    // TODO caching?
     const get = (dependentAtom: Stored) => {
       dependentAtom.dependents.add(atom);
       return read(dependentAtom);
@@ -51,6 +57,30 @@ const read = (atom: Stored) => {
     return atom.value;
   }
   throw new Error('unsupported read');
+};
+
+// wraps value with Loadable interface
+const read = (atom: Stored) => {
+  const value = readPlain(atom);
+  if (isPromise(value)) {
+    if (atom.state !== 'loading') return value;
+
+    atom.state = 'loading';
+    value.then(
+      () => {
+        atom.state = 'hasValue';
+        notify(atom);
+      },
+      () => {
+        // TODO
+        atom.state = 'hasError';
+        notify(atom);
+      },
+    );
+    // TODO maybe throw (like suspense does?) - `get` in selectors should halt until it's done
+    throw value;
+  }
+  return value;
 };
 
 // if atom is modified, we need to notify all the dependent atoms (recursively)
@@ -93,6 +123,7 @@ const write = (atom: Stored, value: TODO) => {
 };
 
 const getSnapshot = (atom: TODO) => () => {
+  // TODO suspense
   return read(atom);
 };
 
@@ -112,6 +143,7 @@ export const atomFamily =
         (atom = {
           type: StoredType.atom,
           value: props.default(id),
+          state: 'loading',
           listeners: new Set(),
           dependents: new Set(),
         }),
@@ -135,6 +167,7 @@ export const selectorFamily =
         (atom = {
           type: StoredType.selector,
           value: undef,
+          state: 'loading',
           factory: get(id),
           listeners: new Set(),
           dependents: new Set(),
@@ -154,8 +187,19 @@ export const useSetRecoilState = (atom: Stored) => {
   };
 };
 
-// suspense ready
+// TODO suspense ready
 export const useRecoilValue = (atom: Stored) => {
+  const subscribe = useCallback((listener: Callback0) => {
+    atom.listeners.add(listener);
+    return () => {
+      atom.listeners.delete(listener);
+    };
+  }, []);
+  return useSyncExternalStore(subscribe, getSnapshot(atom)); // TODO suspense
+};
+
+// do not throw promise (suspense)
+export const useRecoilValueLoadable = (atom: Stored) => {
   const subscribe = useCallback((listener: Callback0) => {
     atom.listeners.add(listener);
     return () => {
@@ -165,11 +209,6 @@ export const useRecoilValue = (atom: Stored) => {
   return useSyncExternalStore(subscribe, getSnapshot(atom));
 };
 
-// do not throw promise (suspense)
-export const useRecoilValueLoadable = (atom: Stored) => {
-  return { state: 'hasValue', contents: read(atom) };
-};
-
 export const useRecoilState = (atom: Stored) => {
   return [useRecoilValue(atom), useSetRecoilState(atom)];
 };
@@ -177,10 +216,10 @@ export const useRecoilState = (atom: Stored) => {
 //
 
 const snapshot = {
-  getLoadable: (atom: Stored) => ({
-    state: 'hasValue',
-    contents: read(atom),
-  }),
+  getLoadable: (atom: Stored) => {
+    const value = read(atom);
+    return { state: atom.state, contents: value };
+  },
   getPromise: (atom: Stored) => read(atom), // TODO
 };
 
