@@ -4,6 +4,8 @@ import { Callback0 } from './types';
 
 const noop: TODO = () => undefined;
 
+const undef = Symbol('undef');
+
 type TODO = any;
 
 enum StoredType {
@@ -24,7 +26,6 @@ type SelectorFactoryProps = {
 
 type Selector = {
   type: StoredType.selector;
-  inited: boolean;
   factory: ({ get }: SelectorFactoryProps) => TODO;
   value: TODO;
   dependents: Set<Stored>;
@@ -43,14 +44,42 @@ const read = (atom: Stored) => {
       dependentAtom.dependents.add(atom);
       return read(dependentAtom);
     };
-    // TODO caching?
-    atom.value = atom.factory({ get });
+    // compute only in case it's first read
+    if (atom.value === undef) {
+      atom.value = atom.factory({ get });
+    }
     return atom.value;
   }
   throw new Error('unsupported read');
 };
 
-// TODO write in transaction
+// if atom is modified, we need to notify all the dependent atoms (recursively)
+// now run callbacks for all the components that are dependent on this atom
+const notify = (atom: Stored) => {
+  atom.dependents.forEach((d) => {
+    if (d !== atom) {
+      if (d.type === StoredType.atom) {
+        notify(d);
+      }
+      // selectors are recomputed only in case dependent atom has changed
+      else if (d.type === StoredType.selector) {
+        const get = (dependentAtom: Stored) => {
+          dependentAtom.dependents.add(d);
+          return read(dependentAtom);
+        };
+
+        const newValue = d.factory({ get });
+
+        if (!Object.is(d.value, newValue)) {
+          d.value = newValue;
+          notify(d);
+        }
+      }
+    }
+  });
+  atom.listeners.forEach((l) => l());
+};
+
 const write = (atom: Stored, value: TODO) => {
   if (atom.type === StoredType.atom) {
     if (typeof value === 'function') {
@@ -68,15 +97,6 @@ const write = (atom: Stored, value: TODO) => {
 
 const getSnapshot = (atom: TODO) => () => {
   return read(atom);
-};
-
-// if atom is modified, we need to notify all the dependent atoms (recursively)
-// now run callbacks for all the components that are dependent on this atom
-const notify = (atom: Stored) => {
-  atom.dependents.forEach((d) => {
-    if (d !== atom) notify(d);
-  });
-  atom.listeners.forEach((l) => l());
 };
 
 type AtomFamilyProps<T> = {
@@ -117,8 +137,7 @@ export const selectorFamily =
         atomId,
         (atom = {
           type: StoredType.selector,
-          inited: false,
-          value: undefined,
+          value: undef,
           factory: get(id),
           listeners: new Set(),
           dependents: new Set(),
@@ -143,7 +162,6 @@ export const useRecoilValue = (atom: Stored) => {
   const subscribe = useCallback((listener: Callback0) => {
     atom.listeners.add(listener);
     return () => {
-      // unsubscribe
       atom.listeners.delete(listener);
     };
   }, []);
@@ -152,8 +170,7 @@ export const useRecoilValue = (atom: Stored) => {
 
 // do not throw promise (suspense)
 export const useRecoilValueLoadable = (atom: Stored) => {
-  // TODO wrap with Loadable
-  return read(atom);
+  return { state: 'hasValue', contents: read(atom) };
 };
 
 export const useRecoilState = (atom: Stored) => {
@@ -163,18 +180,25 @@ export const useRecoilState = (atom: Stored) => {
 //
 
 const snapshot = {
-  getLoadable: (atom: Stored) => getSnapshot(atom),
-  getPromise: (atom: Stored) => getSnapshot(atom), // TODO
+  getLoadable: (atom: Stored) => ({
+    state: 'hasValue',
+    contents: read(atom),
+  }),
+  getPromise: (atom: Stored) => read(atom), // TODO
 };
 
 const createTransaction = () => {
   const tempStore = new Map<string, TODO>();
   return {
-    get(atom: Stored) {
+    get(atom: Atom) {
+      if (atom.type !== StoredType.atom)
+        throw new Error('only atom can be used in transaction');
       // if (tempStore)
       noop(atom);
     },
-    set(atom: Stored, value: TODO) {
+    set(atom: Atom, value: TODO) {
+      if (atom.type !== StoredType.atom)
+        throw new Error('only atom can be used in transaction');
       // tempStore.get(atom);
       noop(atom, value);
     },
@@ -194,6 +218,7 @@ export const useRecoilCallback = (cb: TODO, deps: TODO[]) => {
     transaction.commit();
   };
   return useCallback(
+    // TODO snapshot should be really snapshot, not reading from live data
     (...args: any[]) => cb({ snapshot, transact_UNSTABLE })(...args),
     deps,
   );
