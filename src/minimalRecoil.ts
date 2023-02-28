@@ -2,7 +2,7 @@
 import { useSyncExternalStore, useCallback } from 'react';
 import { Callback0 } from './types';
 
-const noop: TODO = () => undefined;
+// const noop: TODO = () => undefined;
 
 const undef = Symbol('undef');
 
@@ -60,16 +60,13 @@ const notify = (atom: Stored) => {
     if (d !== atom) {
       if (d.type === StoredType.atom) {
         notify(d);
-      }
-      // selectors are recomputed only in case dependent atom has changed
-      else if (d.type === StoredType.selector) {
+      } else if (d.type === StoredType.selector) {
         const get = (dependentAtom: Stored) => {
           dependentAtom.dependents.add(d);
           return read(dependentAtom);
         };
-
+        // selectors are recomputed only in case dependent atom has changed
         const newValue = d.factory({ get });
-
         if (!Object.is(d.value, newValue)) {
           d.value = newValue;
           notify(d);
@@ -188,25 +185,28 @@ const snapshot = {
 };
 
 const createTransaction = () => {
-  const tempStore = new Map<string, TODO>();
+  const touchedAtoms = new Set<Atom>();
   return {
     get(atom: Atom) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
-      // if (tempStore)
-      noop(atom);
+      return atom.value;
     },
     set(atom: Atom, value: TODO) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
-      // tempStore.get(atom);
-      noop(atom, value);
+      if (typeof value === 'function') {
+        atom.value = value(atom.value);
+      } else {
+        atom.value = value;
+      }
+      touchedAtoms.add(atom);
     },
     commit: () => {
-      tempStore.forEach((value, key) => {
-        // write(store.get(key), value);
-        noop(value, key);
+      touchedAtoms.forEach((atom) => {
+        write(atom, atom.value);
       });
+      touchedAtoms.clear();
     },
   };
 };

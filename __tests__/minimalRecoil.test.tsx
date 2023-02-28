@@ -10,6 +10,8 @@ import {
   useSetRecoilState,
   useRecoilValue,
   useRecoilCallback,
+  /* eslint-disable-next-line camelcase */
+  useRecoilTransaction_UNSTABLE,
 } from '../src/minimalRecoil';
 
 beforeEach(() => {
@@ -292,5 +294,66 @@ test('recoil: reactive computation', async () => {
     expect(cb).toHaveBeenLastCalledWith({ x: 2, y: 11 }, 12);
     expect(selector1Spy).toHaveBeenCalledTimes(3);
     expect(selector2Spy).toHaveBeenCalledTimes(2);
+  });
+});
+
+test('recoil: transaction', async () => {
+  const atom = atomFamily({
+    key: 'atom',
+    default: () => 1,
+  });
+  const selectorSpy = jest.fn();
+  const selector = selectorFamily({
+    key: 'selector',
+    get:
+      () =>
+      ({ get }) => {
+        selectorSpy();
+        return get(atom('x')) * 2;
+      },
+  });
+  const cb = jest.fn();
+  const App = () => {
+    const compute = useRecoilTransaction_UNSTABLE(
+      ({ set }: any) =>
+        () => {
+          for (let i = 0; i < 1000; i++) set(atom('x'), (x: number) => x + 1);
+        },
+      [],
+    );
+    const recoilCb = useRecoilCallback(
+      ({ snapshot }: any) =>
+        () => {
+          compute();
+          cb(
+            snapshot.getLoadable(atom('x')).contents,
+            snapshot.getLoadable(selector('x')).contents,
+          );
+        },
+      [],
+    );
+    return (
+      <button type="button" onClick={() => recoilCb()}>
+        cb
+      </button>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenLastCalledWith(1001, 2002);
+    expect(selectorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenLastCalledWith(2001, 4002);
+    expect(selectorSpy).toHaveBeenCalledTimes(2);
   });
 });
