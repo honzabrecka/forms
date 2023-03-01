@@ -36,7 +36,7 @@ const FieldWithConditionalValidationInner = <P extends object>({
         value,
         getBag,
         meta,
-        await Promise.all(reactiveValues.map((x) => x.toPromise())),
+        await Promise.all(reactiveValues.map((x: any) => x.toPromise())),
       );
     },
     (reactiveValues as any).concat(validator),

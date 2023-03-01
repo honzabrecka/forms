@@ -1,4 +1,8 @@
-import { atomFamily, selectorFamily, waitForAll } from 'recoil';
+import {
+  atomFamily,
+  selectorFamily,
+  waitForAll,
+} from './recoilOrMinimalRecoil';
 import { success, multi, isError, isWarning } from './validation';
 import {
   Dict,
@@ -160,7 +164,7 @@ export const $fieldInitialValue = selectorFamily<any, string>({
   },
 });
 
-export const $fieldValidation = selectorFamily<FieldValidationResult, string>({
+export const $fieldValidation = selectorFamily<any, string>({
   key: 'form_field/validation',
   get:
     (id: string) =>
@@ -241,10 +245,13 @@ export const $values = selectorFamily<any, string>({
       const { fieldIds } = get($form(formId));
       const values = get(
         waitForAll(
-          fieldIds.reduce<Dict<any>>((acc, id) => {
-            acc[id] = $fieldValue(fieldId(formId, id));
-            return acc;
-          }, {}),
+          fieldIds.reduce(
+            /* <Dict<any>> */ (acc, id) => {
+              acc[id] = $fieldValue(fieldId(formId, id));
+              return acc;
+            },
+            {},
+          ),
         ),
       );
       return values;
@@ -262,10 +269,13 @@ export const $initialValues = selectorFamily<any, string>({
       const { fieldIds } = get($form(formId));
       const values = get(
         waitForAll(
-          fieldIds.reduce<Dict<any>>((acc, id) => {
-            acc[id] = $fieldInitialValue(fieldId(formId, id));
-            return acc;
-          }, {}),
+          fieldIds.reduce(
+            /* <Dict<any>> */ (acc, id) => {
+              acc[id] = $fieldInitialValue(fieldId(formId, id));
+              return acc;
+            },
+            {},
+          ),
         ),
       );
       return values;
@@ -368,7 +378,7 @@ export const $allFieldIds = selectorFamily<string[], string>({
 const isNotEqual = async (a: any = null, b: any = null) =>
   JSON.stringify(await a) !== JSON.stringify(b);
 
-export const $fieldDirty = selectorFamily<boolean, string>({
+export const $fieldDirty = selectorFamily<any, string>({
   key: 'form_field/dirty',
   get:
     (id: string) =>

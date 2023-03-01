@@ -5,7 +5,7 @@ import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
-} from 'recoil';
+} from './recoilOrMinimalRecoil';
 import {
   fieldId,
   $field,
@@ -173,10 +173,13 @@ const useList = ({
 
   const move = (name: string, to: number) => {
     setFieldState((state) => {
-      const indicesByName = state.children.reduce<Dict<number>>((acc, x, i) => {
-        acc[x] = i;
-        return acc;
-      }, {});
+      const indicesByName = state.children.reduce(
+        /* <Dict<number>> */ (acc, x, i) => {
+          acc[x] = i;
+          return acc;
+        },
+        {},
+      );
       const from = indicesByName[name];
       const before = state.children.slice(0, from);
       const after = state.children.slice(from + 1);
@@ -218,7 +221,7 @@ const useList = ({
         return { value, touched, dirty, validation, initialValue };
       },
     [],
-  );
+  ) as any;
 
   useEffect(() => {
     registration.add([name]);

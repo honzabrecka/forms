@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import {
-  Loadable,
+  // Loadable,
   useRecoilState,
   useRecoilValueLoadable,
   useResetRecoilState,
-} from 'recoil';
+} from './recoilOrMinimalRecoil';
 import { delay, fieldId, $field, $fieldValidation } from './selectors';
 import { useFormId } from './hooks';
 import {
@@ -16,7 +16,7 @@ import {
 } from './internalHooks';
 import { success, error } from './validation';
 import {
-  FieldValidationResult,
+  // FieldValidationResult,
   NamedValidator,
   FromTransformer,
   ToTransformer,
@@ -68,7 +68,7 @@ export default function useField({
     $field(fieldId(formId, name)),
   );
   const reset = useResetRecoilState($field(fieldId(formId, name)));
-  const validationResult: Loadable<FieldValidationResult> =
+  const validationResult /*: Loadable<FieldValidationResult> */ =
     useRecoilValueLoadable($fieldValidation(fieldId(formId, name)));
   const getBag = useGetBag(formId);
   const getBagForValidator = useGetBagForValidator(formId);

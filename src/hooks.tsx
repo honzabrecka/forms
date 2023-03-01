@@ -1,5 +1,8 @@
 import { useContext, useState } from 'react';
-import { useRecoilValue, useRecoilValueLoadable } from 'recoil';
+import {
+  useRecoilValue,
+  useRecoilValueLoadable,
+} from './recoilOrMinimalRecoil';
 import { FormContext } from './FormContext';
 import {
   fieldId,
@@ -28,7 +31,7 @@ export function useFormSubmissionLoadable(formId?: string) {
 }
 
 export function useFormIsSubmitting(formId?: string) {
-  const { state } = useFormSubmissionLoadable(formId);
+  const { state } = useFormSubmissionLoadable(formId) as any;
   return state === 'loading';
 }
 
@@ -107,7 +110,7 @@ export function useDependentField<T>({
 ] {
   const value = useRecoilValueLoadable<T>(
     $fieldValue(fieldId(useFormId(formId), name)),
-  );
+  ) as any;
   const valueMaybe = value.valueMaybe();
   return [compare(valueMaybe), compare, valueMaybe];
 }
