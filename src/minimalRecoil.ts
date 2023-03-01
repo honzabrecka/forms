@@ -56,7 +56,7 @@ type Selector = {
 type Stored = Atom | Selector;
 
 const debug = (...x: any) => {
-  console.log(...x);
+  // console.log(...x);
   noop(...x);
 };
 
@@ -109,7 +109,7 @@ const read = (atom: Stored) => {
       e.then((resolvedValue: TODO) => {
         atom.state = 'hasValue';
         atom.value = resolvedValue;
-        notify(atom);
+        notify(atom).forEach((l) => l());
       });
     }
 
@@ -121,16 +121,20 @@ const read = (atom: Stored) => {
 // now run callbacks for all the components that are dependent on this atom
 const notify = (atom: Stored) => {
   debug('notify:', atom);
+
   if (atom.resolve) {
     atom.resolve(atom.value);
     atom.resolve = undefined;
   }
-  let changed = false;
+
+  const listeners = new Set<Callback0>();
+
+  atom.listeners.forEach((l) => listeners.add(l));
+
   atom.dependents.forEach((d) => {
     if (d !== atom) {
       if (d.type === StoredType.atom) {
-        notify(d);
-        changed = true;
+        notify(d).forEach((l) => listeners.add(l));
       } else if (d.type === StoredType.selector) {
         const get = (dependentAtom: Stored) => {
           dependentAtom.dependents.add(d);
@@ -144,8 +148,7 @@ const notify = (atom: Stored) => {
           // selectors are recomputed only in case dependent atom has changed
           if (!Object.is(d.value, newValue)) {
             d.value = newValue;
-            notify(d);
-            changed = true;
+            notify(d).forEach((l) => listeners.add(l));
           }
         } catch (e) {
           // to avoid creating promises that never resolves
@@ -161,21 +164,19 @@ const notify = (atom: Stored) => {
     }
   });
 
-  if (changed || atom.dependents.size === 0) {
-    atom.listeners.forEach((l) => l());
-  }
+  return listeners;
 };
 
 const write = (atom: Stored, value: TODO) => {
-  console.log('write:', atom);
+  debug('write:', atom);
   if (atom.type === StoredType.atom) {
     if (typeof value === 'function') {
       atom.value = value(atom.value);
     } else {
       atom.value = value;
     }
-    console.log('write (value):', atom.value);
-    notify(atom);
+    debug('write (value):', atom.value);
+    notify(atom).forEach((l) => l());
     return;
   }
   if (atom.type === StoredType.selector)
@@ -184,6 +185,8 @@ const write = (atom: Stored, value: TODO) => {
 };
 
 const getSnapshot = (atom: TODO, suspense: boolean) => () => {
+  debug('getSnapshot', atom);
+
   if (suspense) {
     return read(atom);
   }
@@ -234,7 +237,7 @@ type SelectorFamilyProps<T> = {
 export const selectorFamily =
   <Value, ID extends string>({ key, get }: SelectorFamilyProps<Value>) =>
   (id: ID) => {
-    const atomId = `${key}${id}`;
+    const atomId = `${key}/${id}`;
     let atom = store.get(atomId);
     if (!atom)
       store.set(
@@ -313,29 +316,41 @@ export const waitForAll = (atoms: Stored[] | { [key: string]: Stored }) => {
 //
 
 export const useSetRecoilState = (atom: Stored) => {
-  return (value: TODO) => {
-    write(atom, value);
-  };
+  return useCallback(
+    (value: TODO) => {
+      write(atom, value);
+    },
+    [atom],
+  );
 };
 
 export const useRecoilValue = <T>(atom: Stored) => {
-  const subscribe = useCallback((listener: Callback0) => {
-    atom.listeners.add(listener);
-    return () => {
-      atom.listeners.delete(listener);
-    };
-  }, []);
-  return useSyncExternalStore(subscribe, getSnapshot(atom, true)) as T;
+  const subscribe = useCallback(
+    (listener: Callback0) => {
+      atom.listeners.add(listener);
+      return () => {
+        atom.listeners.delete(listener);
+      };
+    },
+    [atom],
+  );
+  return useSyncExternalStore(
+    subscribe,
+    useCallback(getSnapshot(atom as T, true), [atom]),
+  );
 };
 
 // do not throw promise (suspense)
 export const useRecoilValueLoadable = <T>(atom: Stored): T => {
-  const subscribe = useCallback((listener: Callback0) => {
-    atom.listeners.add(listener);
-    return () => {
-      atom.listeners.delete(listener);
-    };
-  }, []);
+  const subscribe = useCallback(
+    (listener: Callback0) => {
+      atom.listeners.add(listener);
+      return () => {
+        atom.listeners.delete(listener);
+      };
+    },
+    [atom],
+  );
   return useSyncExternalStore(subscribe, getSnapshot(atom, false)) as T;
 };
 
@@ -347,8 +362,7 @@ export const useRecoilState = (atom: Stored) => {
 export const useResetRecoilState = (atom: Stored) => {
   return () => {
     if (atom.type === StoredType.atom) {
-      atom.value = clone(atom.defaultValue);
-      notify(atom);
+      write(atom, clone(atom.defaultValue));
     }
   };
 };
