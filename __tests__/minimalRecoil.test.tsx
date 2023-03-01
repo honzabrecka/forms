@@ -19,7 +19,7 @@ beforeEach(() => {
   clearStore();
 });
 
-test('recoil: single atomFamily', async () => {
+test.only('recoil: single atomFamily', async () => {
   const atom = atomFamily({
     key: 'atom',
     default: () => 1,

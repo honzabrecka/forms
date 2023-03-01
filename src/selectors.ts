@@ -1,4 +1,8 @@
-import { atomFamily, selectorFamily, waitForAll } from 'recoil';
+import {
+  atomFamily,
+  selectorFamily,
+  waitForAll,
+} from './recoilOrMinimalRecoil';
 import { success, multi, isError, isWarning } from './validation';
 import {
   Dict,
@@ -159,7 +163,7 @@ export const $fieldInitialValue = selectorFamily<any, string>({
   },
 });
 
-export const $fieldValidation = selectorFamily<FieldValidationResult, string>({
+export const $fieldValidation = selectorFamily<any, string>({
   key: 'form_field/validation',
   get:
     (id: string) =>
@@ -240,10 +244,13 @@ export const $values = selectorFamily<any, string>({
       const { fieldIds } = get($form(formId));
       const values = get(
         waitForAll(
-          fieldIds.reduce<Dict<any>>((acc, id) => {
-            acc[id] = $fieldValue(fieldId(formId, id));
-            return acc;
-          }, {}),
+          fieldIds.reduce(
+            /* <Dict<any>> */ (acc, id) => {
+              acc[id] = $fieldValue(fieldId(formId, id));
+              return acc;
+            },
+            {},
+          ),
         ),
       );
       return values;
@@ -261,10 +268,13 @@ export const $initialValues = selectorFamily<any, string>({
       const { fieldIds } = get($form(formId));
       const values = get(
         waitForAll(
-          fieldIds.reduce<Dict<any>>((acc, id) => {
-            acc[id] = $fieldInitialValue(fieldId(formId, id));
-            return acc;
-          }, {}),
+          fieldIds.reduce(
+            /* <Dict<any>> */ (acc, id) => {
+              acc[id] = $fieldInitialValue(fieldId(formId, id));
+              return acc;
+            },
+            {},
+          ),
         ),
       );
       return values;
@@ -319,12 +329,15 @@ export const $formTouched = selectorFamily({
       const results = get(
         waitForAll(fieldIds.map((id) => $fieldTouched(fieldId(formId, id)))),
       );
-      const touchedFieldIds = results.reduce<string[]>((acc, result, i) => {
-        if (result === true) {
-          acc.push(fieldIds[i]);
-        }
-        return acc;
-      }, []);
+      const touchedFieldIds = results.reduce(
+        /* <string[]> */ (acc, result, i) => {
+          if (result === true) {
+            acc.push(fieldIds[i]);
+          }
+          return acc;
+        },
+        [],
+      );
       return {
         touched: touchedFieldIds.length > 0,
         touchedFieldIds,
@@ -367,7 +380,7 @@ export const $allFieldIds = selectorFamily<string[], string>({
 const isNotEqual = async (a: any = null, b: any = null) =>
   JSON.stringify(await a) !== JSON.stringify(b);
 
-export const $fieldDirty = selectorFamily<boolean, string>({
+export const $fieldDirty = selectorFamily<any, string>({
   key: 'form_field/dirty',
   get:
     (id: string) =>
@@ -407,12 +420,15 @@ export const $formDirty = selectorFamily({
       const results = get(
         waitForAll(fieldIds.map((id) => $fieldDirty(fieldId(formId, id)))),
       );
-      const dirtyFieldIds = results.reduce<string[]>((acc, result, i) => {
-        if (result === true) {
-          acc.push(fieldIds[i]);
-        }
-        return acc;
-      }, []);
+      const dirtyFieldIds = results.reduce(
+        /* <string[]> */ (acc, result, i) => {
+          if (result === true) {
+            acc.push(fieldIds[i]);
+          }
+          return acc;
+        },
+        [],
+      );
       return {
         dirty: dirtyFieldIds.length > 0,
         dirtyFieldIds,

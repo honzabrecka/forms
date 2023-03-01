@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useSetRecoilState, useRecoilCallback } from 'recoil';
+import { useSetRecoilState, useRecoilCallback } from './recoilOrMinimalRecoil';
 import useList from './useList';
 import { delay, $field, $fieldValue, fieldId } from './selectors';
 import { useFieldValueLoadable, useFormId } from './hooks';
@@ -26,7 +26,7 @@ const ReactiveValidator = ({
   const setFieldState = useSetRecoilState(
     $field(fieldId(resolvedFormId, name)),
   );
-  const value = useFieldValueLoadable({ formId: resolvedFormId, name });
+  const value = useFieldValueLoadable({ formId: resolvedFormId, name }) as any;
   const getBagForValidator = useGetBagForValidator(resolvedFormId);
 
   useEffect(() => {

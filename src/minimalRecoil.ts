@@ -2,14 +2,23 @@
 import { useSyncExternalStore, useCallback } from 'react';
 import { Callback0, Callback1 } from './types';
 
-// const noop: TODO = () => undefined;
+const noop: IGNORE = () => undefined;
 
 const undef = Symbol('undef');
+
+const clone = (x: any) => {
+  if (typeof x === 'object' && !Array.isArray(x)) {
+    return { ...x };
+  }
+  return x;
+};
 
 const isPromise = (value: TODO) =>
   value && typeof value === 'object' && typeof value.then === 'function';
 
 type TODO = any;
+
+type IGNORE = any;
 
 enum StoredType {
   atom,
@@ -22,6 +31,7 @@ type Atom = {
   type: StoredType.atom;
   atomId: string;
   value: TODO;
+  defaultValue: TODO;
   state: LoadableState;
   resolve?: Callback1<any>;
   dependents: Set<Stored>;
@@ -44,6 +54,11 @@ type Selector = {
 };
 
 type Stored = Atom | Selector;
+
+const debug = (...x: any) => {
+  console.log(...x);
+  noop(...x);
+};
 
 const store = new Map<string, Stored>(); // new WeakMap();
 
@@ -73,21 +88,21 @@ const readPlain = (atom: Stored) => {
 
 const read = (atom: Stored) => {
   try {
-    console.log('read:', atom);
+    debug('read:', atom);
     // if inner `get(s)` not ready it throws promise
     const value = readPlain(atom);
 
-    console.log('read (value):', value);
+    debug('read (value):', value);
 
     // selector marked as async or returns promise
     if (isPromise(value)) {
-      console.log('read (isPromise)', atom);
+      debug('read (isPromise)', atom);
       throw value;
     } else {
       return value;
     }
   } catch (e: TODO) {
-    console.log('read (catch)', atom, e);
+    debug('read (catch)', atom, e);
 
     if (isPromise(e) && !e.waiting) {
       e.waiting = true;
@@ -105,15 +120,17 @@ const read = (atom: Stored) => {
 // if atom is modified, we need to notify all the dependent atoms (recursively)
 // now run callbacks for all the components that are dependent on this atom
 const notify = (atom: Stored) => {
-  console.log('notify:', atom);
+  debug('notify:', atom);
   if (atom.resolve) {
     atom.resolve(atom.value);
     atom.resolve = undefined;
   }
+  let changed = false;
   atom.dependents.forEach((d) => {
     if (d !== atom) {
       if (d.type === StoredType.atom) {
         notify(d);
+        changed = true;
       } else if (d.type === StoredType.selector) {
         const get = (dependentAtom: Stored) => {
           dependentAtom.dependents.add(d);
@@ -128,6 +145,7 @@ const notify = (atom: Stored) => {
           if (!Object.is(d.value, newValue)) {
             d.value = newValue;
             notify(d);
+            changed = true;
           }
         } catch (e) {
           // to avoid creating promises that never resolves
@@ -142,16 +160,21 @@ const notify = (atom: Stored) => {
       }
     }
   });
-  atom.listeners.forEach((l) => l());
+
+  if (changed || atom.dependents.size === 0) {
+    atom.listeners.forEach((l) => l());
+  }
 };
 
 const write = (atom: Stored, value: TODO) => {
+  console.log('write:', atom);
   if (atom.type === StoredType.atom) {
     if (typeof value === 'function') {
       atom.value = value(atom.value);
     } else {
       atom.value = value;
     }
+    console.log('write (value):', atom.value);
     notify(atom);
     return;
   }
@@ -160,9 +183,17 @@ const write = (atom: Stored, value: TODO) => {
   throw new Error('unsupported write');
 };
 
-const getSnapshot = (atom: TODO) => () => {
-  // TODO suspense
-  return read(atom);
+const getSnapshot = (atom: TODO, suspense: boolean) => () => {
+  if (suspense) {
+    return read(atom);
+  }
+
+  try {
+    const value = read(atom);
+    return { state: atom.state, contents: value };
+  } catch (e) {
+    return { state: atom.state, contents: e };
+  }
 };
 
 type AtomFamilyProps<T> = {
@@ -171,33 +202,38 @@ type AtomFamilyProps<T> = {
 };
 
 export const atomFamily =
-  ({ key, ...props }: AtomFamilyProps<TODO>) =>
-  (id: string) => {
+  <Value, ID extends string>({ key, ...props }: AtomFamilyProps<Value>) =>
+  (id: ID) => {
     const atomId = `${key}${id}`;
     let atom = store.get(atomId);
-    if (!atom)
+    if (!atom) {
+      const value = props.default(id);
       store.set(
         atomId,
         (atom = {
           atomId,
           type: StoredType.atom,
-          value: props.default(id),
+          value,
+          defaultValue: clone(value),
           state: 'hasValue',
           listeners: new Set(),
           dependents: new Set(),
         }),
       );
+    }
+
     return atom;
   };
 
 type SelectorFamilyProps<T> = {
   key: string;
   get: (id: string) => ({ get }: SelectorFactoryProps) => T;
+  cachePolicy_UNSTABLE?: IGNORE;
 };
 
 export const selectorFamily =
-  ({ key, get }: SelectorFamilyProps<TODO>) =>
-  (id: string) => {
+  <Value, ID extends string>({ key, get }: SelectorFamilyProps<Value>) =>
+  (id: ID) => {
     const atomId = `${key}${id}`;
     let atom = store.get(atomId);
     if (!atom)
@@ -258,46 +294,62 @@ export const useSetRecoilState = (atom: Stored) => {
   };
 };
 
-// TODO suspense ready
-export const useRecoilValue = (atom: Stored) => {
+export const useRecoilValue = <T>(atom: Stored) => {
   const subscribe = useCallback((listener: Callback0) => {
     atom.listeners.add(listener);
     return () => {
       atom.listeners.delete(listener);
     };
   }, []);
-  return useSyncExternalStore(subscribe, getSnapshot(atom)); // TODO suspense
+  return useSyncExternalStore(subscribe, getSnapshot(atom, true)) as T;
 };
 
 // do not throw promise (suspense)
-export const useRecoilValueLoadable = (atom: Stored) => {
+export const useRecoilValueLoadable = <T>(atom: Stored): T => {
   const subscribe = useCallback((listener: Callback0) => {
     atom.listeners.add(listener);
     return () => {
       atom.listeners.delete(listener);
     };
   }, []);
-  return useSyncExternalStore(subscribe, getSnapshot(atom));
+  return useSyncExternalStore(subscribe, getSnapshot(atom, false)) as T;
 };
 
 export const useRecoilState = (atom: Stored) => {
-  return [useRecoilValue(atom), useSetRecoilState(atom)];
+  return [useRecoilValue(atom) as TODO, useSetRecoilState(atom)] as const;
+};
+
+// TODO
+export const useResetRecoilState = (atom: Stored) => {
+  return () => {
+    if (atom.type === StoredType.atom) {
+      atom.value = clone(atom.defaultValue);
+      notify(atom);
+    }
+  };
 };
 
 //
 
+const getPromise = (atom: Stored) => {
+  try {
+    return read(atom);
+  } catch (e) {
+    return e;
+  }
+};
+
 const snapshot = {
   getLoadable: (atom: Stored) => {
-    const value = read(atom);
-    return { state: atom.state, contents: value };
-  },
-  getPromise: (atom: Stored) => {
+    const valueMaybe = () => getPromise(atom);
     try {
-      return read(atom);
+      const value = read(atom);
+      return { state: atom.state, contents: value, valueMaybe };
     } catch (e) {
-      return e;
+      return { state: atom.state, contents: e, valueMaybe };
     }
   },
+  getPromise: (atom: Stored) => getPromise(atom),
 };
 
 const createTransaction = () => {
@@ -318,6 +370,12 @@ const createTransaction = () => {
       }
       touchedAtoms.add(atom);
     },
+    reset(atom: Atom) {
+      if (atom.type !== StoredType.atom)
+        throw new Error('only atom can be used in transaction');
+      atom.value = clone(atom.defaultValue);
+      touchedAtoms.add(atom);
+    },
     commit: () => {
       touchedAtoms.forEach((atom) => {
         write(atom, atom.value);
@@ -327,16 +385,21 @@ const createTransaction = () => {
   };
 };
 
-export const useRecoilCallback = (cb: TODO, deps: TODO[]) => {
+export const useRecoilCallback = <X, R extends TODO>(cb: TODO, deps: X) => {
   const transact_UNSTABLE = (cb: TODO) => {
     const transaction = createTransaction();
-    cb({ get: transaction.get, set: transaction.set });
+    cb({
+      get: transaction.get,
+      set: transaction.set,
+      reset: transaction.reset,
+    });
     transaction.commit();
   };
   return useCallback(
     // TODO snapshot should be really snapshot, not reading from live data
-    (...args: any[]) => cb({ snapshot, transact_UNSTABLE })(...args),
-    deps,
+    (...args: any[]): R =>
+      cb({ snapshot, set: write, transact_UNSTABLE })(...args),
+    deps as TODO,
   );
 };
 
