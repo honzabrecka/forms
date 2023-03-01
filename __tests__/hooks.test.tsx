@@ -45,7 +45,7 @@ test('forms: initial values', async () => {
   });
 });
 
-test.only('forms: setValues', async () => {
+test('forms: setValues', async () => {
   const { result } = renderHook(
     () => {
       const form = useForm();

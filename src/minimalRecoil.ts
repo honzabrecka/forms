@@ -33,6 +33,7 @@ type Atom = {
   value: TODO;
   defaultValue: TODO;
   state: LoadableState;
+  cachedLoadableState: TODO;
   resolve?: Callback1<any>;
   dependents: Set<Stored>;
   listeners: Set<Callback0>;
@@ -48,6 +49,7 @@ type Selector = {
   factory: ({ get }: SelectorFactoryProps) => TODO;
   value: TODO;
   state: LoadableState;
+  cachedLoadableState: TODO;
   resolve?: Callback1<any>;
   dependents: Set<Stored>;
   listeners: Set<Callback0>;
@@ -61,6 +63,11 @@ const debug = (...x: any) => {
 };
 
 const store = new Map<string, Stored>(); // new WeakMap();
+
+const cacheAtomLoadableState = (atom: Stored) => {
+  atom.cachedLoadableState = { state: atom.state, contents: atom.value };
+  return atom;
+};
 
 const readPlain = (atom: Stored) => {
   if (atom.type === StoredType.atom) return atom.value;
@@ -79,6 +86,7 @@ const readPlain = (atom: Stored) => {
         atom.value = new Promise((resolve) => {
           atom.resolve = resolve;
         });
+        cacheAtomLoadableState(atom);
       }
     }
     return atom.value;
@@ -86,13 +94,17 @@ const readPlain = (atom: Stored) => {
   throw new Error('unsupported read');
 };
 
-const read = (atom: Stored) => {
+const read = (atom: Stored, suspense = true) => {
   try {
     debug('read:', atom);
     // if inner `get(s)` not ready it throws promise
     const value = readPlain(atom);
 
     debug('read (value):', value);
+
+    if (!suspense) {
+      return atom.cachedLoadableState;
+    }
 
     // selector marked as async or returns promise
     if (isPromise(value)) {
@@ -109,6 +121,7 @@ const read = (atom: Stored) => {
       e.then((resolvedValue: TODO) => {
         atom.state = 'hasValue';
         atom.value = resolvedValue;
+        cacheAtomLoadableState(atom);
         notify(atom).forEach((l) => l());
       });
     }
@@ -148,6 +161,7 @@ const notify = (atom: Stored) => {
           // selectors are recomputed only in case dependent atom has changed
           if (!Object.is(d.value, newValue)) {
             d.value = newValue;
+            cacheAtomLoadableState(d);
             notify(d).forEach((l) => listeners.add(l));
           }
         } catch (e) {
@@ -159,6 +173,7 @@ const notify = (atom: Stored) => {
           d.value = new Promise((resolve) => {
             d.resolve = resolve;
           });
+          cacheAtomLoadableState(d);
         }
       }
     }
@@ -186,17 +201,7 @@ const write = (atom: Stored, value: TODO) => {
 
 const getSnapshot = (atom: TODO, suspense: boolean) => () => {
   debug('getSnapshot', atom);
-
-  if (suspense) {
-    return read(atom);
-  }
-
-  try {
-    const value = read(atom);
-    return { state: atom.state, contents: value };
-  } catch (e) {
-    return { state: atom.state, contents: e };
-  }
+  return read(atom, suspense);
 };
 
 type AtomFamilyProps<T> = {
@@ -213,15 +218,16 @@ export const atomFamily =
       const value = props.default(id);
       store.set(
         atomId,
-        (atom = {
+        (atom = cacheAtomLoadableState({
           atomId,
           type: StoredType.atom,
           value,
           defaultValue: clone(value),
           state: 'hasValue',
+          cachedLoadableState: undefined,
           listeners: new Set(),
           dependents: new Set(),
-        }),
+        })),
       );
     }
 
@@ -242,15 +248,16 @@ export const selectorFamily =
     if (!atom)
       store.set(
         atomId,
-        (atom = {
+        (atom = cacheAtomLoadableState({
           atomId,
           type: StoredType.selector,
           value: undef,
           state: 'loading',
+          cachedLoadableState: undefined,
           factory: get(id),
           listeners: new Set(),
           dependents: new Set(),
-        }),
+        })),
       );
     return atom;
   };
