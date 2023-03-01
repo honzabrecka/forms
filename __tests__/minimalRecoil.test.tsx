@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { wrapper } from './shared';
@@ -19,7 +19,7 @@ beforeEach(() => {
   clearStore();
 });
 
-test.only('recoil: single atomFamily', async () => {
+test('recoil: single atomFamily', async () => {
   const atom = atomFamily({
     key: 'atom',
     default: () => 1,
@@ -244,6 +244,7 @@ test('recoil: reactive computation', async () => {
     );
     return (
       <>
+        <div data-testid="state">{useRecoilValue(selector2('x'))}</div>
         <button type="button" onClick={() => recoilCb()}>
           cb
         </button>
@@ -275,6 +276,7 @@ test('recoil: reactive computation', async () => {
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith({ x: 1, y: 10 }, 6);
+    expect(screen.getByTestId('state')).toHaveTextContent('6');
     expect(selector1Spy).toHaveBeenCalledTimes(1);
     expect(selector2Spy).toHaveBeenCalledTimes(1);
   });
@@ -284,6 +286,7 @@ test('recoil: reactive computation', async () => {
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith({ x: 1, y: 11 }, 6);
+    expect(screen.getByTestId('state')).toHaveTextContent('6');
     expect(selector1Spy).toHaveBeenCalledTimes(2);
     expect(selector2Spy).toHaveBeenCalledTimes(1);
   });
@@ -293,6 +296,7 @@ test('recoil: reactive computation', async () => {
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith({ x: 2, y: 11 }, 12);
+    expect(screen.getByTestId('state')).toHaveTextContent('12');
     expect(selector1Spy).toHaveBeenCalledTimes(3);
     expect(selector2Spy).toHaveBeenCalledTimes(2);
   });
@@ -490,7 +494,14 @@ test('recoil (async): waitForAll', async () => {
         return get(waitForAll([selector1('x'), selector2('x')]));
       },
   });
+
   const cb = jest.fn();
+
+  const Read = () => {
+    const state = useRecoilValue(selector2('x'));
+    return <div data-testid="state">{state}</div>;
+  };
+
   const App = () => {
     const setState = useSetRecoilState(atom('x')) as any;
     const recoilCb = useRecoilCallback(
@@ -502,8 +513,12 @@ test('recoil (async): waitForAll', async () => {
         },
       [],
     );
+
     return (
       <>
+        <Suspense fallback={null}>
+          <Read />
+        </Suspense>
         <button type="button" onClick={() => recoilCb()}>
           cb
         </button>
@@ -535,8 +550,10 @@ test('recoil (async): waitForAll', async () => {
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 10 }, */ [1, 2]);
-    // expect(selector1Spy).toHaveBeenCalledTimes(1);
-    // expect(selector2Spy).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('state')).toHaveTextContent('2');
+    expect(selector1Spy).toHaveBeenCalledTimes(1);
+    expect(selector2Spy).toHaveBeenCalledTimes(2);
+    expect(selector3Spy).toHaveBeenCalledTimes(1);
   });
 
   user.click(screen.getByText('incy'));
@@ -544,8 +561,10 @@ test('recoil (async): waitForAll', async () => {
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 11 }, */ [1, 2]);
-    // expect(selector1Spy).toHaveBeenCalledTimes(2);
-    // expect(selector2Spy).toHaveBeenCalledTimes(3);
+    expect(screen.getByTestId('state')).toHaveTextContent('2');
+    expect(selector1Spy).toHaveBeenCalledTimes(2);
+    expect(selector2Spy).toHaveBeenCalledTimes(3);
+    expect(selector3Spy).toHaveBeenCalledTimes(1);
   });
 
   user.click(screen.getByText('incx'));
@@ -553,7 +572,9 @@ test('recoil (async): waitForAll', async () => {
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 2, y: 11 }, */ [2, 4]);
-    // expect(selector1Spy).toHaveBeenCalledTimes(3);
-    // expect(selector2Spy).toHaveBeenCalledTimes(5);
+    expect(screen.getByTestId('state')).toHaveTextContent('4');
+    expect(selector1Spy).toHaveBeenCalledTimes(3);
+    expect(selector2Spy).toHaveBeenCalledTimes(5);
+    expect(selector3Spy).toHaveBeenCalledTimes(4);
   });
 });

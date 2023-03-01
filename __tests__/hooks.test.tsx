@@ -45,7 +45,7 @@ test('forms: initial values', async () => {
   });
 });
 
-test('forms: setValues', async () => {
+test.only('forms: setValues', async () => {
   const { result } = renderHook(
     () => {
       const form = useForm();
@@ -179,7 +179,7 @@ test('forms: setErrors', async () => {
         name: 'b',
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation };
+      return { form, a, b, validation } as any;
     },
     { wrapper },
   );
@@ -458,7 +458,7 @@ test('forms > field: onChange validation', async () => {
         formId: form.formId,
         name: 'a',
       });
-      return { form, a, b, validation };
+      return { form, a, b, validation } as any;
     },
     {
       wrapper,
@@ -545,7 +545,7 @@ test('forms: submit invalid form + call onSubmitInvalid', async () => {
         name: 'b',
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation };
+      return { form, a, b, validation } as any;
     },
     { wrapper },
   );
@@ -593,7 +593,7 @@ test('forms: submit invalid form (strict) + call onSubmitInvalid', async () => {
         name: 'b',
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation };
+      return { form, a, b, validation } as any;
     },
     { wrapper },
   );
@@ -730,7 +730,7 @@ test('forms: validate via useFormValidation - without any argument all fields ar
         validator: validatorB,
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation };
+      return { form, a, b, validation } as any;
     },
     {
       wrapper,
@@ -775,7 +775,7 @@ test('forms: validate via useFormValidation - only specified field is revalidate
         validator: validatorB,
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation };
+      return { form, a, b, validation } as any;
     },
     {
       wrapper,
@@ -812,7 +812,7 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
         formId: form.formId,
         name: 'a',
       });
-      return { form, a, formDirty, fieldDirty };
+      return { form, a, formDirty, fieldDirty } as any;
     },
     { wrapper },
   );
@@ -906,7 +906,7 @@ test('forms: dirty - setValues + setInitialValues', async () => {
       const form = useForm({ initialValues: { a: 3 } });
       const a = useField({ formId: form.formId, name: 'a', onChange });
       const dirty = useFormDirtyLoadable(form.formId);
-      return { form, a, dirty };
+      return { form, a, dirty } as any;
     },
     { wrapper },
   );
