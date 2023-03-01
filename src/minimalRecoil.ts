@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { useSyncExternalStore, useCallback } from 'react';
-import { Callback0 } from './types';
+import { Callback0, Callback1 } from './types';
 
 // const noop: TODO = () => undefined;
 
@@ -20,8 +20,10 @@ type LoadableState = 'hasValue' | 'loading' | 'hasError';
 
 type Atom = {
   type: StoredType.atom;
+  atomId: string;
   value: TODO;
   state: LoadableState;
+  resolve?: Callback1<any>;
   dependents: Set<Stored>;
   listeners: Set<Callback0>;
 };
@@ -32,9 +34,11 @@ type SelectorFactoryProps = {
 
 type Selector = {
   type: StoredType.selector;
+  atomId: string;
   factory: ({ get }: SelectorFactoryProps) => TODO;
   value: TODO;
   state: LoadableState;
+  resolve?: Callback1<any>;
   dependents: Set<Stored>;
   listeners: Set<Callback0>;
 };
@@ -42,6 +46,8 @@ type Selector = {
 type Stored = Atom | Selector;
 
 const store = new Map<string, Stored>(); // new WeakMap();
+
+// const foreverPromise = new Promise(noop);
 
 const readPlain = (atom: Stored) => {
   if (atom.type === StoredType.atom) return atom.value;
@@ -52,7 +58,15 @@ const readPlain = (atom: Stored) => {
     };
     // compute only in case it's first read
     if (atom.value === undef) {
-      atom.value = atom.factory({ get });
+      try {
+        atom.state = 'hasValue';
+        atom.value = atom.factory({ get });
+      } catch (e) {
+        atom.state = 'loading';
+        atom.value = new Promise((resolve) => {
+          atom.resolve = resolve;
+        });
+      }
     }
     return atom.value;
   }
@@ -61,31 +75,62 @@ const readPlain = (atom: Stored) => {
 
 // wraps value with Loadable interface
 const read = (atom: Stored) => {
-  const value = readPlain(atom);
-  if (isPromise(value)) {
-    if (atom.state !== 'loading') return value;
+  try {
+    console.log('read:', atom);
+    // if inner `get(s)` not ready it throws promise
+    const value = readPlain(atom);
 
-    atom.state = 'loading';
-    value.then(
-      () => {
-        atom.state = 'hasValue';
-        notify(atom);
-      },
-      () => {
-        // TODO
-        atom.state = 'hasError';
-        notify(atom);
-      },
-    );
-    // TODO maybe throw (like suspense does?) - `get` in selectors should halt until it's done
-    throw value;
+    console.log('read (value):', value);
+
+    // if (atom.state === 'hasValue') return value;
+    // if (atom.state === 'hasError') return value; // TODO
+
+    // selector marked as async or returns promise
+    if (isPromise(value)) {
+      console.log('read (isPromise)', atom);
+      // atom.state = 'loading';
+      throw value;
+    } else {
+      // atom.state = 'hasValue';
+      return value;
+    }
+  } catch (e: TODO) {
+    console.log('read (catch)', atom, e);
+
+    if (isPromise(e)) {
+      // if (!(atom as TODO).resolve) {
+      // atom.state = 'loading';
+      // atom.value = new Promise((resolve) => {
+      //   atom.resolve = resolve;
+      // });
+
+      if (!e.waiting) {
+        e.waiting = true;
+        e.then((resolvedValue: TODO) => {
+          atom.state = 'hasValue';
+          atom.value = resolvedValue;
+          notify(atom);
+        });
+      }
+
+      // }
+      // TODO maybe throw (like suspense does?) - `get` in selectors should halt until it's done
+      throw e;
+    } else {
+      // rethrow
+      throw e;
+    }
   }
-  return value;
 };
 
 // if atom is modified, we need to notify all the dependent atoms (recursively)
 // now run callbacks for all the components that are dependent on this atom
 const notify = (atom: Stored) => {
+  console.log('notify:', atom);
+  if (atom.resolve) {
+    atom.resolve(atom.value);
+    atom.resolve = undefined;
+  }
   atom.dependents.forEach((d) => {
     if (d !== atom) {
       if (d.type === StoredType.atom) {
@@ -95,11 +140,23 @@ const notify = (atom: Stored) => {
           dependentAtom.dependents.add(d);
           return read(dependentAtom);
         };
-        // selectors are recomputed only in case dependent atom has changed
-        const newValue = d.factory({ get });
-        if (!Object.is(d.value, newValue)) {
-          d.value = newValue;
-          notify(d);
+
+        try {
+          const newValue = d.factory({ get });
+          d.state = 'hasValue';
+
+          // selectors are recomputed only in case dependent atom has changed
+          if (!Object.is(d.value, newValue)) {
+            d.value = newValue;
+            notify(d);
+          }
+        } catch (e) {
+          if (d.state === 'loading') return;
+
+          d.state = 'loading';
+          d.value = new Promise((resolve) => {
+            d.resolve = resolve;
+          });
         }
       }
     }
@@ -141,9 +198,10 @@ export const atomFamily =
       store.set(
         atomId,
         (atom = {
+          atomId,
           type: StoredType.atom,
           value: props.default(id),
-          state: 'loading',
+          state: 'hasValue',
           listeners: new Set(),
           dependents: new Set(),
         }),
@@ -165,6 +223,7 @@ export const selectorFamily =
       store.set(
         atomId,
         (atom = {
+          atomId,
           type: StoredType.selector,
           value: undef,
           state: 'loading',
@@ -220,7 +279,13 @@ const snapshot = {
     const value = read(atom);
     return { state: atom.state, contents: value };
   },
-  getPromise: (atom: Stored) => read(atom), // TODO
+  getPromise: (atom: Stored) => {
+    try {
+      return read(atom);
+    } catch (e) {
+      return e;
+    }
+  },
 };
 
 const createTransaction = () => {
