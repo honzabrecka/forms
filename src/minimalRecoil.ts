@@ -47,8 +47,6 @@ type Stored = Atom | Selector;
 
 const store = new Map<string, Stored>(); // new WeakMap();
 
-// const foreverPromise = new Promise(noop);
-
 const readPlain = (atom: Stored) => {
   if (atom.type === StoredType.atom) return atom.value;
   if (atom.type === StoredType.selector) {
@@ -73,7 +71,6 @@ const readPlain = (atom: Stored) => {
   throw new Error('unsupported read');
 };
 
-// wraps value with Loadable interface
 const read = (atom: Stored) => {
   try {
     console.log('read:', atom);
@@ -82,44 +79,26 @@ const read = (atom: Stored) => {
 
     console.log('read (value):', value);
 
-    // if (atom.state === 'hasValue') return value;
-    // if (atom.state === 'hasError') return value; // TODO
-
     // selector marked as async or returns promise
     if (isPromise(value)) {
       console.log('read (isPromise)', atom);
-      // atom.state = 'loading';
       throw value;
     } else {
-      // atom.state = 'hasValue';
       return value;
     }
   } catch (e: TODO) {
     console.log('read (catch)', atom, e);
 
-    if (isPromise(e)) {
-      // if (!(atom as TODO).resolve) {
-      // atom.state = 'loading';
-      // atom.value = new Promise((resolve) => {
-      //   atom.resolve = resolve;
-      // });
-
-      if (!e.waiting) {
-        e.waiting = true;
-        e.then((resolvedValue: TODO) => {
-          atom.state = 'hasValue';
-          atom.value = resolvedValue;
-          notify(atom);
-        });
-      }
-
-      // }
-      // TODO maybe throw (like suspense does?) - `get` in selectors should halt until it's done
-      throw e;
-    } else {
-      // rethrow
-      throw e;
+    if (isPromise(e) && !e.waiting) {
+      e.waiting = true;
+      e.then((resolvedValue: TODO) => {
+        atom.state = 'hasValue';
+        atom.value = resolvedValue;
+        notify(atom);
+      });
     }
+
+    throw e;
   }
 };
 
@@ -151,6 +130,8 @@ const notify = (atom: Stored) => {
             notify(d);
           }
         } catch (e) {
+          // to avoid creating promises that never resolves
+          // -> reuse existing pending promise
           if (d.state === 'loading') return;
 
           d.state = 'loading';
@@ -235,8 +216,39 @@ export const selectorFamily =
     return atom;
   };
 
+const waitForAllStore = new WeakMap<Stored[], TODO>();
+
 // TODO support map (now only list)
-// export const waitForAll = (...listOrMapOfAtoms) => {};
+export const waitForAll = (atoms: Stored[]) => {
+  let atom = waitForAllStore.get(atoms);
+
+  if (!atom) {
+    const id = atoms.reduce((acc, { atomId }) => acc + atomId, '');
+
+    atom = selectorFamily({
+      key: 'waitForAll',
+      get:
+        () =>
+        ({ get }) => {
+          let throws = false;
+          const resolved = atoms.map((atom) => {
+            try {
+              return get(atom);
+            } catch (e) {
+              throws = true;
+              return null; // just to please linter
+            }
+          });
+          if (throws) throw Error('pending waitForAll');
+          return resolved;
+        },
+    })(id);
+
+    waitForAllStore.set(atoms, atom);
+  }
+
+  return atom;
+};
 
 //
 
