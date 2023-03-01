@@ -252,33 +252,57 @@ export const selectorFamily =
     return atom;
   };
 
-const waitForAllStore = new WeakMap<Stored[], TODO>();
+const waitForAllStore = new WeakMap<
+  Stored[] | { [key: string]: Stored },
+  Stored
+>();
 
-// TODO support map (now only list)
-export const waitForAll = (atoms: Stored[]) => {
+export const waitForAll = (atoms: Stored[] | { [key: string]: Stored }) => {
   let atom = waitForAllStore.get(atoms);
 
   if (!atom) {
-    const id = atoms.reduce((acc, { atomId }) => acc + atomId, '');
-
-    atom = selectorFamily({
-      key: 'waitForAll',
-      get:
-        () =>
-        ({ get }) => {
-          let throws = false;
-          const resolved = atoms.map((atom) => {
-            try {
-              return get(atom);
-            } catch (e) {
-              throws = true;
-              return null; // just to please linter
-            }
-          });
-          if (throws) throw Error('pending waitForAll');
-          return resolved;
-        },
-    })(id);
+    if (Array.isArray(atoms)) {
+      atom = selectorFamily({
+        key: 'waitForAll',
+        get:
+          () =>
+          ({ get }) => {
+            let throws = false;
+            const resolved = atoms.map((atom) => {
+              try {
+                return get(atom);
+              } catch (e) {
+                throws = true;
+                return null; // just to please linter
+              }
+            });
+            if (throws) throw Error('pending waitForAll');
+            return resolved;
+          },
+      })(atoms.reduce((acc, { atomId }) => acc + atomId, ''));
+    } else {
+      atom = selectorFamily({
+        key: 'waitForAll',
+        get:
+          () =>
+          ({ get }) => {
+            let throws = false;
+            const resolved = Object.values(atoms).map((atom) => {
+              try {
+                return get(atom);
+              } catch (e) {
+                throws = true;
+                return null; // just to please linter
+              }
+            });
+            if (throws) throw Error('pending waitForAll');
+            return Object.keys(atoms).reduce((acc, key, i) => {
+              acc[key] = resolved[i];
+              return acc;
+            }, {});
+          },
+      })(Object.keys(atoms).reduce((acc, atomId) => acc + atomId, ''));
+    }
 
     waitForAllStore.set(atoms, atom);
   }
