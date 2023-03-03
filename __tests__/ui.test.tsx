@@ -22,6 +22,11 @@ import {
   Dict,
   OnChange,
 } from '../src/index';
+import { clearStore } from '../src/minimalRecoil';
+
+beforeEach(() => {
+  clearStore();
+});
 
 test('forms: basic', async () => {
   const onSubmit = jest.fn();
