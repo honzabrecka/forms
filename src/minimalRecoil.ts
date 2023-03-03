@@ -79,8 +79,9 @@ const readPlain = (atom: Stored) => {
     // compute only in case it's first read
     if (atom.value === undef) {
       try {
-        atom.state = 'hasValue';
         atom.value = atom.factory({ get });
+        atom.state = 'hasValue';
+        cacheAtomLoadableState(atom);
       } catch (e) {
         atom.state = 'loading';
         atom.value = new Promise((resolve) => {
@@ -92,6 +93,35 @@ const readPlain = (atom: Stored) => {
     return atom.value;
   }
   throw new Error('unsupported read');
+};
+
+const handleThrowPromise = (atom: Stored, e: TODO) => {
+  if (isPromise(e) && !e.waiting) {
+    e.waiting = true;
+    e.atomId = atom.atomId;
+    e.then((resolvedValue: TODO) => {
+      atom.state = 'hasValue';
+      atom.value = resolvedValue;
+      cacheAtomLoadableState(atom);
+
+      notify(atom).forEach((l) => l());
+    }).catch((e) => {
+      // TODO why?
+
+      // console.error('catch', atom, e);
+
+      if (atom.state === 'loading') return;
+
+      debug('create promise', atom);
+      atom.state = 'loading';
+      atom.value = new Promise((resolve) => {
+        atom.resolve = resolve;
+      });
+      cacheAtomLoadableState(atom);
+
+      handleThrowPromise(atom, e);
+    });
+  }
 };
 
 const read = (atom: Stored, suspense = true) => {
@@ -115,17 +145,7 @@ const read = (atom: Stored, suspense = true) => {
     }
   } catch (e: TODO) {
     debug('read (catch)', atom, e);
-
-    if (isPromise(e) && !e.waiting) {
-      e.waiting = true;
-      e.then((resolvedValue: TODO) => {
-        atom.state = 'hasValue';
-        atom.value = resolvedValue;
-        cacheAtomLoadableState(atom);
-        notify(atom).forEach((l) => l());
-      });
-    }
-
+    handleThrowPromise(atom, e);
     throw e;
   }
 };
@@ -136,6 +156,7 @@ const notify = (atom: Stored) => {
   debug('notify:', atom);
 
   if (atom.resolve) {
+    debug('resolve promise', atom);
     atom.resolve(atom.value);
     atom.resolve = undefined;
   }
@@ -169,6 +190,7 @@ const notify = (atom: Stored) => {
           // -> reuse existing pending promise
           if (d.state === 'loading') return;
 
+          debug('create promise', d);
           d.state = 'loading';
           d.value = new Promise((resolve) => {
             d.resolve = resolve;
@@ -289,7 +311,7 @@ export const waitForAll = (atoms: Stored[] | { [key: string]: Stored }) => {
             if (throws) throw Error('pending waitForAll');
             return resolved;
           },
-      })(atoms.reduce((acc, { atomId }) => acc + atomId, ''));
+      })(atoms.reduce((acc, { atomId }) => `${acc},${atomId}`, ''));
     } else {
       atom = selectorFamily({
         key: 'waitForAll',
@@ -311,7 +333,7 @@ export const waitForAll = (atoms: Stored[] | { [key: string]: Stored }) => {
               return acc;
             }, {});
           },
-      })(Object.keys(atoms).reduce((acc, atomId) => acc + atomId, ''));
+      })(Object.keys(atoms).reduce((acc, atomId) => `${acc},${atomId}`, ''));
     }
 
     waitForAllStore.set(atoms, atom);
@@ -347,7 +369,6 @@ export const useRecoilValue = <T>(atom: Stored) => {
   );
 };
 
-// do not throw promise (suspense)
 export const useRecoilValueLoadable = <T>(atom: Stored): T => {
   const subscribe = useCallback(
     (listener: Callback0) => {

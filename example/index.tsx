@@ -7,6 +7,7 @@ import {
   Validator,
   error,
   success,
+  createNestedName,
 } from '../src/index';
 import { SubmitButton, LazyField, delay } from '../__tests__/shared';
 
@@ -19,16 +20,22 @@ const validator: Validator = async (_, getBag) => {
     : error('missing field');
 };
 
+const x = createNestedName('x', 'y', 'z');
+
 const App = () => {
-  const { Form, setValues } = useForm({
+  const { Form, setValues, addFields } = useForm({
     onSubmit: ({ values }) => {
-      console.log(values);
+      console.log('submit', values);
     },
     onSubmitInvalid: console.log,
   });
   const onChange: OnChange = ({ name }) => {
     // reset other field
-    setValues({ [name === 'a' ? 'b' : 'a']: undefined });
+    addFields([x]);
+    setValues({
+      [name === 'a' ? 'b' : 'a']: undefined,
+      [x]: 'foo',
+    });
   };
 
   return (

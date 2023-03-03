@@ -15,8 +15,18 @@ import {
   isError,
   createNestedName,
 } from '../src/index';
+import { clearStore } from '../src/minimalRecoil';
 
 const htmlEvent = (value: any) => ({ target: { value } });
+
+beforeEach(() => {
+  clearStore();
+});
+
+const delay = (t: number) =>
+  new Promise((resolve) => {
+    setTimeout(() => resolve(t), t);
+  });
 
 test('forms: initial values', async () => {
   const { result } = renderHook(
@@ -188,6 +198,8 @@ test('forms: setErrors', async () => {
   await act(() => {
     result.current.form.setErrors({ a: error('fail'), b: warning('fail') });
   });
+
+  await delay(100);
 
   const bag = result.current;
   expect(bag.validation.contents.isValid).toEqual(false);
