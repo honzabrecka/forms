@@ -8,6 +8,7 @@ import {
   error,
   success,
   createNestedName,
+  useFormValidationLoadable,
 } from '../src/index';
 import { SubmitButton, LazyField, delay } from '../__tests__/shared';
 
@@ -23,7 +24,7 @@ const validator: Validator = async (_, getBag) => {
 const x = createNestedName('x', 'y', 'z');
 
 const App = () => {
-  const { Form, setValues, addFields } = useForm({
+  const { formId, Form, setValues, addFields, setErrors } = useForm({
     onSubmit: ({ values }) => {
       console.log('submit', values);
     },
@@ -36,10 +37,18 @@ const App = () => {
       [name === 'a' ? 'b' : 'a']: undefined,
       [x]: 'foo',
     });
+    setErrors({ [x]: error('bar') });
   };
+
+  const validation = useFormValidationLoadable(formId) as any;
+
+  console.log(validation);
 
   return (
     <Form>
+      <div>
+        {validation.state === 'hasValue' ? validation.contents.isValid : null}
+      </div>
       <LazyField name="a" label="A" onChange={onChange} validator={validator} />
       <LazyField name="b" label="B" onChange={onChange} validator={validator} />
       <SubmitButton>submit</SubmitButton>
