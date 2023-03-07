@@ -58,7 +58,7 @@ type Selector = {
 type Stored = Atom | Selector;
 
 const debug = (...x: any) => {
-  // console.log(...x);
+  console.log(...x);
   noop(...x);
 };
 
@@ -89,11 +89,17 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
 
       notify(atom).forEach((l) => l());
     }).catch((e) => {
+      // if (e.message === 'pending/waitForAll') {
+      //   // ignore
+      //   return;
+      // }
+
       // TODO why?
       debug('[catch]', atom, e);
       console.error(atom, e);
 
       // if (atom.state === 'loading') return;
+      // handleThrowPromise(atom, e);
 
       // if (
       //   !isPromise(atom.value) ||
@@ -131,6 +137,17 @@ const readPlain = (atom: Stored) => {
 
 const read = (atom: Stored, suspense = true) => {
   try {
+    if (Array.isArray(atom) && atom[0] === 'waitForAll') {
+      if (Array.isArray(atom[1])) {
+        atom = atom[1].map(readPlain) as any;
+      } else {
+        atom = Object.keys(atom[1]).reduce((acc, key) => {
+          acc[key] = readPlain(atom[1][key]);
+          return acc;
+        }, {}) as any;
+      }
+    }
+
     const value = readPlain(atom);
 
     debug('read:', atom, value);
@@ -203,6 +220,11 @@ const notify = (atom: Stored, isNew = false) => {
             d.resolve(newValue);
             cacheAtomLoadableState(d);
           } else {
+            // if (Object.is(d.value, newValue)) {
+            //   console.log('are same');
+            //   return;
+            // }
+
             d.state = 'hasValue';
             // TODO compare with old value?
             d.value = newValue;
@@ -217,7 +239,9 @@ const notify = (atom: Stored, isNew = false) => {
           //   cacheAtomLoadableState(d);
           //   notify(d).forEach((l) => listeners.add(l));
           // }
-        } catch (e) {
+        } catch (e: TODO) {
+          console.log('thrown', e);
+
           // to avoid creating promises that never resolves
           // -> reuse existing pending promise
           // if (d.state === 'loading') return;
@@ -252,13 +276,22 @@ const invalidate = (atom: Stored) => {
   atom.dependents.forEach((d) => invalidate(d));
 
   if (atom.type === StoredType.selector) {
-    if (atom.resolve) {
-      atom.resolve(undef); // TODO to prevent memory leak
+    // if (atom.resolve) {
+    //   atom.resolve(undef); // TODO to prevent memory leak
+    // }
+    // // atom.dependents = new Set<Stored>(); // TODO breaks already existing listeners
+    // atom.state = 'loading';
+    // atom.value = undef;
+    // cacheAtomLoadableState(atom);
+
+    if (atom.state !== 'loading') {
+      atom.state = 'loading';
+      atom.value = undef;
+      cacheAtomLoadableState(atom);
+      atom.resolve = undefined;
+      // notify(atom).forEach((l) => l());
+      // atom.dependents = new Set<Stored>(); // TODO breaks already existing listeners
     }
-    // atom.dependents = new Set<Stored>(); // TODO breaks already existing listeners
-    atom.state = 'loading';
-    atom.value = undef;
-    cacheAtomLoadableState(atom);
   }
 };
 
@@ -348,7 +381,7 @@ const waitForAllStore = new WeakMap<
   Stored
 >();
 
-export const waitForAll = (atoms: Stored[] | { [key: string]: Stored }) => {
+export const waitForAll2 = (atoms: Stored[] | { [key: string]: Stored }) => {
   let atom = waitForAllStore.get(atoms);
 
   if (!atom) {
@@ -367,7 +400,7 @@ export const waitForAll = (atoms: Stored[] | { [key: string]: Stored }) => {
                 return null; // just to please linter
               }
             });
-            if (throws) throw Error('pending waitForAll');
+            if (throws) throw Error('pending/waitForAll');
             return resolved;
           },
       })(atoms.reduce((acc, { atomId }) => `${acc},${atomId}`, ''));
@@ -386,7 +419,7 @@ export const waitForAll = (atoms: Stored[] | { [key: string]: Stored }) => {
                 return null; // just to please linter
               }
             });
-            if (throws) throw Error('pending waitForAll');
+            if (throws) throw Error('pending/waitForAll');
             return Object.keys(atoms).reduce((acc, key, i) => {
               acc[key] = resolved[i];
               return acc;
@@ -399,6 +432,12 @@ export const waitForAll = (atoms: Stored[] | { [key: string]: Stored }) => {
   }
 
   return atom;
+};
+
+export const waitForAll = (
+  atoms: Stored[] | { [key: string]: Stored },
+): any => {
+  return atoms;
 };
 
 //
@@ -471,7 +510,7 @@ const snapshot = {
       const value = read(atom);
       return { state: atom.state, contents: value, valueMaybe };
     } catch (e) {
-      return { state: atom.state, contents: e, valueMaybe };
+      return { state: atom.state, contents: atom.value, valueMaybe };
     }
   },
   getPromise: (atom: Stored) => getPromise(atom),
@@ -546,4 +585,20 @@ export const useRecoilTransaction_UNSTABLE = (cb: TODO, deps: TODO[]) => {
 // TODO to be able to run tests
 export const clearStore = () => {
   store.clear();
+};
+
+export const devRead = read;
+export const devWrite = write;
+export const devCallback = (cb: TODO) => {
+  const transact_UNSTABLE = (cb: TODO) => {
+    const transaction = createTransaction();
+    cb({
+      get: transaction.get,
+      set: transaction.set,
+      reset: transaction.reset,
+    });
+    transaction.commit();
+  };
+  return (...args: any[]) =>
+    cb({ snapshot, set: write, transact_UNSTABLE })(...args);
 };

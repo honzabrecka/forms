@@ -28,7 +28,7 @@ const delay = (t: number) =>
     setTimeout(() => resolve(t), t);
   });
 
-test('forms: initial values', async () => {
+test.only('forms: initial values', async () => {
   const { result } = renderHook(
     () => {
       const form = useForm({
