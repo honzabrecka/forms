@@ -12,7 +12,6 @@ import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
-  waitForAll,
 } from '../src/minimalRecoil';
 
 beforeEach(() => {
@@ -373,7 +372,7 @@ test('recoil (async): reactive computation', async () => {
     key: 'selector1',
     get:
       () =>
-      ({ get }) => {
+      async ({ get }) => {
         selector1Spy();
         return get(atom('x')).x;
       },
@@ -383,9 +382,9 @@ test('recoil (async): reactive computation', async () => {
     key: 'selector2',
     get:
       () =>
-      ({ get }) => {
+      async ({ get }) => {
         selector2Spy();
-        return get(selector1('x')) * 2;
+        return (await get(selector1('x'))) * 2;
       },
   });
   const cb = jest.fn();
@@ -479,9 +478,9 @@ test('recoil (async): waitForAll', async () => {
     key: 'selector2',
     get:
       () =>
-      ({ get }) => {
+      async ({ get }) => {
         selector2Spy();
-        return get(selector1('x')) * 2;
+        return (await get(selector1('x'))) * 2;
       },
   });
   const selector3Spy = jest.fn();
@@ -491,7 +490,7 @@ test('recoil (async): waitForAll', async () => {
       () =>
       ({ get }) => {
         selector3Spy();
-        return waitForAll([get(selector1('x')), get(selector2('x'))]);
+        return Promise.all([get(selector1('x')), get(selector2('x'))]);
       },
   });
 

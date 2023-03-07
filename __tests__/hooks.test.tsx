@@ -23,10 +23,10 @@ beforeEach(() => {
   clearStore();
 });
 
-const delay = (t: number) =>
-  new Promise((resolve) => {
-    setTimeout(() => resolve(t), t);
-  });
+// const delay = (t: number) =>
+//   new Promise((resolve) => {
+//     setTimeout(() => resolve(t), t);
+//   });
 
 test.only('forms: initial values', async () => {
   const { result } = renderHook(
@@ -199,7 +199,7 @@ test('forms: setErrors', async () => {
     result.current.form.setErrors({ a: error('fail'), b: warning('fail') });
   });
 
-  await delay(100);
+  console.log(result.current.validation);
 
   const bag = result.current;
   expect(bag.validation.contents.isValid).toEqual(false);
