@@ -491,7 +491,7 @@ test('recoil (async): waitForAll', async () => {
       () =>
       ({ get }) => {
         selector3Spy();
-        return get(waitForAll([selector1('x'), selector2('x')]));
+        return waitForAll([get(selector1('x')), get(selector2('x'))]);
       },
   });
 
