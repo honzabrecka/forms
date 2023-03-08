@@ -56,8 +56,9 @@ const ReactiveValidator = ({
   useEffect(() => {
     const wrappedValidator: NamedValidator = async (value, meta) => {
       try {
-        await delay(0); // to get fresh bag
+        await Promise.resolve(0);
         const result = await validator(value, getBagForValidator, meta);
+        await delay(0); // to get fresh bag
         return {
           name,
           ...result,

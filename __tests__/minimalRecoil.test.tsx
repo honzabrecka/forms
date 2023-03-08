@@ -12,7 +12,6 @@ import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
-  waitForAll,
 } from '../src/minimalRecoil';
 
 beforeEach(() => {
@@ -491,7 +490,7 @@ test('recoil (async): waitForAll', async () => {
       () =>
       ({ get }) => {
         selector3Spy();
-        return waitForAll([get(selector1('x')), get(selector2('x'))]);
+        return [get(selector1('x')), get(selector2('x'))];
       },
   });
 

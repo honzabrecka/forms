@@ -152,8 +152,11 @@ export default function useField({
     setFieldState((state) => {
       const wrappedValidator: NamedValidator = async (value, meta) => {
         try {
-          await delay(0); // to get fresh bag
+          // TODO whaaaat?
+          await Promise.resolve(0); // to get fresh bag
+          // await delay(0);
           const result = await validator(value, getBagForValidator, meta);
+          await delay(0); // to get fresh bag
           return {
             name,
             ...result,

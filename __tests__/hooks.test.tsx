@@ -23,12 +23,12 @@ beforeEach(() => {
   clearStore();
 });
 
-const delay = (t: number) =>
-  new Promise((resolve) => {
-    setTimeout(() => resolve(t), t);
-  });
+// const delay = (t: number) =>
+//   new Promise((resolve) => {
+//     setTimeout(() => resolve(t), t);
+//   });
 
-test.only('forms: initial values', async () => {
+test('forms: initial values', async () => {
   const { result } = renderHook(
     () => {
       const form = useForm({
@@ -132,6 +132,7 @@ test('forms: setValues with validator', async () => {
   await act(() => {
     result.current.form.setValues({ a: Promise.resolve(2) });
   });
+  console.log(validator.mock.calls);
   // NOTE (react 18) in dev mode it mounts 2x
   expect(await validator.mock.calls[2][0]).toBe(2);
   const bag = await validator.mock.calls[2][1]();
@@ -198,8 +199,6 @@ test('forms: setErrors', async () => {
   await act(() => {
     result.current.form.setErrors({ a: error('fail'), b: warning('fail') });
   });
-
-  await delay(100);
 
   const bag = result.current;
   expect(bag.validation.contents.isValid).toEqual(false);
@@ -446,7 +445,7 @@ test('forms > field: from/to transformers', async () => {
   });
 });
 
-test('forms > field: onChange validation', async () => {
+test.only('forms > field: onChange validation', async () => {
   const validatorA = jest.fn().mockReturnValue(error('fail'));
   const validatorB = jest.fn().mockReturnValue(error('fail'));
   const { result, rerender } = renderHook(
@@ -481,6 +480,8 @@ test('forms > field: onChange validation', async () => {
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
   });
+
+  console.log(result.current.validation);
 
   expect(isSuccess(result.current.validation.contents)).toEqual(true);
 
