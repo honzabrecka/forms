@@ -6,13 +6,6 @@ const noop: IGNORE = () => undefined;
 
 const undef = Symbol('undef');
 
-const clone = (x: any) => {
-  if (typeof x === 'object' && !Array.isArray(x)) {
-    return { ...x };
-  }
-  return x;
-};
-
 const isPromise = (value: TODO) =>
   value && typeof value === 'object' && typeof value.then === 'function';
 
@@ -25,7 +18,7 @@ enum StoredType {
   selector,
 }
 
-type LoadableState = 'hasValue' | 'loading' | 'hasError';
+type LoadableState = 'hasValue' | 'loading';
 
 type Atom = {
   type: StoredType.atom;
@@ -73,6 +66,8 @@ const cacheAtomLoadableState = (atom: Stored) => {
       valueMaybe: () => getPromise(atom),
     };
   } else if (isPromise(atom.value)) {
+    const { atomId, state, value } = atom;
+    console.log('cache', { atomId, state, value });
     // (async atom) contents: (resolved) Promise.value
     atom.cachedLoadableState = {
       state: 'hasValue',
@@ -93,19 +88,44 @@ const cacheAtomLoadableState = (atom: Stored) => {
 };
 
 const handleThrowPromise = (atom: Stored, e: TODO) => {
+  if (e.type && e.type === 'valueIsPromise' && !e.promise.state) {
+    e.promise.state = 'loading';
+    e.promise.atomId = atom.atomId;
+    e.promise
+      .then((resolvedValue: TODO) => {
+        debug('(HTP) resolve promise', atom.atomId, resolvedValue);
+        e.promise.value = resolvedValue;
+        e.promise.state = 'hasValue';
+        atom.state = 'hasValue';
+        if (atom.resolve) {
+          atom.resolve(resolvedValue);
+          atom.resolve = undefined;
+        }
+        cacheAtomLoadableState(atom);
+        notify(atom).forEach((l) => l());
+      })
+      .catch((e) => {
+        // TODO why?
+        debug('[catch]', atom.atomId, e);
+        console.error(atom, e);
+      });
+    return;
+  }
+
   if (isPromise(e) && !e.state) {
     e.state = 'loading';
     e.atomId = atom.atomId;
     e.then((resolvedValue: TODO) => {
-      console.log('>>', atom.atomId, resolvedValue);
+      debug('(HTP) resolve promise', atom.atomId, resolvedValue);
       e.value = resolvedValue;
       e.state = 'hasValue';
-      // atom.state = 'hasValue';
-      // atom.value = resolvedValue;
-      // cacheAtomLoadableState(atom);
 
       if (atom.resolve) {
-        debug('(HTP) resolve promise', atom.atomId, resolvedValue);
+        debug(
+          '(HTP) resolve promise (atom.resolve)',
+          atom.atomId,
+          resolvedValue,
+        );
         atom.state = 'hasValue';
         atom.resolve(resolvedValue);
         cacheAtomLoadableState(atom);
@@ -113,31 +133,9 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
 
       notify(atom).forEach((l) => l());
     }).catch((e) => {
-      // if (e.message === 'pending/waitForAll') {
-      //   // ignore
-      //   return;
-      // }
-
       // TODO why?
       debug('[catch]', atom.atomId, e);
       console.error(atom, e);
-
-      // if (atom.state === 'loading') return;
-      // handleThrowPromise(atom, e);
-
-      // if (
-      //   !isPromise(atom.value) ||
-      //   (isPromise(atom.value) && !atom.value.state)
-      // ) {
-      //   debug('create promise', atom.atomId);
-      //   atom.state = 'loading';
-      //   atom.value = new Promise((resolve) => {
-      //     atom.resolve = resolve;
-      //   });
-      //   cacheAtomLoadableState(atom);
-      // }
-
-      // handleThrowPromise(atom, e);
     });
   }
 };
@@ -152,50 +150,75 @@ const readPlain = (atom: Stored) => {
     // compute only in case it's first read
     if (atom.value === undef) {
       atom.value = atom.factory({ get });
-      cacheAtomLoadableState(atom);
     }
     return atom.value;
   }
   throw new Error('unsupported read');
 };
 
-const read = (atom: Stored, suspense = true) => {
+const valueIsPromise = (promise: Promise<TODO>) => ({
+  type: 'valueIsPromise',
+  promise,
+});
+
+const read = (atom: Stored) => {
   try {
     const value = readPlain(atom);
 
     debug('read:', atom.atomId, value);
 
-    if (!suspense) {
-      return atom.cachedLoadableState;
-    }
-
-    // async selector only one get that returns promise directly
+    // async selector
     if (isPromise(value)) {
       debug('read (isPromise)', atom.atomId);
-
       if (value.state === 'hasValue') return value.value;
-
-      throw value;
+      throw valueIsPromise(value);
     } else {
+      if (atom.state === 'loading') {
+        atom.state = 'hasValue';
+        cacheAtomLoadableState(atom);
+      }
       return value;
     }
   } catch (e: TODO) {
     debug('read (catch)', atom.atomId, e);
+
     handleThrowPromise(atom, e);
+
+    // throw in inner get
     if (
       !isPromise(atom.value) ||
       (isPromise(atom.value) && !atom.value.state)
     ) {
-      debug('create promise', atom.atomId);
+      console.log('create promise', atom.atomId, atom.value);
       atom.state = 'loading';
       atom.value = new Promise((resolve) => {
-        atom.resolve = resolve;
+        atom.resolve = (value) => {
+          if (isPromise(value)) {
+            console.error('resolve with promise???', atom);
+          }
+          console.log('resolved with', atom.atomId, value);
+          resolve(value);
+        };
       });
       cacheAtomLoadableState(atom);
-      // handleThrowPromise(atom, atom.value);
     }
-    throw e; // HERE!!!!
+
+    if (e.type && e.type === 'valueIsPromise') {
+      throw e.promise;
+    }
+
+    throw e;
   }
+};
+
+const compare = (a: TODO, b: TODO) => {
+  if (isPromise(a) && isPromise(b)) {
+    return a === b;
+  }
+  if ((isPromise(a) && !isPromise(b)) || (isPromise(b) && !isPromise(a))) {
+    return false;
+  }
+  return JSON.stringify(a) === JSON.stringify(b);
 };
 
 // if atom is modified, we need to notify all the dependent atoms (recursively)
@@ -221,25 +244,38 @@ const notify = (atom: Stored) => {
           const oldValue = d.value;
           const newValue = d.factory({ get });
 
-          console.log('notify:', atom.atomId, newValue);
+          debug('notify:', atom.atomId, newValue);
 
-          if (Object.is(oldValue, newValue)) {
+          if (compare(oldValue, newValue)) {
             debug('same', d.atomId);
             return;
           }
 
-          if (d.resolve) {
-            console.log('resolve promise', d.atomId, newValue);
-            d.state = 'hasValue';
-            d.resolve(newValue);
-            cacheAtomLoadableState(d);
-          } else {
-            d.state = 'hasValue';
+          if (isPromise(newValue)) {
             d.value = newValue;
-            cacheAtomLoadableState(d);
+            throw valueIsPromise(newValue);
           }
 
-          notify(d).forEach((l) => listeners.add(l));
+          if (d.state === 'loading') {
+            d.state = 'hasValue';
+            if (d.resolve) {
+              d.resolve(newValue);
+              d.resolve = undefined;
+            }
+            cacheAtomLoadableState(d);
+            notify(d).forEach((l) => listeners.add(l));
+            return;
+          }
+
+          if (d.state === 'hasValue') {
+            // if (isPromise(newValue)) {
+            //   d.value = newValue;
+            //   throw valueIsPromise(newValue);
+            // }
+            d.value = newValue;
+            cacheAtomLoadableState(d);
+            notify(d).forEach((l) => listeners.add(l));
+          }
         } catch (e: TODO) {
           debug('thrown', d.atomId, e);
           handleThrowPromise(d, e);
@@ -248,11 +284,15 @@ const notify = (atom: Stored) => {
             debug('create promise (N)', d.atomId);
             d.state = 'loading';
             d.value = new Promise((resolve) => {
-              d.resolve = resolve;
+              d.resolve = (value) => {
+                if (isPromise(value)) {
+                  console.error('resolve with promise???', atom);
+                }
+                console.log('resolved with', d.atomId, value);
+                resolve(value);
+              };
             });
             cacheAtomLoadableState(d);
-            handleThrowPromise(atom, d.value);
-
             notify(d).forEach((l) => listeners.add(l));
           }
         }
@@ -282,7 +322,20 @@ const write = (atom: Stored, value: TODO) => {
 
 const getSnapshot = (atom: TODO, suspense: boolean) => () => {
   debug('getSnapshot', atom.atomId);
-  return read(atom, suspense);
+  if (!suspense) {
+    try {
+      read(atom);
+    } catch (e) {
+      // ignore
+    }
+    return atom.cachedLoadableState;
+  }
+
+  try {
+    return read(atom);
+  } catch (e) {
+    throw atom.value;
+  }
 };
 
 type AtomFamilyProps<T> = {
@@ -303,7 +356,7 @@ export const atomFamily =
           atomId,
           type: StoredType.atom,
           value,
-          defaultValue: clone(value),
+          defaultValue: value,
           state: 'hasValue',
           cachedLoadableState: undefined,
           listeners: new Set(),
@@ -391,7 +444,7 @@ export const useRecoilState = (atom: Stored) => {
 export const useResetRecoilState = (atom: Stored) => {
   return () => {
     if (atom.type === StoredType.atom) {
-      write(atom, clone(atom.defaultValue));
+      write(atom, atom.defaultValue);
     }
   };
 };
@@ -440,7 +493,7 @@ const createTransaction = () => {
     reset(atom: Atom) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
-      atom.value = clone(atom.defaultValue);
+      atom.value = atom.defaultValue;
       touchedAtoms.add(atom);
     },
     commit: () => {
@@ -491,18 +544,18 @@ export const clearStore = () => {
   store.clear();
 };
 
-export const devRead = read;
-export const devWrite = write;
-export const devCallback = (cb: TODO) => {
-  const transact_UNSTABLE = (cb: TODO) => {
-    const transaction = createTransaction();
-    cb({
-      get: transaction.get,
-      set: transaction.set,
-      reset: transaction.reset,
-    });
-    transaction.commit();
-  };
-  return (...args: any[]) =>
-    cb({ snapshot, set: write, transact_UNSTABLE })(...args);
-};
+// export const devRead = read;
+// export const devWrite = write;
+// export const devCallback = (cb: TODO) => {
+//   const transact_UNSTABLE = (cb: TODO) => {
+//     const transaction = createTransaction();
+//     cb({
+//       get: transaction.get,
+//       set: transaction.set,
+//       reset: transaction.reset,
+//     });
+//     transaction.commit();
+//   };
+//   return (...args: any[]) =>
+//     cb({ snapshot, set: write, transact_UNSTABLE })(...args);
+// };

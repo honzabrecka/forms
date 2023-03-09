@@ -445,7 +445,7 @@ test('forms > field: from/to transformers', async () => {
   });
 });
 
-test.only('forms > field: onChange validation', async () => {
+test('forms > field: onChange validation', async () => {
   const validatorA = jest.fn().mockReturnValue(error('fail'));
   const validatorB = jest.fn().mockReturnValue(error('fail'));
   const { result, rerender } = renderHook(
@@ -834,6 +834,8 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
     expect(result.current.formDirty.state).toBe('hasValue');
     expect(result.current.fieldDirty.state).toBe('hasValue');
   });
+
+  console.log(result.current.fieldDirty);
 
   expect(result.current.formDirty.contents.dirty).toBe(false);
   expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(new Set());

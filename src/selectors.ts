@@ -17,7 +17,6 @@ const last = <T>(xs: T[]) => xs[xs.length - 1];
 export const delay = (t: number) =>
   new Promise((res) => {
     setTimeout(() => {
-      console.log('delay, done');
       res(undefined);
     }, t);
   });
