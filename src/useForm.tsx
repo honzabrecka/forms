@@ -242,6 +242,7 @@ export default function useForm({
               $field(fieldId(formId, id)),
               onFieldTypeOnly((state) => {
                 const value = state.initialValue;
+                console.log('>>', state);
                 return {
                   ...state,
                   value,

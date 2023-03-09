@@ -67,7 +67,7 @@ const cacheAtomLoadableState = (atom: Stored) => {
     };
   } else if (isPromise(atom.value)) {
     const { atomId, state, value } = atom;
-    console.log('cache', { atomId, state, value });
+    debug('cache', { atomId, state, value });
     // (async atom) contents: (resolved) Promise.value
     atom.cachedLoadableState = {
       state: 'hasValue',
@@ -149,7 +149,7 @@ const readPlain = (atom: Stored) => {
     };
     // compute only in case it's first read
     if (atom.value === undef) {
-      atom.value = atom.factory({ get });
+      return atom.factory({ get });
     }
     return atom.value;
   }
@@ -175,6 +175,7 @@ const read = (atom: Stored) => {
     } else {
       if (atom.state === 'loading') {
         atom.state = 'hasValue';
+        atom.value = value;
         cacheAtomLoadableState(atom);
       }
       return value;
@@ -189,14 +190,14 @@ const read = (atom: Stored) => {
       !isPromise(atom.value) ||
       (isPromise(atom.value) && !atom.value.state)
     ) {
-      console.log('create promise', atom.atomId, atom.value);
+      debug('create promise', atom.atomId, atom.value);
       atom.state = 'loading';
       atom.value = new Promise((resolve) => {
         atom.resolve = (value) => {
           if (isPromise(value)) {
             console.error('resolve with promise???', atom);
           }
-          console.log('resolved with', atom.atomId, value);
+          debug('resolved with', atom.atomId, value);
           resolve(value);
         };
       });
@@ -288,7 +289,7 @@ const notify = (atom: Stored) => {
                 if (isPromise(value)) {
                   console.error('resolve with promise???', atom);
                 }
-                console.log('resolved with', d.atomId, value);
+                debug('resolved with', d.atomId, value);
                 resolve(value);
               };
             });
