@@ -21,7 +21,6 @@ const OnFormReadyInner = ({ cb, formId }: OnFormReadyInnerProps) => {
   const run = useRef(false);
 
   useEffect(() => {
-    console.log(ready, run);
     if (ready && !run.current) {
       cb();
       run.current = true;
