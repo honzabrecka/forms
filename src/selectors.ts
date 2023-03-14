@@ -26,7 +26,10 @@ export const createNamedValidation = (
   result: ValidationResult,
 ): Promise<FieldValidationResult> => Promise.resolve({ name, ...result });
 
-export const fieldId = (formId: string, name: string) => `${formId}:${name}`;
+const fieldIdSeparator = '/';
+
+export const fieldId = (formId: string, name: string) =>
+  `${formId}${fieldIdSeparator}${name}`;
 
 export const defaultReadyDelayTimeout = 100;
 
@@ -54,9 +57,9 @@ export const $formSubmission = selectorFamily<FormSubmission, string>({
 });
 
 export const $field = atomFamily<FieldState, string>({
-  key: 'form_field',
+  key: 'field',
   default: (id) => {
-    const [formId, name] = id.split(':');
+    const [formId, name] = id.split(fieldIdSeparator);
     const validationResult = createNamedValidation(name, success());
     return {
       id,
@@ -76,7 +79,7 @@ export const $field = atomFamily<FieldState, string>({
 });
 
 export const $fieldChildren = selectorFamily<string[], string>({
-  key: 'form_field/children',
+  key: 'field/children',
   get:
     (id: string) =>
     ({ get }) => {
@@ -98,7 +101,7 @@ export const $fieldChildren = selectorFamily<string[], string>({
 });
 
 export const $fieldValue = selectorFamily<any, string>({
-  key: 'form_field/value',
+  key: 'field/value',
   get:
     (id: string) =>
     ({ get }) => {
@@ -129,7 +132,7 @@ export const $fieldValue = selectorFamily<any, string>({
 });
 
 export const $fieldInitialValue = selectorFamily<any, string>({
-  key: 'form_field/initialValue',
+  key: 'field/initialValue',
   get:
     (id: string) =>
     ({ get }) => {
@@ -154,7 +157,7 @@ export const $fieldInitialValue = selectorFamily<any, string>({
 });
 
 export const $fieldValidation = selectorFamily<any, string>({
-  key: 'form_field/validation',
+  key: 'field/validation',
   get:
     (id: string) =>
     async ({ get }) => {
@@ -263,7 +266,7 @@ export const $initialValues = selectorFamily<any, string>({
 });
 
 export const $fieldTouched = selectorFamily<boolean, string>({
-  key: 'form_field/touched',
+  key: 'field/touched',
   get:
     (id: string) =>
     ({ get }) => {
@@ -349,7 +352,7 @@ const isNotEqual = async (a: any = null, b: any = null) =>
   JSON.stringify(await a) !== JSON.stringify(b);
 
 export const $fieldDirty = selectorFamily<any, string>({
-  key: 'form_field/dirty',
+  key: 'field/dirty',
   get:
     (id: string) =>
     async ({ get }) => {
