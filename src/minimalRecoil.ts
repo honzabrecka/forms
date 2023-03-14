@@ -63,7 +63,9 @@ const cacheAtomLoadableState = (atom: Stored) => {
     atom.cachedLoadableState = {
       state: 'loading',
       contents: atom.value,
-      valueMaybe: () => getPromise(atom),
+      valueMaybe: undefined,
+      toPromise: () => getPromise(atom),
+      getValue: () => getPromiseForSuspense(atom),
     };
   } else if (isPromise(atom.value)) {
     const { atomId, state, value } = atom;
@@ -72,7 +74,9 @@ const cacheAtomLoadableState = (atom: Stored) => {
     atom.cachedLoadableState = {
       state: 'hasValue',
       contents: atom.value.value,
-      valueMaybe: () => getPromise(atom),
+      valueMaybe: () => atom.value.value,
+      toPromise: () => getPromise(atom),
+      getValue: () => getPromiseForSuspense(atom),
       p: true,
     };
   } else {
@@ -80,7 +84,9 @@ const cacheAtomLoadableState = (atom: Stored) => {
     atom.cachedLoadableState = {
       state: 'hasValue',
       contents: atom.value,
-      valueMaybe: () => getPromise(atom),
+      valueMaybe: () => atom.value,
+      toPromise: () => Promise.resolve(atom.value),
+      getValue: () => atom.value,
     };
   }
 
@@ -93,6 +99,7 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
     e.promise.atomId = atom.atomId;
     e.promise
       .then((resolvedValue: TODO) => {
+        // TODO resolved with stale value
         debug('(HTP) resolve promise', atom.atomId, resolvedValue);
         e.promise.value = resolvedValue;
         e.promise.state = 'hasValue';
@@ -212,6 +219,14 @@ const read = (atom: Stored) => {
   }
 };
 
+const ignoredRead = (atom: Stored) => {
+  try {
+    read(atom);
+  } catch (e) {
+    // ignore
+  }
+};
+
 const compare = (a: TODO, b: TODO) => {
   if (isPromise(a) && isPromise(b)) {
     return a === b;
@@ -253,7 +268,7 @@ const notify = (atom: Stored) => {
           }
 
           if (isPromise(newValue)) {
-            d.value = newValue;
+            // d.value = newValue;
             throw valueIsPromise(newValue);
           }
 
@@ -313,6 +328,7 @@ const write = (atom: Stored, value: TODO) => {
       atom.value = value;
     }
     debug('write (value):', atom.value);
+    cacheAtomLoadableState(atom);
     notify(atom).forEach((l) => l());
     return;
   }
@@ -323,20 +339,13 @@ const write = (atom: Stored, value: TODO) => {
 
 const getSnapshot = (atom: TODO, suspense: boolean) => () => {
   debug('getSnapshot', atom.atomId);
-  if (!suspense) {
-    try {
-      read(atom);
-    } catch (e) {
-      // ignore
-    }
-    return atom.cachedLoadableState;
+
+  if (suspense) {
+    return atom.cachedLoadableState.getValue();
   }
 
-  try {
-    return read(atom);
-  } catch (e) {
-    throw atom.value;
-  }
+  ignoredRead(atom);
+  return atom.cachedLoadableState;
 };
 
 type AtomFamilyProps<T> = {
@@ -460,15 +469,18 @@ const getPromise = (atom: Stored) => {
   }
 };
 
+const getPromiseForSuspense = (atom: Stored) => {
+  try {
+    return read(atom);
+  } catch (e) {
+    throw atom.value;
+  }
+};
+
 const snapshot = {
   getLoadable: (atom: Stored) => {
-    const valueMaybe = () => getPromise(atom);
-    try {
-      const value = read(atom);
-      return { state: atom.state, contents: value, valueMaybe };
-    } catch (e) {
-      return { state: atom.state, contents: atom.value, valueMaybe };
-    }
+    ignoredRead(atom);
+    return atom.cachedLoadableState;
   },
   getPromise: (atom: Stored) => getPromise(atom),
 };
@@ -544,19 +556,3 @@ export const useRecoilTransaction_UNSTABLE = (cb: TODO, deps: TODO[]) => {
 export const clearStore = () => {
   store.clear();
 };
-
-// export const devRead = read;
-// export const devWrite = write;
-// export const devCallback = (cb: TODO) => {
-//   const transact_UNSTABLE = (cb: TODO) => {
-//     const transaction = createTransaction();
-//     cb({
-//       get: transaction.get,
-//       set: transaction.set,
-//       reset: transaction.reset,
-//     });
-//     transaction.commit();
-//   };
-//   return (...args: any[]) =>
-//     cb({ snapshot, set: write, transact_UNSTABLE })(...args);
-// };
