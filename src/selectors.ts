@@ -24,7 +24,11 @@ export const delay = (t: number) =>
 export const createNamedValidation = (
   name: string,
   result: ValidationResult,
-): Promise<FieldValidationResult> => Promise.resolve({ name, ...result });
+): Promise<FieldValidationResult> => {
+  const p = delay(250).then(() => ({ name, ...result }));
+  (p as any).namedValidator = name;
+  return p;
+};
 
 const fieldIdSeparator = '/';
 
@@ -156,11 +160,25 @@ export const $fieldInitialValue = selectorFamily<any, string>({
   },
 });
 
+const $listValidation = selectorFamily<any, string>({
+  key: 'field/listValidation',
+  get:
+    (id: string) =>
+    async ({ get }) => {
+      const field = get($field(id));
+      if (field.type !== FieldType.list) return undefined;
+      return field.validation;
+    },
+  cachePolicy_UNSTABLE: {
+    eviction: 'most-recent',
+  },
+});
+
 export const $fieldValidation = selectorFamily<any, string>({
   key: 'field/validation',
   get:
     (id: string) =>
-    async ({ get }) => {
+    ({ get }) => {
       const field = get($field(id));
       if (field.type === FieldType.map) {
         const result: FieldValidationResult[] = field.children.map((id) =>
@@ -173,11 +191,10 @@ export const $fieldValidation = selectorFamily<any, string>({
           get($fieldValidation(fieldId(field.formId, id))),
         );
         return {
-          ...multi([await field.validation, ...result]),
+          ...multi([get($listValidation(id)), ...result]),
           name: field.name,
         };
       }
-      // console.log(field);
       return field.validation;
     },
   cachePolicy_UNSTABLE: {
@@ -355,7 +372,7 @@ export const $fieldDirty = selectorFamily<any, string>({
   key: 'field/dirty',
   get:
     (id: string) =>
-    async ({ get }) => {
+    ({ get }) => {
       const field = get($field(id));
       if (field.type === FieldType.map) {
         const result: boolean[] = field.children.map((id) =>
