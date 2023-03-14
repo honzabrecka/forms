@@ -645,7 +645,6 @@ test('forms: OnFormReady', async () => {
       onSubmit,
       onReady: async ({ getBag, setInitialValues, submit }) => {
         const { values } = await getBag();
-        console.log({ values });
         setInitialValues(values);
         submit();
       },

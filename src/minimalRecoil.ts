@@ -1,5 +1,7 @@
 /* eslint-disable camelcase */
 import { useSyncExternalStore, useCallback } from 'react';
+// import isEqual from 'lodash/isEqual';
+// import isEqualWith from 'lodash/isEqualWith';
 import { Callback0, Callback1 } from './types';
 
 const noop: IGNORE = () => undefined;
@@ -115,6 +117,8 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
         // TODO why?
         debug('[catch]', atom.atomId, e);
         console.error(atom, e);
+
+        handleThrowPromise(atom, e);
       });
     return;
   }
@@ -143,6 +147,8 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
       // TODO why?
       debug('[catch]', atom.atomId, e);
       console.error(atom, e);
+
+      handleThrowPromise(atom, e);
     });
   }
 };
@@ -172,7 +178,7 @@ const read = (atom: Stored) => {
   try {
     const value = readPlain(atom);
 
-    debug('read:', atom.atomId, value);
+    // debug('read:', atom.atomId, value);
 
     // async selector
     if (isPromise(value)) {
@@ -229,13 +235,29 @@ const ignoredRead = (atom: Stored) => {
 
 const compare = (a: TODO, b: TODO) => {
   if (isPromise(a) && isPromise(b)) {
-    return a === b;
+    return (
+      a.state === 'hasValue' &&
+      b.state === 'hasValue' &&
+      JSON.stringify(a) === JSON.stringify(b)
+    );
   }
   if ((isPromise(a) && !isPromise(b)) || (isPromise(b) && !isPromise(a))) {
     return false;
   }
   return JSON.stringify(a) === JSON.stringify(b);
 };
+
+// eslint-disable-next-line consistent-return
+// const compare = isEqualWith((a, b) => {
+//   if (isPromise(a) && isPromise(b)) {
+//     if (
+//       a.state === 'hasValue' &&
+//       b.state === 'hasValue' &&
+//       isEqual(a.value, b.value)
+//     )
+//       return false;
+//   }
+// });
 
 // if atom is modified, we need to notify all the dependent atoms (recursively)
 // now run callbacks for all the components that are dependent on this atom
@@ -260,7 +282,13 @@ const notify = (atom: Stored) => {
           const oldValue = d.value;
           const newValue = d.factory({ get });
 
-          debug('notify:', atom.atomId, newValue);
+          // console.log(
+          //   'notify:',
+          //   atom.atomId,
+          //   oldValue,
+          //   newValue,
+          //   compare(oldValue, newValue),
+          // );
 
           if (compare(oldValue, newValue)) {
             debug('same', d.atomId);
@@ -463,7 +491,7 @@ export const useResetRecoilState = (atom: Stored) => {
 
 const getPromise = (atom: Stored) => {
   try {
-    return read(atom);
+    return Promise.resolve(read(atom));
   } catch (e) {
     return atom.value;
   }
@@ -482,7 +510,7 @@ const snapshot = {
     ignoredRead(atom);
     return atom.cachedLoadableState;
   },
-  getPromise: (atom: Stored) => getPromise(atom),
+  getPromise: (atom: Stored) => atom.cachedLoadableState.toPromise(),
 };
 
 const createTransaction = () => {

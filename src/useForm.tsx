@@ -52,7 +52,7 @@ export default function useForm({
   isValidProp = 'isValid',
   errorBannerMessage = null,
 }: UseFormProps = {}) {
-  const [formId] = useState<string>(() => `form/${uid()}`);
+  const [formId] = useState<string>(() => `form:${uid()}`);
 
   useWarnOnChanged('formId', formId);
 
@@ -242,7 +242,6 @@ export default function useForm({
               $field(fieldId(formId, id)),
               onFieldTypeOnly((state) => {
                 const value = state.initialValue;
-                console.log('>>', state);
                 return {
                   ...state,
                   value,
