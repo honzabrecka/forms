@@ -174,7 +174,7 @@ test('forms: setTouched', async () => {
   expect(result.current.b.touched).toEqual(false);
 });
 
-test('forms: setErrors', async () => {
+test.only('forms: setErrors', async () => {
   const onSubmit = jest.fn();
   const { result } = renderHook(
     () => {
@@ -195,12 +195,22 @@ test('forms: setErrors', async () => {
     { wrapper },
   );
 
+  console.log('>>>>');
+
   // check that form.setErrors() works
   await act(() => {
     result.current.form.setErrors({ a: error('fail'), b: warning('fail') });
   });
 
   const bag = result.current;
+
+  await waitFor(() => {
+    expect(result.current.validation.state).toBe('hasValue');
+  });
+
+  console.log(bag.a.validationResult);
+  console.log(bag.b.validationResult);
+
   expect(bag.validation.contents.isValid).toEqual(false);
   expect(bag.validation.contents.isValidStrict).toEqual(false);
   expect(bag.validation.contents.errors.length).toEqual(1);

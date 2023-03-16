@@ -22,13 +22,26 @@ export function useGetBag(formId: string) {
   return useRecoilCallback<[], Promise<Bag>>(
     ({ snapshot }) =>
       async () => {
+        const debug = false;
         const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
         const touched = snapshot.getLoadable($formTouched(formId)).contents;
         const [values, validation, initialValues, dirty] = await Promise.all([
-          snapshot.getPromise($values(formId)),
-          snapshot.getPromise($formValidation(formId)),
-          snapshot.getPromise($initialValues(formId)),
-          snapshot.getPromise($formDirty(formId)),
+          snapshot.getPromise($values(formId)).then((x) => {
+            if (debug) console.log('values', x);
+            return x;
+          }),
+          snapshot.getPromise($formValidation(formId)).then((x) => {
+            if (debug) console.log('formValidation', x);
+            return x;
+          }),
+          snapshot.getPromise($initialValues(formId)).then((x) => {
+            if (debug) console.log('initialValues', x);
+            return x;
+          }),
+          snapshot.getPromise($formDirty(formId)).then((x) => {
+            if (debug) console.log('formDirty', x);
+            return x;
+          }),
         ]);
         return {
           formId,

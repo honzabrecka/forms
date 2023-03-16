@@ -52,7 +52,7 @@ export default function useForm({
   isValidProp = 'isValid',
   errorBannerMessage = null,
 }: UseFormProps = {}) {
-  const [formId] = useState<string>(() => `form:${uid()}`);
+  const [formId] = useState<string>(() => `${uid()}`);
 
   useWarnOnChanged('formId', formId);
 
@@ -161,6 +161,7 @@ export default function useForm({
   const setErrors = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
       (errors: Dict<ValidationResult>) => {
+        console.log('setErrors');
         Object.keys(errors).forEach((name) => {
           set($field(fieldId(formId, name)), (state) => ({
             ...state,

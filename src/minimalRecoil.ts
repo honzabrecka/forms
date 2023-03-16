@@ -20,52 +20,64 @@ enum StoredType {
   selector,
 }
 
-type LoadableState = 'hasValue' | 'loading';
+enum StoredState {
+  loading,
+  hasValue,
+}
 
-type Atom = {
+type LoadableState<V> = {
+  state: 'loading' | 'hasValue';
+  contents: Promise<V> | V;
+  valueMaybe: () => V | undefined;
+  toPromise: () => Promise<V>;
+  getValue: () => V;
+};
+
+type Atom<V> = {
   type: StoredType.atom;
   atomId: string;
-  value: TODO;
-  defaultValue: TODO;
-  state: LoadableState;
-  cachedLoadableState: TODO;
+  value: V;
+  defaultValue: V;
+  state: StoredState;
+  cachedLoadableState: LoadableState<V>;
   resolve?: Callback1<any>;
-  dependents: Set<Stored>;
+  dependents: Set<Stored<any>>;
   listeners: Set<Callback0>;
 };
 
 type SelectorFactoryProps = {
-  get: (atom: Stored) => TODO;
+  get: (atom: Stored<any>) => any;
 };
+type SelectorFactory<V> = ({ get }: SelectorFactoryProps) => V | Promise<V>;
 
-type Selector = {
+type Selector<V> = {
   type: StoredType.selector;
   atomId: string;
-  factory: ({ get }: SelectorFactoryProps) => TODO;
-  value: TODO;
-  state: LoadableState;
-  cachedLoadableState: TODO;
+  factory: SelectorFactory<V>;
+  value: V | Promise<V>;
+  state: StoredState;
+  cachedLoadableState: LoadableState<V>;
   resolve?: Callback1<any>;
-  dependents: Set<Stored>;
+  dependents: Set<Stored<any>>;
   listeners: Set<Callback0>;
 };
 
-type Stored = Atom | Selector;
+type Stored<V> = Atom<V> | Selector<V>;
 
 const debug = (...x: any) => {
   // console.log(...x);
   noop(...x);
 };
 
-const store = new Map<string, Stored>(); // new WeakMap();
+const store = new Map<string, Stored<any>>();
 
-const cacheAtomLoadableState = (atom: Stored) => {
-  if (atom.state === 'loading') {
-    // (async atom) contents: Promise
+const cacheAtomLoadableState = <V>(atom: Stored<V>) => {
+  if (atom.state === StoredState.loading) {
+    // (async atom) contents: (pending) Promise
     atom.cachedLoadableState = {
       state: 'loading',
       contents: atom.value,
-      valueMaybe: undefined,
+      valueMaybe: () => undefined,
       toPromise: () => getPromise(atom),
       getValue: () => getPromiseForSuspense(atom),
     };
@@ -75,37 +87,37 @@ const cacheAtomLoadableState = (atom: Stored) => {
     // (async atom) contents: (resolved) Promise.value
     atom.cachedLoadableState = {
       state: 'hasValue',
-      contents: atom.value.value,
-      valueMaybe: () => atom.value.value,
+      contents: (atom.value as any).value as V,
+      valueMaybe: () => (atom.value as any).value as V,
       toPromise: () => getPromise(atom),
       getValue: () => getPromiseForSuspense(atom),
-      p: true,
     };
   } else {
     // (simple atom)
     atom.cachedLoadableState = {
       state: 'hasValue',
       contents: atom.value,
-      valueMaybe: () => atom.value,
+      valueMaybe: () => atom.value as V,
       toPromise: () => Promise.resolve(atom.value),
-      getValue: () => atom.value,
+      getValue: () => atom.value as V,
     };
   }
 
   return atom;
 };
 
-const handleThrowPromise = (atom: Stored, e: TODO) => {
+const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
   if (e.type && e.type === 'valueIsPromise' && !e.promise.state) {
-    e.promise.state = 'loading';
+    e.promise.state = StoredState.loading;
     e.promise.atomId = atom.atomId;
     e.promise
       .then((resolvedValue: TODO) => {
         // TODO resolved with stale value
-        debug('(HTP) resolve promise', atom.atomId, resolvedValue);
+        console.log('(HTP) resolve promise', atom.atomId, resolvedValue);
+        console.log('>', e.promise);
         e.promise.value = resolvedValue;
-        e.promise.state = 'hasValue';
-        atom.state = 'hasValue';
+        e.promise.state = StoredState.hasValue;
+        atom.state = StoredState.hasValue;
         if (atom.resolve) {
           atom.resolve(resolvedValue);
           atom.resolve = undefined;
@@ -116,7 +128,7 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
       .catch((e) => {
         // TODO why?
         debug('[catch]', atom.atomId, e);
-        console.error(atom, e);
+        // console.error(atom, e);
 
         handleThrowPromise(atom, e);
       });
@@ -124,12 +136,12 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
   }
 
   if (isPromise(e) && !e.state) {
-    e.state = 'loading';
+    e.state = StoredState.loading;
     e.atomId = atom.atomId;
     e.then((resolvedValue: TODO) => {
       debug('(HTP) resolve promise', atom.atomId, resolvedValue);
       e.value = resolvedValue;
-      e.state = 'hasValue';
+      e.state = StoredState.hasValue;
 
       if (atom.resolve) {
         debug(
@@ -137,7 +149,7 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
           atom.atomId,
           resolvedValue,
         );
-        atom.state = 'hasValue';
+        atom.state = StoredState.hasValue;
         atom.resolve(resolvedValue);
         cacheAtomLoadableState(atom);
       }
@@ -146,17 +158,17 @@ const handleThrowPromise = (atom: Stored, e: TODO) => {
     }).catch((e) => {
       // TODO why?
       debug('[catch]', atom.atomId, e);
-      console.error(atom, e);
+      // console.error(atom, e);
 
       handleThrowPromise(atom, e);
     });
   }
 };
 
-const readPlain = (atom: Stored) => {
+const readPlain = (atom: Stored<any>) => {
   if (atom.type === StoredType.atom) return atom.value;
   if (atom.type === StoredType.selector) {
-    const get = (dependentAtom: Stored) => {
+    const get = (dependentAtom) => {
       dependentAtom.dependents.add(atom);
       return read(dependentAtom);
     };
@@ -174,7 +186,7 @@ const valueIsPromise = (promise: Promise<TODO>) => ({
   promise,
 });
 
-const read = (atom: Stored) => {
+const read = (atom: Stored<any>) => {
   try {
     const value = readPlain(atom);
 
@@ -183,11 +195,11 @@ const read = (atom: Stored) => {
     // async selector
     if (isPromise(value)) {
       debug('read (isPromise)', atom.atomId);
-      if (value.state === 'hasValue') return value.value;
+      if (value.state === StoredState.hasValue) return value.value;
       throw valueIsPromise(value);
     } else {
-      if (atom.state === 'loading') {
-        atom.state = 'hasValue';
+      if (atom.state === StoredState.loading) {
+        atom.state = StoredState.hasValue;
         atom.value = value;
         cacheAtomLoadableState(atom);
       }
@@ -201,10 +213,10 @@ const read = (atom: Stored) => {
     // throw in inner get
     if (
       !isPromise(atom.value) ||
-      (isPromise(atom.value) && !atom.value.state)
+      (isPromise(atom.value) && atom.value.state === undefined)
     ) {
       debug('create promise', atom.atomId, atom.value);
-      atom.state = 'loading';
+      atom.state = StoredState.loading;
       atom.value = new Promise((resolve) => {
         atom.resolve = (value) => {
           if (isPromise(value)) {
@@ -225,7 +237,7 @@ const read = (atom: Stored) => {
   }
 };
 
-const ignoredRead = (atom: Stored) => {
+const ignoredRead = (atom: Stored<any>) => {
   try {
     read(atom);
   } catch (e) {
@@ -236,9 +248,10 @@ const ignoredRead = (atom: Stored) => {
 const compare = (a: TODO, b: TODO) => {
   if (isPromise(a) && isPromise(b)) {
     return (
-      a.state === 'hasValue' &&
-      b.state === 'hasValue' &&
-      JSON.stringify(a) === JSON.stringify(b)
+      (a.state === StoredState.loading && b.state === StoredState.loading) ||
+      (a.state === StoredState.hasValue &&
+        b.state === StoredState.hasValue &&
+        JSON.stringify(a) === JSON.stringify(b))
     );
   }
   if ((isPromise(a) && !isPromise(b)) || (isPromise(b) && !isPromise(a))) {
@@ -261,7 +274,7 @@ const compare = (a: TODO, b: TODO) => {
 
 // if atom is modified, we need to notify all the dependent atoms (recursively)
 // now run callbacks for all the components that are dependent on this atom
-const notify = (atom: Stored) => {
+const notify = (atom: Stored<any>) => {
   debug('notify:', atom.atomId);
 
   const listeners = new Set<Callback0>();
@@ -273,7 +286,7 @@ const notify = (atom: Stored) => {
       if (d.type === StoredType.atom) {
         notify(d).forEach((l) => listeners.add(l));
       } else if (d.type === StoredType.selector) {
-        const get = (dependentAtom: Stored) => {
+        const get = (dependentAtom) => {
           dependentAtom.dependents.add(d);
           return read(dependentAtom);
         };
@@ -300,8 +313,8 @@ const notify = (atom: Stored) => {
             throw valueIsPromise(newValue);
           }
 
-          if (d.state === 'loading') {
-            d.state = 'hasValue';
+          if (d.state === StoredState.loading) {
+            d.state = StoredState.hasValue;
             if (d.resolve) {
               d.resolve(newValue);
               d.resolve = undefined;
@@ -311,7 +324,7 @@ const notify = (atom: Stored) => {
             return;
           }
 
-          if (d.state === 'hasValue') {
+          if (d.state === StoredState.hasValue) {
             // if (isPromise(newValue)) {
             //   d.value = newValue;
             //   throw valueIsPromise(newValue);
@@ -324,15 +337,15 @@ const notify = (atom: Stored) => {
           debug('thrown', d.atomId, e);
           handleThrowPromise(d, e);
 
-          if (d.state === 'hasValue') {
+          if (d.state === StoredState.hasValue) {
             debug('create promise (N)', d.atomId);
-            d.state = 'loading';
+            d.state = StoredState.loading;
             d.value = new Promise((resolve) => {
               d.resolve = (value) => {
                 if (isPromise(value)) {
                   console.error('resolve with promise???', atom);
                 }
-                debug('resolved with', d.atomId, value);
+                console.log('resolved with', d.atomId, value);
                 resolve(value);
               };
             });
@@ -347,16 +360,20 @@ const notify = (atom: Stored) => {
   return listeners;
 };
 
-const write = (atom: Stored, value: TODO) => {
+type Updater<V> = (state: V) => V;
+type ValueOrUpdater<V> = V | Updater<V>;
+
+const write = <V>(atom: Stored<V>, value: ValueOrUpdater<V>, reset = false) => {
   debug('write:', atom.atomId);
   if (atom.type === StoredType.atom) {
     if (typeof value === 'function') {
-      atom.value = value(atom.value);
+      atom.value = (value as Updater<V>)(atom.value);
     } else {
       atom.value = value;
     }
-    debug('write (value):', atom.value);
+    if (!reset) debug('write (value):', atom.value);
     cacheAtomLoadableState(atom);
+    if (!reset) console.log('write', atom.atomId, atom.value);
     notify(atom).forEach((l) => l());
     return;
   }
@@ -365,26 +382,38 @@ const write = (atom: Stored, value: TODO) => {
   throw new Error('unsupported write');
 };
 
-const getSnapshot = (atom: TODO, suspense: boolean) => () => {
-  debug('getSnapshot', atom.atomId);
+const getSnapshot =
+  <V>(atom: Stored<V>) =>
+  () => {
+    debug('getSnapshot', atom.atomId);
+    ignoredRead(atom);
+    return atom.cachedLoadableState;
+  };
 
-  if (suspense) {
+const getSnapshotForSuspense =
+  <V>(atom: Stored<V>) =>
+  () => {
+    debug('getSnapshotForSuspense', atom.atomId);
     return atom.cachedLoadableState.getValue();
-  }
-
-  ignoredRead(atom);
-  return atom.cachedLoadableState;
-};
+  };
 
 type AtomFamilyProps<T> = {
   key: string;
   default: (id: string) => T;
 };
 
+const emptyLoadableState: LoadableState<undefined> = {
+  state: 'loading',
+  contents: undefined,
+  valueMaybe: () => undefined,
+  toPromise: () => Promise.resolve(undefined),
+  getValue: () => undefined,
+};
+
 export const atomFamily =
-  <Value, ID extends string>({ key, ...props }: AtomFamilyProps<Value>) =>
+  <V, ID extends string>({ key, ...props }: AtomFamilyProps<V>) =>
   (id: ID) => {
-    const atomId = `${key}/${id}`;
+    const atomId = `A/${key}/${id}`;
     let atom = store.get(atomId);
     if (!atom) {
       const value = props.default(id);
@@ -395,15 +424,15 @@ export const atomFamily =
           type: StoredType.atom,
           value,
           defaultValue: value,
-          state: 'hasValue',
-          cachedLoadableState: undefined,
+          state: StoredState.hasValue,
+          cachedLoadableState: emptyLoadableState,
           listeners: new Set(),
           dependents: new Set(),
         })),
       );
     }
 
-    return atom;
+    return atom as Atom<V>;
   };
 
 type SelectorFamilyProps<T> = {
@@ -413,9 +442,9 @@ type SelectorFamilyProps<T> = {
 };
 
 export const selectorFamily =
-  <Value, ID extends string>({ key, get }: SelectorFamilyProps<Value>) =>
+  <V, ID extends string>({ key, get }: SelectorFamilyProps<V>) =>
   (id: ID) => {
-    const atomId = `${key}/${id}`;
+    const atomId = `S/${key}/${id}`;
     let atom = store.get(atomId);
     if (!atom)
       store.set(
@@ -423,29 +452,29 @@ export const selectorFamily =
         (atom = cacheAtomLoadableState({
           atomId,
           type: StoredType.selector,
-          value: undef,
-          state: 'loading',
-          cachedLoadableState: undefined,
+          value: undef as TODO,
+          state: StoredState.loading,
+          cachedLoadableState: emptyLoadableState,
           factory: get(id),
           listeners: new Set(),
           dependents: new Set(),
         })),
       );
-    return atom;
+    return atom as Selector<V>;
   };
 
 //
 
-export const useSetRecoilState = (atom: Stored) => {
+export const useSetRecoilState = <V>(atom: Stored<V>) => {
   return useCallback(
-    (value: TODO) => {
+    (value: ValueOrUpdater<V>) => {
       write(atom, value);
     },
     [atom],
   );
 };
 
-export const useRecoilValue = <T>(atom: Stored) => {
+export const useRecoilValue = <V>(atom: Stored<V>) => {
   const subscribe = useCallback(
     (listener: Callback0) => {
       atom.listeners.add(listener);
@@ -455,13 +484,13 @@ export const useRecoilValue = <T>(atom: Stored) => {
     },
     [atom],
   );
-  return useSyncExternalStore(
+  return useSyncExternalStore<V>(
     subscribe,
-    useCallback(getSnapshot(atom as T, true), [atom]),
+    useCallback(getSnapshotForSuspense(atom), [atom]),
   );
 };
 
-export const useRecoilValueLoadable = <T>(atom: Stored): T => {
+export const useRecoilValueLoadable = <V>(atom: Stored<V>) => {
   const subscribe = useCallback(
     (listener: Callback0) => {
       atom.listeners.add(listener);
@@ -471,33 +500,32 @@ export const useRecoilValueLoadable = <T>(atom: Stored): T => {
     },
     [atom],
   );
-  return useSyncExternalStore(subscribe, getSnapshot(atom, false)) as T;
+  return useSyncExternalStore<LoadableState<V>>(subscribe, getSnapshot(atom));
 };
 
-export const useRecoilState = (atom: Stored) => {
-  return [useRecoilValue(atom) as TODO, useSetRecoilState(atom)] as const;
+export const useRecoilState = <V>(atom: Stored<V>) => {
+  return [useRecoilValue<V>(atom), useSetRecoilState<V>(atom)] as const;
 };
 
-// TODO
-export const useResetRecoilState = (atom: Stored) => {
+export const useResetRecoilState = <V>(atom: Stored<V>) => {
   return () => {
     if (atom.type === StoredType.atom) {
-      write(atom, atom.defaultValue);
+      write(atom, atom.defaultValue, true);
     }
   };
 };
 
 //
 
-const getPromise = (atom: Stored) => {
+const getPromise = <V>(atom: Stored<V>) => {
   try {
     return Promise.resolve(read(atom));
   } catch (e) {
-    return atom.value;
+    return atom.value as Promise<V>;
   }
 };
 
-const getPromiseForSuspense = (atom: Stored) => {
+const getPromiseForSuspense = <V>(atom: Stored<V>) => {
   try {
     return read(atom);
   } catch (e) {
@@ -506,22 +534,23 @@ const getPromiseForSuspense = (atom: Stored) => {
 };
 
 const snapshot = {
-  getLoadable: (atom: Stored) => {
+  getLoadable: (atom: Stored<TODO>) => {
     ignoredRead(atom);
     return atom.cachedLoadableState;
   },
-  getPromise: (atom: Stored) => atom.cachedLoadableState.toPromise(),
+  getPromise: (atom: Stored<TODO>) => atom.cachedLoadableState.toPromise(),
 };
 
 const createTransaction = () => {
-  const touchedAtoms = new Set<Atom>();
+  const touchedAtoms = new Set<Atom<any>>();
+  let wasReset = false;
   return {
-    get(atom: Atom) {
+    get(atom: Atom<any>) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
       return atom.value;
     },
-    set(atom: Atom, value: TODO) {
+    set(atom: Atom<any>, value: TODO) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
       if (typeof value === 'function') {
@@ -531,15 +560,16 @@ const createTransaction = () => {
       }
       touchedAtoms.add(atom);
     },
-    reset(atom: Atom) {
+    reset(atom: Atom<any>) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
       atom.value = atom.defaultValue;
       touchedAtoms.add(atom);
+      wasReset = true;
     },
     commit: () => {
       touchedAtoms.forEach((atom) => {
-        write(atom, atom.value);
+        write(atom, atom.value, wasReset);
       });
       touchedAtoms.clear();
     },

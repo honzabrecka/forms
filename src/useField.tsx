@@ -68,7 +68,7 @@ export default function useField({
     $field(fieldId(formId, name)),
   );
   const reset = useResetRecoilState($field(fieldId(formId, name)));
-  const validationResult /*: Loadable<FieldValidationResult> */ =
+  const validationResult: any /*: Loadable<FieldValidationResult> */ =
     useRecoilValueLoadable($fieldValidation(fieldId(formId, name)));
   const getBag = useGetBag(formId);
   const getBagForValidator = useGetBagForValidator(formId);

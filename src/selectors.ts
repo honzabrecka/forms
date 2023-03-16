@@ -164,7 +164,7 @@ const $listValidation = selectorFamily<any, string>({
   key: 'field/listValidation',
   get:
     (id: string) =>
-    async ({ get }) => {
+    ({ get }) => {
       const field = get($field(id));
       if (field.type !== FieldType.list) return undefined;
       return field.validation;
@@ -365,8 +365,8 @@ export const $allFieldIds = selectorFamily<string[], string>({
   },
 });
 
-const isNotEqual = async (a: any = null, b: any = null) =>
-  JSON.stringify(await a) !== JSON.stringify(b);
+const isNotEqual = (a: any = null, b: any = null) =>
+  JSON.stringify(a) !== JSON.stringify(b);
 
 export const $fieldDirty = selectorFamily<any, string>({
   key: 'field/dirty',
@@ -374,6 +374,7 @@ export const $fieldDirty = selectorFamily<any, string>({
     (id: string) =>
     ({ get }) => {
       const field = get($field(id));
+      const { dirtyComparator = isNotEqual } = field;
       if (field.type === FieldType.map) {
         const result: boolean[] = field.children.map((id) =>
           get($fieldDirty(fieldId(field.formId, id))),
@@ -385,12 +386,9 @@ export const $fieldDirty = selectorFamily<any, string>({
         const result: any[] = field.children.map((id) =>
           get($fieldValue(fieldId(field.formId, id))),
         );
-
-        const { dirtyComparator = isNotEqual, initialValue } = field;
-        return dirtyComparator(result, initialValue);
+        return dirtyComparator(result, field.initialValue);
       }
-      const { dirtyComparator = isNotEqual, initialValue, value } = field;
-      return dirtyComparator(value, initialValue);
+      return dirtyComparator(get($fieldValue(id)), get($fieldInitialValue(id)));
     },
   cachePolicy_UNSTABLE: {
     eviction: 'most-recent',
