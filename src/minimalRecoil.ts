@@ -1,14 +1,12 @@
 /* eslint-disable camelcase */
 import { useSyncExternalStore, useCallback } from 'react';
-// import isEqual from 'lodash/isEqual';
-// import isEqualWith from 'lodash/isEqualWith';
 import { Callback0, Callback1 } from './types';
 
 const noop: IGNORE = () => undefined;
 
 const undef = Symbol('undef');
 
-const isPromise = (value: TODO) =>
+const isPromise = (value: any): boolean =>
   value && typeof value === 'object' && typeof value.then === 'function';
 
 type TODO = any;
@@ -25,13 +23,21 @@ enum StoredState {
   hasValue,
 }
 
-type LoadableState<V> = {
-  state: 'loading' | 'hasValue';
-  contents: Promise<V> | V;
-  valueMaybe: () => V | undefined;
-  toPromise: () => Promise<V>;
-  getValue: () => V;
-};
+type LoadableState<V> =
+  | {
+      state: 'loading';
+      contents: Promise<V>;
+      valueMaybe: () => undefined;
+      toPromise: () => Promise<V>;
+      getValue: () => undefined;
+    }
+  | {
+      state: 'hasValue';
+      contents: V;
+      valueMaybe: () => V;
+      toPromise: () => Promise<V>;
+      getValue: () => V;
+    };
 
 type Atom<V> = {
   type: StoredType.atom;
@@ -76,7 +82,7 @@ const cacheAtomLoadableState = <V>(atom: Stored<V>) => {
     // (async atom) contents: (pending) Promise
     atom.cachedLoadableState = {
       state: 'loading',
-      contents: atom.value,
+      contents: atom.value as unknown as Promise<V>,
       valueMaybe: () => undefined,
       toPromise: () => getPromise(atom),
       getValue: () => getPromiseForSuspense(atom),
@@ -96,10 +102,10 @@ const cacheAtomLoadableState = <V>(atom: Stored<V>) => {
     // (simple atom)
     atom.cachedLoadableState = {
       state: 'hasValue',
-      contents: atom.value,
-      valueMaybe: () => atom.value as V,
+      contents: atom.value as unknown as V,
+      valueMaybe: () => atom.value as unknown as V,
       toPromise: () => Promise.resolve(atom.value),
-      getValue: () => atom.value as V,
+      getValue: () => atom.value as unknown as V,
     };
   }
 
@@ -245,7 +251,7 @@ const ignoredRead = (atom: Stored<any>) => {
   }
 };
 
-const compare = (a: TODO, b: TODO) => {
+const compare = (a: any, b: any) => {
   if (isPromise(a) && isPromise(b)) {
     return (
       (a.state === StoredState.loading && b.state === StoredState.loading) ||
@@ -259,18 +265,6 @@ const compare = (a: TODO, b: TODO) => {
   }
   return JSON.stringify(a) === JSON.stringify(b);
 };
-
-// eslint-disable-next-line consistent-return
-// const compare = isEqualWith((a, b) => {
-//   if (isPromise(a) && isPromise(b)) {
-//     if (
-//       a.state === 'hasValue' &&
-//       b.state === 'hasValue' &&
-//       isEqual(a.value, b.value)
-//     )
-//       return false;
-//   }
-// });
 
 // if atom is modified, we need to notify all the dependent atoms (recursively)
 // now run callbacks for all the components that are dependent on this atom
@@ -394,17 +388,17 @@ const getSnapshotForSuspense =
   <V>(atom: Stored<V>) =>
   () => {
     debug('getSnapshotForSuspense', atom.atomId);
-    return atom.cachedLoadableState.getValue();
+    return atom.cachedLoadableState.getValue() as V;
   };
 
-type AtomFamilyProps<T> = {
+type AtomFamilyProps<V> = {
   key: string;
-  default: (id: string) => T;
+  default: (id: string) => V;
 };
 
 const emptyLoadableState: LoadableState<undefined> = {
   state: 'loading',
-  contents: undefined,
+  contents: Promise.resolve(undefined),
   valueMaybe: () => undefined,
   toPromise: () => Promise.resolve(undefined),
   getValue: () => undefined,
@@ -534,33 +528,35 @@ const getPromiseForSuspense = <V>(atom: Stored<V>) => {
 };
 
 const snapshot = {
-  getLoadable: (atom: Stored<TODO>) => {
+  getLoadable: <V>(atom: Stored<V>) => {
     ignoredRead(atom);
     return atom.cachedLoadableState;
   },
-  getPromise: (atom: Stored<TODO>) => atom.cachedLoadableState.toPromise(),
+  getPromise: <V>(atom: Stored<V>) => atom.cachedLoadableState.toPromise(),
 };
 
+type Snapshot = typeof snapshot;
+
 const createTransaction = () => {
-  const touchedAtoms = new Set<Atom<any>>();
+  const touchedAtoms = new Set<Stored<unknown>>();
   let wasReset = false;
   return {
-    get(atom: Atom<any>) {
+    get<V>(atom: Stored<V>) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
       return atom.value;
     },
-    set(atom: Atom<any>, value: TODO) {
+    set<V>(atom: Stored<V>, value: ValueOrUpdater<V>) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
       if (typeof value === 'function') {
-        atom.value = value(atom.value);
+        atom.value = (value as Updater<V>)(atom.value);
       } else {
         atom.value = value;
       }
       touchedAtoms.add(atom);
     },
-    reset(atom: Atom<any>) {
+    reset<V>(atom: Stored<V>) {
       if (atom.type !== StoredType.atom)
         throw new Error('only atom can be used in transaction');
       atom.value = atom.defaultValue;
@@ -576,11 +572,28 @@ const createTransaction = () => {
   };
 };
 
-export const useRecoilCallback = <X, R extends TODO>(cb: TODO, deps: X) => {
+type Transaction = {
+  get: <V>(atom: Stored<V>) => V;
+  set: <V>(atom: Stored<V>, value: ValueOrUpdater<V>) => void;
+  reset: <V>(atom: Stored<V>) => void;
+};
+
+type TransactionCallback = (transaction: Transaction) => void;
+
+type RecoilCallback<R> = (options: {
+  snapshot: Snapshot;
+  set: <V>(atom: Stored<V>, value: ValueOrUpdater<V>) => void;
+  transact_UNSTABLE: (cb: TransactionCallback) => void;
+}) => (...args: unknown[]) => R;
+
+export const useRecoilCallback = <D extends ReadonlyArray<unknown>, R>(
+  cb: RecoilCallback<R>,
+  deps: D,
+) => {
   return useCallback(
     // TODO snapshot should be really snapshot, not reading from live data
-    (...args: any[]): R => {
-      const transact_UNSTABLE = (cb: TODO) => {
+    (...args) => {
+      const transact_UNSTABLE = (cb: TransactionCallback) => {
         const transaction = createTransaction();
         cb({
           get: transaction.get,
@@ -591,14 +604,25 @@ export const useRecoilCallback = <X, R extends TODO>(cb: TODO, deps: X) => {
       };
       return cb({ snapshot, set: write, transact_UNSTABLE })(...args);
     },
-    deps as TODO,
+    deps,
   );
 };
 
-export const useRecoilTransaction_UNSTABLE = (cb: TODO, deps: TODO[]) => {
+type RecoilTransaction = (
+  transaction: Transaction,
+) => (...args: unknown[]) => void;
+
+export const useRecoilTransaction_UNSTABLE = <D extends ReadonlyArray<unknown>>(
+  cb: RecoilTransaction,
+  deps: D,
+) => {
   return useCallback((...args: any[]) => {
     const transaction = createTransaction();
-    cb({ get: transaction.get, set: transaction.set })(...args);
+    cb({
+      get: transaction.get,
+      set: transaction.set,
+      reset: transaction.reset,
+    })(...args);
     transaction.commit();
   }, deps);
 };
