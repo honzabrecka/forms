@@ -251,19 +251,22 @@ const ignoredRead = (atom: Stored<any>) => {
   }
 };
 
+// TODO
+const JSONEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
+
 const compare = (a: any, b: any) => {
   if (isPromise(a) && isPromise(b)) {
     return (
       (a.state === StoredState.loading && b.state === StoredState.loading) ||
       (a.state === StoredState.hasValue &&
         b.state === StoredState.hasValue &&
-        JSON.stringify(a) === JSON.stringify(b))
+        JSONEqual(a, b))
     );
   }
   if ((isPromise(a) && !isPromise(b)) || (isPromise(b) && !isPromise(a))) {
     return false;
   }
-  return JSON.stringify(a) === JSON.stringify(b);
+  return JSONEqual(a, b);
 };
 
 // if atom is modified, we need to notify all the dependent atoms (recursively)
@@ -506,6 +509,9 @@ export const useResetRecoilState = <V>(atom: Stored<V>) => {
     if (atom.type === StoredType.atom) {
       write(atom, atom.defaultValue, true);
     }
+    if (atom.type === StoredType.selector)
+      throw new Error('unsupported reset on selector');
+    throw new Error('unsupported reset');
   };
 };
 
@@ -533,6 +539,11 @@ const snapshot = {
     return atom.cachedLoadableState;
   },
   getPromise: <V>(atom: Stored<V>) => atom.cachedLoadableState.toPromise(),
+  // custom addition
+  getValue: <V>(atom: Stored<V>) => {
+    ignoredRead(atom);
+    return atom.cachedLoadableState.contents as V;
+  },
 };
 
 type Snapshot = typeof snapshot;
@@ -584,7 +595,7 @@ type RecoilCallback<R> = (options: {
   snapshot: Snapshot;
   set: <V>(atom: Stored<V>, value: ValueOrUpdater<V>) => void;
   transact_UNSTABLE: (cb: TransactionCallback) => void;
-}) => (...args: unknown[]) => R;
+}) => (...args: any[]) => R;
 
 export const useRecoilCallback = <D extends ReadonlyArray<unknown>, R>(
   cb: RecoilCallback<R>,
@@ -592,7 +603,7 @@ export const useRecoilCallback = <D extends ReadonlyArray<unknown>, R>(
 ) => {
   return useCallback(
     // TODO snapshot should be really snapshot, not reading from live data
-    (...args) => {
+    (...args: unknown[]) => {
       const transact_UNSTABLE = (cb: TransactionCallback) => {
         const transaction = createTransaction();
         cb({
@@ -608,9 +619,7 @@ export const useRecoilCallback = <D extends ReadonlyArray<unknown>, R>(
   );
 };
 
-type RecoilTransaction = (
-  transaction: Transaction,
-) => (...args: unknown[]) => void;
+type RecoilTransaction = (transaction: Transaction) => (...args: any[]) => void;
 
 export const useRecoilTransaction_UNSTABLE = <D extends ReadonlyArray<unknown>>(
   cb: RecoilTransaction,

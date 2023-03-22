@@ -193,7 +193,7 @@ export default function useForm({
   const resetTouched = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
       () => {
-        const fieldIds = snapshot.getLoadable($allFieldIds(formId)).contents;
+        const fieldIds = snapshot.getValue($allFieldIds(formId));
         transact_UNSTABLE(({ set }) => {
           fieldIds.forEach((id: string) =>
             set(
@@ -212,7 +212,7 @@ export default function useForm({
   const setAllToTouched = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
       () => {
-        const fieldIds = snapshot.getLoadable($allFieldIds(formId)).contents;
+        const fieldIds = snapshot.getValue($allFieldIds(formId));
         transact_UNSTABLE(({ set }) => {
           fieldIds.forEach((id: string) =>
             set(
@@ -236,7 +236,7 @@ export default function useForm({
         const fieldIdsToReset =
           fieldIds.length > 0
             ? fieldIds
-            : snapshot.getLoadable($allFieldIds(formId)).contents;
+            : snapshot.getValue($allFieldIds(formId));
         transact_UNSTABLE(({ set }) => {
           fieldIdsToReset.forEach((id: string) =>
             set(
@@ -265,7 +265,7 @@ export default function useForm({
         const fieldIdsToValidate =
           fieldIds.length > 0
             ? fieldIds
-            : snapshot.getLoadable($allFieldIds(formId)).contents;
+            : snapshot.getValue($allFieldIds(formId));
         fieldIdsToValidate.forEach((id: string) =>
           set($field(fieldId(formId, id)), (state) => {
             if (state.type === FieldType.field) {
@@ -293,7 +293,7 @@ export default function useForm({
   const clear = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
       () => {
-        const fieldIds = snapshot.getLoadable($allFieldIds(formId)).contents;
+        const fieldIds = snapshot.getValue($allFieldIds(formId));
         transact_UNSTABLE(({ reset }) => {
           reset($form(formId));
           fieldIds.forEach((id: string) => reset($field(fieldId(formId, id))));

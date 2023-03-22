@@ -23,8 +23,8 @@ export function useGetBag(formId: string) {
     ({ snapshot }) =>
       async () => {
         const debug = false;
-        const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
-        const touched = snapshot.getLoadable($formTouched(formId)).contents;
+        const fieldIds = snapshot.getValue($fieldIds(formId));
+        const touched = snapshot.getValue($formTouched(formId));
         const [values, validation, initialValues, dirty] = await Promise.all([
           snapshot.getPromise($values(formId)).then((x) => {
             if (debug) console.log('values', x);
@@ -62,8 +62,8 @@ export function useGetBagForValidator(formId: string) {
   return useRecoilCallback<[], Promise<Omit<Bag, 'validation'>>>(
     ({ snapshot }) =>
       async () => {
-        const fieldIds = snapshot.getLoadable($fieldIds(formId)).contents;
-        const touched = snapshot.getLoadable($formTouched(formId)).contents;
+        const fieldIds = snapshot.getValue($fieldIds(formId));
+        const touched = snapshot.getValue($formTouched(formId));
         const [values, initialValues, dirty] = await Promise.all([
           snapshot.getPromise($values(formId)),
           snapshot.getPromise($initialValues(formId)),

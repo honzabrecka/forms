@@ -209,9 +209,7 @@ const useList = ({
   const getRowBag = useRecoilCallback(
     ({ snapshot }) =>
       async (id: string): Promise<RowBag> => {
-        const touched = snapshot.getLoadable(
-          $fieldTouched(fieldId(formId, id)),
-        ).contents;
+        const touched = snapshot.getValue($fieldTouched(fieldId(formId, id)));
         const [value, dirty, validation, initialValue] = await Promise.all([
           snapshot.getPromise($fieldValue(fieldId(formId, id))),
           snapshot.getPromise($fieldDirty(fieldId(formId, id))),
