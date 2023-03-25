@@ -95,9 +95,9 @@ export type Bag = {
   initialValues: Dict<any>;
   fieldIds: string[];
   touched: boolean;
-  touchedFieldIds: string[];
+  touchedFieldIds: Set<string>;
   dirty: boolean;
-  dirtyFieldIds: string[];
+  dirtyFieldIds: Set<string>;
   validation: FormValidationResult;
 };
 

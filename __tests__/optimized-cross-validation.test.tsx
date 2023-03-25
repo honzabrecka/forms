@@ -86,10 +86,10 @@ test('forms: optimized cross validation', async () => {
     expectBag(onSubmit.mock.calls[0][0], {
       fieldIds: ['a', 'b', 'c', 'regular'],
       touched: true,
-      touchedFieldIds: ['regular'],
+      touchedFieldIds: new Set(['regular']),
       initialValues: {},
       dirty: true,
-      dirtyFieldIds: ['regular'],
+      dirtyFieldIds: new Set(['regular']),
       validation: {
         isValid: true,
         isValidStrict: true,
@@ -106,10 +106,10 @@ test('forms: optimized cross validation', async () => {
     expectBag(onSubmitInvalid.mock.calls[0][0], {
       fieldIds: ['a', 'b', 'c', 'regular'],
       touched: true,
-      touchedFieldIds: ['a', 'regular'],
+      touchedFieldIds: new Set(['a', 'regular']),
       initialValues: {},
       dirty: true,
-      dirtyFieldIds: ['a', 'regular'],
+      dirtyFieldIds: new Set(['a', 'regular']),
       validation: {
         isValid: false,
         isValidStrict: false,
@@ -130,10 +130,10 @@ test('forms: optimized cross validation', async () => {
     expectBag(onSubmitInvalid.mock.calls[1][0], {
       fieldIds: ['a', 'b', 'c', 'regular'],
       touched: true,
-      touchedFieldIds: ['a', 'b', 'c', 'regular'],
+      touchedFieldIds: new Set(['a', 'b', 'c', 'regular']),
       initialValues: {},
       dirty: true,
-      dirtyFieldIds: ['a', 'b', 'regular'],
+      dirtyFieldIds: new Set(['a', 'b', 'regular']),
       validation: {
         isValid: false,
         isValidStrict: false,

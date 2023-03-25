@@ -40,7 +40,7 @@ test('forms: initial values', async () => {
     fieldIds: ['a', 'b', 'c'],
     initialValues: { a: 1, b: 3, c: 4 },
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     values: { a: 1, b: 3, c: 4 },
   });
 });
@@ -61,7 +61,7 @@ test('forms: setValues', async () => {
   await expectFormViaGetBag(result, {
     fieldIds: ['a', 'b'],
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     values: { a: 2, b: undefined },
   });
   expect(result.current.a.value).toEqual(2);
@@ -92,7 +92,7 @@ test('forms: setValues with equal', async () => {
   await expectFormViaGetBag(result, {
     fieldIds: ['a'],
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     values: { a: { id: 'foo', x: 'bar' } },
   });
   await act(() => {
@@ -104,7 +104,7 @@ test('forms: setValues with equal', async () => {
   await expectFormViaGetBag(result, {
     fieldIds: ['a'],
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     values: { a: { id: 'new', x: 'baz' } },
   });
 });
@@ -129,10 +129,10 @@ test('forms: setValues with validator', async () => {
     fieldIds: ['a'],
     values: { a: 2 },
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     initialValues: {},
     dirty: true,
-    dirtyFieldIds: ['a'],
+    dirtyFieldIds: new Set(['a']),
   });
   expect(bag).not.toHaveProperty('validation');
   expect(await validator.mock.calls[2][2]).toBe(undefined);
@@ -155,7 +155,7 @@ test('forms: setTouched', async () => {
     fieldIds: ['a', 'b'],
     values: { a: undefined, b: undefined },
     touched: true,
-    touchedFieldIds: ['a'],
+    touchedFieldIds: new Set(['a']),
   });
   expect(result.current.a.value).toEqual(undefined);
   expect(result.current.a.touched).toEqual(true);
@@ -250,7 +250,7 @@ test('forms: setAllToTouched', async () => {
     fieldIds: ['a', 'b'],
     values: { a: undefined, b: undefined },
     touched: true,
-    touchedFieldIds: ['a', 'b'],
+    touchedFieldIds: new Set(['a', 'b']),
   });
   expect(result.current.a.value).toEqual(undefined);
   expect(result.current.a.touched).toEqual(true);
@@ -284,7 +284,7 @@ test('forms > field: onChange', async () => {
     fieldIds: ['a', 'b'],
     values: { a: 2, b: undefined },
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
   });
   expect(result.current.a.value).toEqual(2);
   expect(result.current.a.touched).toEqual(false);
@@ -295,7 +295,7 @@ test('forms > field: onChange', async () => {
   expect(await onChange.mock.calls[0][1]()).toMatchObject({
     values: { a: 2 },
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     validation: { isValid: true },
   });
 });
@@ -318,7 +318,7 @@ test('forms > field: onChange with an async value', async () => {
   await expectFormViaGetBag(result, {
     fieldIds: ['a', 'b'],
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     values: { a: 2, b: undefined },
   });
   expect(result.current.a.value).toEqual(value);
@@ -330,7 +330,7 @@ test('forms > field: onChange with an async value', async () => {
   expect(await onChange.mock.calls[0][1]()).toMatchObject({
     values: { a: 2 },
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     validation: { isValid: true },
   });
 });
@@ -359,7 +359,7 @@ test('forms > field: onBlur', async () => {
   expect(await onBlur.mock.calls[0][1]()).toMatchObject({
     values: {},
     touched: true,
-    touchedFieldIds: ['a'],
+    touchedFieldIds: new Set(['a']),
     validation: { isValid: true },
   });
 });
@@ -388,7 +388,7 @@ test('forms > field: onFocus', async () => {
   expect(await onFocus.mock.calls[0][1]()).toMatchObject({
     values: {},
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     validation: { isValid: true },
   });
 });
@@ -429,7 +429,7 @@ test('forms > field: from/to transformers', async () => {
   expect(await onChange.mock.calls[0][1]()).toMatchObject({
     values: { a: 2 },
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
     validation: { isValid: true },
   });
 });
@@ -487,7 +487,7 @@ test('forms > field: onChange validation', async () => {
   expect(await validatorA.mock.calls[0][1]()).toMatchObject({
     values: { a: 2 },
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
   });
   expect(validatorB).toHaveBeenCalledTimes(0);
 
@@ -522,7 +522,7 @@ test('forms > field: onChange validation', async () => {
   expect(await validatorA2.mock.calls[0][1]()).toMatchObject({
     values: { a: 3 },
     touched: false,
-    touchedFieldIds: [],
+    touchedFieldIds: new Set(),
   });
   expect(validatorB).toHaveBeenCalledTimes(0);
 });
@@ -823,12 +823,12 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   });
 
   expect(result.current.formDirty.contents.dirty).toBe(false);
-  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual([]);
+  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(new Set());
   expect(result.current.fieldDirty.contents).toBe(false);
 
   await expectFormViaGetBag(result, {
     dirty: false,
-    dirtyFieldIds: [],
+    dirtyFieldIds: new Set(),
     initialValues: { a: 3 },
     values: { a: 3 },
   });
@@ -843,12 +843,14 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   });
 
   expect(result.current.formDirty.contents.dirty).toBe(true);
-  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(['a']);
+  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(
+    new Set(['a']),
+  );
   expect(result.current.fieldDirty.contents).toBe(true);
 
   await expectFormViaGetBag(result, {
     dirty: true,
-    dirtyFieldIds: ['a'],
+    dirtyFieldIds: new Set(['a']),
     initialValues: { a: 3 },
     values: { a: 2 },
   });
@@ -864,12 +866,12 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   });
 
   expect(result.current.formDirty.contents.dirty).toBe(false);
-  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual([]);
+  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(new Set());
   expect(result.current.fieldDirty.contents).toBe(false);
 
   await expectFormViaGetBag(result, {
     dirty: false,
-    dirtyFieldIds: [],
+    dirtyFieldIds: new Set(),
     initialValues: { a: 3 },
     values: { a: 3 },
   });
@@ -884,12 +886,14 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   });
 
   expect(result.current.formDirty.contents.dirty).toBe(true);
-  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(['a']);
+  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(
+    new Set(['a']),
+  );
   expect(result.current.fieldDirty.contents).toBe(true);
 
   await expectFormViaGetBag(result, {
     dirty: true,
-    dirtyFieldIds: ['a'],
+    dirtyFieldIds: new Set(['a']),
     initialValues: { a: 1 },
     values: { a: 3 },
   });
@@ -912,10 +916,10 @@ test('forms: dirty - setValues + setInitialValues', async () => {
   });
 
   expect(result.current.dirty.contents.dirty).toBe(false);
-  expect(result.current.dirty.contents.dirtyFieldIds).toEqual([]);
+  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set());
   await expectFormViaGetBag(result, {
     dirty: false,
-    dirtyFieldIds: [],
+    dirtyFieldIds: new Set(),
     values: { a: 3 },
     initialValues: { a: 3 },
   });
@@ -929,10 +933,10 @@ test('forms: dirty - setValues + setInitialValues', async () => {
   });
 
   expect(result.current.dirty.contents.dirty).toBe(true);
-  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(['a']);
+  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set(['a']));
   await expectFormViaGetBag(result, {
     dirty: true,
-    dirtyFieldIds: ['a'],
+    dirtyFieldIds: new Set(['a']),
     values: { a: 2 },
     initialValues: { a: 3 },
   });
@@ -947,10 +951,10 @@ test('forms: dirty - setValues + setInitialValues', async () => {
   });
 
   expect(result.current.dirty.contents.dirty).toBe(false);
-  expect(result.current.dirty.contents.dirtyFieldIds).toEqual([]);
+  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set());
   await expectFormViaGetBag(result, {
     dirty: false,
-    dirtyFieldIds: [],
+    dirtyFieldIds: new Set(),
     values: { a: 3 },
     initialValues: { a: 3 },
   });
@@ -964,10 +968,10 @@ test('forms: dirty - setValues + setInitialValues', async () => {
   });
 
   expect(result.current.dirty.contents.dirty).toBe(true);
-  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(['a']);
+  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set(['a']));
   await expectFormViaGetBag(result, {
     dirty: true,
-    dirtyFieldIds: ['a'],
+    dirtyFieldIds: new Set(['a']),
     values: { a: 3 },
     initialValues: { a: 1 },
   });
@@ -992,7 +996,7 @@ test('forms: dirty - default dirtyComparator compares by value (JSON.stringify)'
 
   await expectFormViaGetBag(result, {
     dirty: false,
-    dirtyFieldIds: [],
+    dirtyFieldIds: new Set(),
   });
 
   await act(() => {
@@ -1002,7 +1006,7 @@ test('forms: dirty - default dirtyComparator compares by value (JSON.stringify)'
 
   await expectFormViaGetBag(result, {
     dirty: true,
-    dirtyFieldIds: ['a'],
+    dirtyFieldIds: new Set(['a']),
   });
 });
 
@@ -1032,7 +1036,7 @@ test('forms: dirty - custom dirtyComparator', async () => {
 
   await expectFormViaGetBag(result, {
     dirty: true,
-    dirtyFieldIds: ['a'],
+    dirtyFieldIds: new Set(['a']),
   });
 
   await act(() => {
@@ -1041,7 +1045,7 @@ test('forms: dirty - custom dirtyComparator', async () => {
 
   await expectFormViaGetBag(result, {
     dirty: false,
-    dirtyFieldIds: [],
+    dirtyFieldIds: new Set(),
   });
 });
 
@@ -1069,7 +1073,7 @@ test('forms: dirty - async values + custom dirtyComparator', async () => {
 
   await expectFormViaGetBag(result, {
     dirty: true,
-    dirtyFieldIds: ['a'],
+    dirtyFieldIds: new Set(['a']),
   });
 
   await act(() => {
@@ -1078,7 +1082,7 @@ test('forms: dirty - async values + custom dirtyComparator', async () => {
 
   await expectFormViaGetBag(result, {
     dirty: false,
-    dirtyFieldIds: [],
+    dirtyFieldIds: new Set(),
   });
 });
 

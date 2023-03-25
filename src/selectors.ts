@@ -319,14 +319,14 @@ export const $formTouched = selectorFamily({
       const results = get(
         waitForAll(fieldIds.map((id) => $fieldTouched(fieldId(formId, id)))),
       );
-      const touchedFieldIds = results.reduce<string[]>((acc, result, i) => {
+      const touchedFieldIds = results.reduce((acc, result, i) => {
         if (result === true) {
-          acc.push(fieldIds[i]);
+          acc.add(fieldIds[i]);
         }
         return acc;
-      }, []);
+      }, new Set<string>());
       return {
-        touched: touchedFieldIds.length > 0,
+        touched: touchedFieldIds.size > 0,
         touchedFieldIds,
       };
     },
@@ -407,14 +407,14 @@ export const $formDirty = selectorFamily({
       const results = get(
         waitForAll(fieldIds.map((id) => $fieldDirty(fieldId(formId, id)))),
       );
-      const dirtyFieldIds = results.reduce<string[]>((acc, result, i) => {
+      const dirtyFieldIds = results.reduce((acc, result, i) => {
         if (result === true) {
-          acc.push(fieldIds[i]);
+          acc.add(fieldIds[i]);
         }
         return acc;
-      }, []);
+      }, new Set<string>());
       return {
-        dirty: dirtyFieldIds.length > 0,
+        dirty: dirtyFieldIds.size > 0,
         dirtyFieldIds,
       };
     },
