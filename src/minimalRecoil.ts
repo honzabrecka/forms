@@ -109,9 +109,9 @@ const cacheAtomLoadableState = <V>(atom: Stored<V>) => {
   return atom;
 };
 
-const compareVersions = (promise: number, atom: number) => {
-  return promise < atom;
-  // return promise !== atom;
+const outdated = (promise: TODO, atom: number) => {
+  if (promise.internalPromise) return false;
+  return promise.version !== atom;
 };
 
 const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
@@ -120,7 +120,7 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
 
     e.promise.state = StoredState.loading;
     e.promise.id = atom.id;
-    e.promise.version ||= atom.version + 1;
+    e.promise.version = atom.version;
     e.promise
       .then((resolvedValue: TODO) => {
         if (debug)
@@ -130,7 +130,7 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
             `[p:${e.promise.version};a:${atom.version}]`,
           );
 
-        if (compareVersions(e.promise.version, atom.version)) {
+        if (outdated(e.promise, atom.version)) {
           if (debug)
             console.log(
               '(HTP) version mismatch',
@@ -151,7 +151,6 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
           atom.resolve = undefined;
           atom.value.value = resolvedValue;
           atom.value.state = StoredState.hasValue;
-          atom.version++;
 
           cacheAtomLoadableState(atom);
 
@@ -178,7 +177,7 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
 
   if (isPromise(e) && e.state === undefined) {
     if (debug) console.log('add then', atom.id, e);
-    e.version ||= atom.version + 1;
+    e.version = atom.version;
     e.state = StoredState.loading;
     e.id = atom.id;
     e.then((resolvedValue: TODO) => {
@@ -189,7 +188,7 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
           `[p:${e.version};a:${atom.version}]`,
         );
 
-      if (compareVersions(e.version, atom.version)) {
+      if (outdated(e, atom.version)) {
         if (debug)
           console.log(
             '(HTP) version mismatch',
@@ -209,7 +208,6 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
 
         atom.state = StoredState.hasValue;
         atom.resolve(resolvedValue);
-        atom.version++;
 
         cacheAtomLoadableState(atom);
 
@@ -260,13 +258,13 @@ const read = (atom: Stored<any>) => {
 
     // async selector
     if (isPromise(value)) {
-      if (debug) console.log('read (isPromise)', atom.id);
       if (value.state === StoredState.hasValue) return value.value;
       throw valueIsPromise(value);
     } else {
       if (atom.state === StoredState.loading) {
         atom.state = StoredState.hasValue;
         atom.value = value;
+        // atom.version++;
         cacheAtomLoadableState(atom);
       }
       return value;
@@ -282,9 +280,8 @@ const read = (atom: Stored<any>) => {
       (isPromise(atom.value) && atom.value.state === undefined)
     ) {
       if (debug)
-        console.log('create promise', atom.id, atom.value, atom.version + 1);
+        console.log('create promise', atom.id, atom.value, atom.version);
       atom.state = StoredState.loading;
-      atom.version++;
       atom.value = new Promise((resolve) => {
         atom.resolve = (value) => {
           if (isPromise(value)) {
@@ -294,7 +291,7 @@ const read = (atom: Stored<any>) => {
           resolve(value);
         };
       });
-      atom.value.version = atom.version;
+      atom.value.internalPromise = true;
       cacheAtomLoadableState(atom);
     }
 
@@ -368,6 +365,8 @@ const notify = (atom: Stored<any>) => {
             return;
           }
 
+          d.version++;
+
           if (isPromise(newValue)) {
             throw valueIsPromise(newValue);
           }
@@ -377,7 +376,6 @@ const notify = (atom: Stored<any>) => {
               d.state = StoredState.hasValue;
               d.value.state = StoredState.hasValue;
               d.value.value = newValue;
-              d.version++;
 
               d.resolve(newValue);
               d.resolve = undefined;
@@ -389,7 +387,6 @@ const notify = (atom: Stored<any>) => {
           }
 
           if (d.state === StoredState.hasValue) {
-            d.version++;
             d.value = newValue;
             cacheAtomLoadableState(d);
             notify(d).forEach((l) => listeners.add(l));
@@ -399,15 +396,9 @@ const notify = (atom: Stored<any>) => {
 
           handleThrowPromise(d, e);
 
-          if (d.state === StoredState.loading && isPromise(d.value)) {
-            d.value.version++;
-            d.version++;
-          }
-
           if (d.state === StoredState.hasValue) {
             if (debug) console.log('create promise (N)', d.id);
             d.state = StoredState.loading;
-            d.version++;
             d.value = new Promise((resolve) => {
               d.resolve = (value) => {
                 if (isPromise(value)) {
@@ -417,7 +408,7 @@ const notify = (atom: Stored<any>) => {
                 resolve(value);
               };
             });
-            atom.value.version = atom.version;
+            d.value.internalPromise = true;
             cacheAtomLoadableState(d);
             notify(d).forEach((l) => listeners.add(l));
           }
