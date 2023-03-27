@@ -2,7 +2,7 @@
 import { useSyncExternalStore, useCallback } from 'react';
 import { Callback0, Callback1 } from './types';
 
-const debug = true;
+const debug = false;
 
 // const noop: IGNORE = () => undefined;
 
@@ -204,25 +204,10 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
 
       if (debug) console.log('(HTP) resolve promise', atom.id, resolvedValue);
 
-      if (atom.resolve) {
-        e.value = resolvedValue;
-        e.state = StoredState.hasValue;
+      e.value = resolvedValue;
+      e.state = StoredState.hasValue;
 
-        atom.state = StoredState.hasValue;
-        atom.resolve(resolvedValue);
-
-        cacheAtomLoadableState(atom);
-
-        if (debug)
-          console.log(
-            '(HTP) resolve promise',
-            atom.id,
-            resolvedValue,
-            atom.value,
-          );
-
-        notify(atom).forEach((l) => l());
-      }
+      notify(atom).forEach((l) => l());
     }).catch((e) => {
       // TODO why?
       if (debug) console.log('[catch]', atom.id, e);
@@ -389,11 +374,9 @@ const notify = (atom: Stored<any>) => {
             return;
           }
 
-          if (d.state === StoredState.hasValue) {
-            d.value = newValue;
-            cacheAtomLoadableState(d);
-            notify(d).forEach((l) => listeners.add(l));
-          }
+          d.value = newValue;
+          cacheAtomLoadableState(d);
+          notify(d).forEach((l) => listeners.add(l));
         } catch (e: TODO) {
           if (debug) console.log('thrown', d.id, e);
 

@@ -572,15 +572,20 @@ test('forms: submit invalid form + call onSubmitInvalid', async () => {
     result.current.form.setErrors({ a: error('whatever reason') });
   });
 
-  expect(onSubmitInvalid).toHaveBeenCalledTimes(0);
+  await waitFor(() => {
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(0);
+  });
 
   await act(() => {
     result.current.form.submit();
   });
 
-  // onSubmit is not called when form is invalid
-  expect(onSubmit).toHaveBeenCalledTimes(0);
-  expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+  await waitFor(() => {
+    // onSubmit is not called when form is invalid
+    expect(onSubmit).toHaveBeenCalledTimes(0);
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+  });
+
   // but all fields should be set to touched=true
   expect(result.current.a.touched).toBe(true);
   expect(result.current.b.touched).toBe(true);
@@ -626,9 +631,12 @@ test('forms: submit invalid form (strict) + call onSubmitInvalid', async () => {
     result.current.form.submit();
   });
 
-  // onSubmit is not called when form is invalid
-  expect(onSubmit).toHaveBeenCalledTimes(0);
-  expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+  await waitFor(() => {
+    // onSubmit is not called when form is invalid
+    expect(onSubmit).toHaveBeenCalledTimes(0);
+    expect(onSubmitInvalid).toHaveBeenCalledTimes(1);
+  });
+
   // but all fields should be set to touched=true
   expect(result.current.a.touched).toBe(true);
   expect(result.current.b.touched).toBe(true);
@@ -665,7 +673,10 @@ test('forms: submit valid form', async () => {
     result.current.form.submit('foo', 'bar');
   });
 
-  expect(onSubmit).toHaveBeenCalledTimes(1);
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
   const bag = onSubmit.mock.calls[0][0];
   expect(bag.values).toEqual({ a: 2, b: undefined });
   expect(bag.touched).toEqual(false);
@@ -676,6 +687,7 @@ test('forms: submit valid form', async () => {
   await act(() => {
     bag.setValues({ b: 3 });
   });
+
   expect(result.current.a.value).toEqual(2);
   expect(result.current.a.touched).toEqual(false);
   expect(result.current.b.value).toEqual(3);
@@ -685,6 +697,7 @@ test('forms: submit valid form', async () => {
   await act(() => {
     bag.setTouched({ b: true });
   });
+
   expect(result.current.a.touched).toEqual(false);
   expect(result.current.b.touched).toEqual(true);
 
@@ -724,9 +737,11 @@ test('forms: submit waits for async values', async () => {
     result.current.form.submit();
   });
 
-  expect(onSubmit).toHaveBeenCalledTimes(1);
-  const bag = onSubmit.mock.calls[0][0];
-  expect(bag.values).toEqual({ a: 2, b: undefined });
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const bag = onSubmit.mock.calls[0][0];
+    expect(bag.values).toEqual({ a: 2, b: undefined });
+  });
 });
 
 test('forms: validate via useFormValidation - without any argument all fields are revalidated', async () => {
