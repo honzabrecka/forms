@@ -817,3 +817,135 @@ test('recoil (async): override pending promise', async () => {
     expect(screen.getByTestId('state')).toHaveTextContent('4');
   });
 });
+
+test('recoil (async): override pending promise 2', async () => {
+  const [x, resolveX] = createPromise();
+  const [y, resolveY] = createPromise();
+  const atom = atomFamily({
+    key: 'atom',
+    default: () => ({ x }),
+  });
+  const selector1Spy = jest.fn();
+  const selector1 = selectorFamily({
+    key: 'selector1',
+    get:
+      () =>
+      ({ get }) => {
+        selector1Spy();
+        return get(atom('x')).x;
+      },
+  });
+  const selector2Spy = jest.fn();
+  const selector2 = selectorFamily({
+    key: 'selector2',
+    get:
+      () =>
+      ({ get }) => {
+        selector2Spy();
+        return get(selector1('x')) * 2;
+      },
+  });
+  const cb = jest.fn();
+  const App = () => {
+    const setState = useSetRecoilState(atom('x')) as any;
+    const { state, contents } = useRecoilValueLoadable(selector2('x')) as any;
+    const recoilCb = useRecoilCallback(
+      ({ snapshot }: any) =>
+        async () => {
+          // if (snapshot !== 1) return;
+          const xs = await Promise.all([
+            snapshot.getPromise(selector1('x')),
+            snapshot.getPromise(selector2('x')),
+          ]);
+          cb(...xs);
+        },
+      [],
+    );
+    return (
+      <>
+        <div data-testid="state">
+          {state === 'hasValue' ? contents : 'loading'}
+        </div>
+        <button type="button" onClick={() => recoilCb()}>
+          cb
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            console.log('click override');
+            setState((state: any) => ({ ...state, x: y }));
+          }}
+        >
+          override
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            console.log('click resolve x');
+            resolveX(5);
+          }}
+        >
+          resolveX
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            console.log('click resolve y');
+            resolveY(10);
+          }}
+        >
+          resolveY
+        </button>
+      </>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await waitFor(() => {
+    expect(screen.getByTestId('state')).toHaveTextContent('loading');
+  });
+
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(0);
+  });
+
+  await user.click(screen.getByText('override'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(0);
+    expect(screen.getByTestId('state')).toHaveTextContent('loading');
+  });
+
+  await user.click(screen.getByText('resolveX'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(0);
+    expect(screen.getByTestId('state')).toHaveTextContent('loading');
+  });
+
+  await user.click(screen.getByText('resolveY'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb).toHaveBeenLastCalledWith(/* { x: 2, y: 11 }, */ 10, 20);
+    expect(screen.getByTestId('state')).toHaveTextContent('20');
+  });
+
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(2);
+    expect(cb).toHaveBeenLastCalledWith(/* { x: 2, y: 11 }, */ 10, 20);
+    // expect(selector1Spy).toHaveBeenCalledTimes(3);
+    // expect(selector2Spy).toHaveBeenCalledTimes(5);
+  });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('state')).toHaveTextContent('20');
+  });
+});
