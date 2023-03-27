@@ -174,7 +174,7 @@ test('forms: setTouched', async () => {
   expect(result.current.b.touched).toEqual(false);
 });
 
-test.only('forms: setErrors', async () => {
+test('forms: setErrors', async () => {
   const onSubmit = jest.fn();
   const { result } = renderHook(
     () => {

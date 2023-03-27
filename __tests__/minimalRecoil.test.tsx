@@ -44,7 +44,7 @@ test('recoil: single atomFamily', async () => {
     expect(screen.getByTestId('state')).toHaveTextContent('1');
   });
 
-  user.click(screen.getByText('inc'));
+  await user.click(screen.getByText('inc'));
 
   await waitFor(() => {
     expect(screen.getByTestId('state')).toHaveTextContent('2');
@@ -79,13 +79,13 @@ test('recoil: single atomFamily', async () => {
     expect(screen.getByTestId('state')).toHaveTextContent('1');
   });
 
-  user.click(screen.getByText('inc'));
+  await user.click(screen.getByText('inc'));
 
   await waitFor(() => {
     expect(screen.getByTestId('state')).toHaveTextContent('2');
   });
 
-  user.click(screen.getByText('inc'));
+  await user.click(screen.getByText('inc'));
 
   await waitFor(() => {
     expect(screen.getByTestId('state')).toHaveTextContent('3');
@@ -131,7 +131,7 @@ test('recoil: selectorFamily', async () => {
     expect(selectorSpy).toHaveBeenCalledTimes(1);
   });
 
-  user.click(screen.getByText('inc'));
+  await user.click(screen.getByText('inc'));
 
   await waitFor(() => {
     expect(screen.getByTestId('state')).toHaveTextContent('2');
@@ -139,7 +139,7 @@ test('recoil: selectorFamily', async () => {
     expect(selectorSpy).toHaveBeenCalledTimes(2);
   });
 
-  user.click(screen.getByText('inc'));
+  await user.click(screen.getByText('inc'));
 
   await waitFor(() => {
     expect(screen.getByTestId('state')).toHaveTextContent('3');
@@ -192,23 +192,23 @@ test('recoil: useRecoilCallback', async () => {
 
   const user = userEvent.setup();
 
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(1, 2);
     expect(selectorSpy).toHaveBeenCalledTimes(1);
   });
 
-  user.click(screen.getByText('inc'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('inc'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(2, 4);
     expect(selectorSpy).toHaveBeenCalledTimes(2);
   });
 
-  user.click(screen.getByText('inc'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('inc'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(3, 6);
@@ -284,7 +284,7 @@ test('recoil: reactive computation', async () => {
 
   const user = userEvent.setup();
 
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith({ x: 1, y: 10 }, 6);
@@ -293,8 +293,8 @@ test('recoil: reactive computation', async () => {
     expect(selector2Spy).toHaveBeenCalledTimes(1);
   });
 
-  user.click(screen.getByText('incy'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('incy'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith({ x: 1, y: 11 }, 6);
@@ -303,8 +303,8 @@ test('recoil: reactive computation', async () => {
     expect(selector2Spy).toHaveBeenCalledTimes(1);
   });
 
-  user.click(screen.getByText('incx'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('incx'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith({ x: 2, y: 11 }, 12);
@@ -360,14 +360,14 @@ test('recoil: transaction', async () => {
 
   const user = userEvent.setup();
 
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(1001, 2002);
     expect(selectorSpy).toHaveBeenCalledTimes(1);
   });
 
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(2001, 4002);
@@ -444,7 +444,7 @@ test('recoil (async): reactive computation', async () => {
 
   const user = userEvent.setup();
 
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 10 }, */ 1, 2);
@@ -452,8 +452,8 @@ test('recoil (async): reactive computation', async () => {
     // expect(selector2Spy).toHaveBeenCalledTimes(3);
   });
 
-  user.click(screen.getByText('incy'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('incy'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 11 }, */ 1, 2);
@@ -461,8 +461,8 @@ test('recoil (async): reactive computation', async () => {
     // expect(selector2Spy).toHaveBeenCalledTimes(3);
   });
 
-  user.click(screen.getByText('incx'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('incx'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 2, y: 11 }, */ 2, 4);
@@ -541,7 +541,7 @@ test('recoil (async): reactive computation with changing promise (async keyword)
 
   const user = userEvent.setup();
 
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 10 }, */ 1, 2);
@@ -549,8 +549,8 @@ test('recoil (async): reactive computation with changing promise (async keyword)
     // expect(selector2Spy).toHaveBeenCalledTimes(2);
   });
 
-  user.click(screen.getByText('incy'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('incy'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 11 }, */ 1, 2);
@@ -558,8 +558,8 @@ test('recoil (async): reactive computation with changing promise (async keyword)
     // expect(selector2Spy).toHaveBeenCalledTimes(5);
   });
 
-  user.click(screen.getByText('incx'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('incx'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 2, y: 11 }, */ 2, 4);
@@ -655,7 +655,7 @@ test('recoil (async): waitForAll', async () => {
 
   const user = userEvent.setup();
 
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 10 }, */ [1, 2]);
@@ -665,8 +665,8 @@ test('recoil (async): waitForAll', async () => {
     // expect(selector3Spy).toHaveBeenCalledTimes(1);
   });
 
-  user.click(screen.getByText('incy'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('incy'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 11 }, */ [1, 2]);
@@ -676,8 +676,8 @@ test('recoil (async): waitForAll', async () => {
     // expect(selector3Spy).toHaveBeenCalledTimes(1);
   });
 
-  user.click(screen.getByText('incx'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('incx'));
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 2, y: 11 }, */ [2, 4]);
@@ -691,7 +691,10 @@ test('recoil (async): waitForAll', async () => {
 const createPromise = () => {
   let resolve;
   const promise = new Promise((res) => {
-    resolve = res;
+    resolve = (value) => {
+      console.log('>>> resolve', value);
+      res(value);
+    };
   });
   return [promise, resolve];
 };
@@ -740,20 +743,29 @@ test('recoil (async): override pending promise', async () => {
     );
     return (
       <>
-        <div data-testid="state">{state === 'hasValue' ? contents : null}</div>
+        <div data-testid="state">
+          {state === 'hasValue' ? contents : 'loading'}
+        </div>
         <button type="button" onClick={() => recoilCb()}>
           cb
         </button>
         <button
           type="button"
-          onClick={() =>
-            setState((state: any) => ({ ...state, x: Promise.resolve(2) }))
-          }
+          onClick={() => {
+            console.log('click override');
+            setState((state: any) => ({ ...state, x: Promise.resolve(2) }));
+          }}
         >
           override
         </button>
-        <button type="button" onClick={() => resolveX(5)}>
-          resolve
+        <button
+          type="button"
+          onClick={() => {
+            console.log('click resolve');
+            resolveX(5);
+          }}
+        >
+          resolveX
         </button>
       </>
     );
@@ -763,10 +775,20 @@ test('recoil (async): override pending promise', async () => {
 
   const user = userEvent.setup();
 
-  user.click(screen.getByText('override'));
-  user.click(screen.getByText('cb'));
+  await waitFor(() => {
+    expect(screen.getByTestId('state')).toHaveTextContent('loading');
+  });
+
+  await user.click(screen.getByText('cb'));
 
   await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(0);
+  });
+
+  await user.click(screen.getByText('override'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(1);
     expect(cb).toHaveBeenLastCalledWith(/* { x: 1, y: 11 }, */ 2, 4);
     // expect(selector1Spy).toHaveBeenCalledTimes(2);
     // expect(selector2Spy).toHaveBeenCalledTimes(3);
@@ -776,10 +798,16 @@ test('recoil (async): override pending promise', async () => {
     expect(screen.getByTestId('state')).toHaveTextContent('4');
   });
 
-  user.click(screen.getByText('resolve'));
-  user.click(screen.getByText('cb'));
+  await user.click(screen.getByText('resolveX'));
 
   await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenCalledTimes(2);
     expect(cb).toHaveBeenLastCalledWith(/* { x: 2, y: 11 }, */ 2, 4);
     // expect(selector1Spy).toHaveBeenCalledTimes(3);
     // expect(selector2Spy).toHaveBeenCalledTimes(5);
