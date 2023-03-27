@@ -24,11 +24,7 @@ export const delay = (t: number) =>
 export const createNamedValidation = (
   name: string,
   result: ValidationResult,
-): Promise<FieldValidationResult> => {
-  const p = delay(250).then(() => ({ name, ...result }));
-  (p as any).namedValidator = name;
-  return p;
-};
+): Promise<FieldValidationResult> => Promise.resolve({ name, ...result });
 
 const fieldIdSeparator = '/';
 

@@ -161,7 +161,6 @@ export default function useForm({
   const setErrors = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
       (errors: Dict<ValidationResult>) => {
-        console.log('setErrors');
         Object.keys(errors).forEach((name) => {
           set($field(fieldId(formId, name)), (state) => ({
             ...state,

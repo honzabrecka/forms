@@ -116,7 +116,7 @@ const outdated = (promise: TODO, atom: number) => {
 
 const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
   if (e.type && e.type === 'valueIsPromise' && e.promise.state === undefined) {
-    if (debug) console.log('add then', atom.id, e.promise);
+    if (debug) console.log('add then', atom.id, atom.version, e.promise);
 
     e.promise.state = StoredState.loading;
     e.promise.id = atom.id;
@@ -128,6 +128,7 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
             '(HTP) resolve, version',
             atom.id,
             `[p:${e.promise.version};a:${atom.version}]`,
+            e.promise,
           );
 
         if (outdated(e.promise, atom.version)) {
@@ -176,7 +177,7 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
   }
 
   if (isPromise(e) && e.state === undefined) {
-    if (debug) console.log('add then', atom.id, e);
+    if (debug) console.log('add then', atom.id, atom.version, e);
     e.version = atom.version;
     e.state = StoredState.loading;
     e.id = atom.id;
@@ -186,6 +187,7 @@ const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
           '(HTP) resolve, version',
           atom.id,
           `[p:${e.version};a:${atom.version}]`,
+          e,
         );
 
       if (outdated(e, atom.version)) {
@@ -320,7 +322,8 @@ const compare = (a: any, b: any) => {
       (a.state === StoredState.loading && b.state === StoredState.loading) ||
       (a.state === StoredState.hasValue &&
         b.state === StoredState.hasValue &&
-        JSONEqual(a, b))
+        JSONEqual(a.value, b.value)) ||
+      a === b
     );
   }
   if ((isPromise(a) && !isPromise(b)) || (isPromise(b) && !isPromise(a))) {
@@ -367,7 +370,7 @@ const notify = (atom: Stored<any>) => {
 
           d.version++;
 
-          if (isPromise(newValue)) {
+          if (isPromise(newValue) && newValue.state !== StoredState.hasValue) {
             throw valueIsPromise(newValue);
           }
 
@@ -393,6 +396,13 @@ const notify = (atom: Stored<any>) => {
           }
         } catch (e: TODO) {
           if (debug) console.log('thrown', d.id, e);
+
+          if (
+            (e.type === 'valueIsPromise' && e.promise.state === undefined) ||
+            (isPromise(e) && e.state === undefined)
+          ) {
+            d.version++;
+          }
 
           handleThrowPromise(d, e);
 
@@ -573,6 +583,7 @@ export const useResetRecoilState = <V>(atom: Stored<V>) => {
   return () => {
     if (atom.type === StoredType.atom) {
       write(atom, atom.defaultValue, true);
+      return;
     }
     if (atom.type === StoredType.selector)
       throw new Error('unsupported reset on selector');

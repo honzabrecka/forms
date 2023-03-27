@@ -195,8 +195,6 @@ test('forms: setErrors', async () => {
     { wrapper },
   );
 
-  console.log('>>>>');
-
   // check that form.setErrors() works
   await act(() => {
     result.current.form.setErrors({ a: error('fail'), b: warning('fail') });
@@ -207,9 +205,6 @@ test('forms: setErrors', async () => {
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
   });
-
-  console.log(bag.a.validationResult);
-  console.log(bag.b.validationResult);
 
   expect(bag.validation.contents.isValid).toEqual(false);
   expect(bag.validation.contents.isValidStrict).toEqual(false);
