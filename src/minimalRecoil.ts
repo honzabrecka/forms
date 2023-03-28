@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { useSyncExternalStore, useCallback, useEffect } from 'react';
 import isEqual from 'lodash.isequal';
-import debounce from 'lodash.debounce';
+import throttle from 'lodash.throttle';
 import { Callback0, Callback1 } from './types';
 
 const debug = false;
@@ -459,22 +459,6 @@ export const write = <V>(
   throw new Error('unsupported write');
 };
 
-const destroyPartitionGC = debounce((id: string) => {
-  if (debug) console.log('running GC', id);
-
-  if (partitions.get(id) === undefined) return;
-
-  partitions.get(id)!.forEach((atom) => {
-    if (atom.destroyed) {
-      atom.dependents = new Set();
-      atom.listeners = new Set();
-      partitions.get(id)!.delete(atom.id);
-    }
-  });
-
-  partitions.delete(id);
-}, 500);
-
 const getSnapshot =
   <V>(atom: Stored<V>) =>
   () => {
@@ -756,19 +740,54 @@ export const useRecoilTransaction_UNSTABLE = <D extends ReadonlyArray<unknown>>(
   }, deps);
 };
 
+const partitionsToGC = new Set<string>();
+
+const runGC = throttle(
+  () => {
+    if (debug) console.log('running GC');
+
+    if (partitionsToGC.size > 0) {
+      const id = partitionsToGC.values().next().value;
+      if (debug) console.log('running GC on partition', id);
+
+      const partition = partitions.get(id);
+
+      if (partition) {
+        partition.forEach((atom) => {
+          if (atom.destroyed) {
+            atom.dependents = new Set();
+            atom.listeners = new Set();
+            partition.delete(atom.id);
+          }
+        });
+        partitions.delete(id);
+      }
+
+      partitionsToGC.delete(id);
+      runGC();
+    }
+  },
+  100,
+  { leading: false },
+);
+
 // TODO custom addition
 export const useRecoilGC_UNSTABLE = (id: string) => {
   useEffect(() => {
     const mark = (destroyed: boolean) => {
-      if (partitions.get(id) === undefined) return;
-      partitions.get(id)!.forEach((atom) => {
-        atom.destroyed = destroyed;
-      });
+      const partition = partitions.get(id);
+      if (partition) {
+        partition.forEach((atom) => {
+          atom.destroyed = destroyed;
+        });
+      }
     };
     mark(false);
+    partitionsToGC.delete(id);
     return () => {
       mark(true);
-      destroyPartitionGC(id);
+      partitionsToGC.add(id);
+      runGC();
     };
-  }, []);
+  }, [id]);
 };

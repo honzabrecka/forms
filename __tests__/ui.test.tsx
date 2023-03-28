@@ -100,7 +100,9 @@ test('forms: unmount (GC)', async () => {
 
   await delay(250);
   await delay(250);
-  await delay(250);
+  // await delay(250);
+  // await delay(250);
+  // await delay(250);
 
   expect(partitions.get(familyId)).toEqual(undefined);
 });
