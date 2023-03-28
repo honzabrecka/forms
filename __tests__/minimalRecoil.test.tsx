@@ -13,11 +13,161 @@ import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
+  ///
+  compare,
+  StoredState,
+  read,
+  write,
 } from '../src/minimalRecoil';
 
 beforeEach(() => {
   clearStore();
 });
+
+test('recoil internal: compare', () => {
+  expect(compare('a', 'a')).toBe(true);
+  expect(compare('a', 'b')).toBe(false);
+  expect(compare(true, true)).toBe(true);
+  expect(compare(false, false)).toBe(true);
+  expect(compare(true, false)).toBe(false);
+  expect(compare({ foo: 'a' }, { foo: 'a' })).toBe(true);
+  expect(compare({ foo: 'a' }, { foo: 'b' })).toBe(false);
+});
+
+test('recoil internal: compare new promise', () => {
+  expect(compare(Promise.resolve(), Promise.resolve())).toBe(false);
+  const ref = Promise.resolve();
+  expect(compare(ref, ref)).toBe(true);
+});
+
+test('recoil internal: compare promise in loading state', () => {
+  const a: any = Promise.resolve();
+  a.state = StoredState.loading;
+  const b: any = Promise.resolve();
+  b.state = StoredState.loading;
+  expect(compare(a, b)).toBe(true);
+});
+
+test('recoil internal: compare promise in hasValue state', () => {
+  const a: any = Promise.resolve();
+  a.state = StoredState.hasValue;
+  a.value = { foo: 'a' };
+  const b: any = Promise.resolve();
+  b.state = StoredState.hasValue;
+  b.value = { foo: 'a' };
+  expect(compare(a, b)).toBe(true);
+});
+
+test('recoil internal: compare promise in hasValue state (different values)', () => {
+  const a: any = Promise.resolve();
+  a.state = StoredState.hasValue;
+  a.value = { foo: 'a' };
+  const b: any = Promise.resolve();
+  b.state = StoredState.hasValue;
+  b.value = { foo: 'b' };
+  expect(compare(a, b)).toBe(false);
+});
+
+test('recoil internal: read and write to atom', () => {
+  const writeSpy = jest.fn();
+
+  const atom = atomFamily({
+    key: 'x',
+    default: (id) => ({ id, value: 'foo' }),
+  });
+
+  expect(read(atom('y'))).toEqual({ id: 'y', value: 'foo' });
+
+  write(atom('y'), (state) => {
+    writeSpy(state);
+    return { ...state, value: 'bar' };
+  });
+
+  expect(writeSpy).toHaveBeenCalledWith({ id: 'y', value: 'foo' });
+  expect(read(atom('y'))).toEqual({ id: 'y', value: 'bar' });
+});
+
+test('recoil internal: read and write to atom and read selectors', () => {
+  const writeSpy = jest.fn();
+  const selectorReadSpy = jest.fn();
+  const selector2ReadSpy = jest.fn();
+
+  const atom = atomFamily({
+    key: 'atom',
+    default: (id) => ({ id, value: 'foo' }),
+  });
+  const selector = selectorFamily({
+    key: 'selector',
+    get:
+      (id) =>
+      ({ get }) => {
+        selectorReadSpy();
+        return get(atom(id)).value;
+      },
+  });
+  const selector2 = selectorFamily({
+    key: 'selector2',
+    get:
+      (id) =>
+      ({ get }) => {
+        selector2ReadSpy();
+        return get(selector(id)) + get(selector(id));
+      },
+  });
+
+  expect(read(atom('x'))).toEqual({ id: 'x', value: 'foo' });
+  expect(selectorReadSpy).toHaveBeenCalledTimes(0); // lazy read
+  expect(selector2ReadSpy).toHaveBeenCalledTimes(0); // lazy read
+
+  write(atom('x'), (state) => {
+    writeSpy(state);
+    return { ...state, value: 'bar' };
+  });
+
+  expect(writeSpy).toHaveBeenCalledWith({ id: 'x', value: 'foo' });
+  expect(read(atom('x'))).toEqual({ id: 'x', value: 'bar' });
+
+  expect(read(selector('x'))).toEqual('bar');
+  expect(selectorReadSpy).toHaveBeenCalledTimes(1); // lazy read
+
+  expect(read(selector2('x'))).toEqual('barbar');
+  expect(selector2ReadSpy).toHaveBeenCalledTimes(1); // lazy read
+
+  write(atom('x'), (state) => {
+    writeSpy(state);
+    return { ...state, value: 'baz' };
+  });
+
+  expect(writeSpy).toHaveBeenCalledWith({ id: 'x', value: 'bar' });
+  expect(read(atom('x'))).toEqual({ id: 'x', value: 'baz' });
+
+  expect(selectorReadSpy).toHaveBeenCalledTimes(2); // notify
+  expect(selector2ReadSpy).toHaveBeenCalledTimes(2); // notify
+
+  expect(read(selector('x'))).toEqual('baz');
+  expect(selectorReadSpy).toHaveBeenCalledTimes(2); // cached read
+  expect(read(selector2('x'))).toEqual('bazbaz');
+  expect(selector2ReadSpy).toHaveBeenCalledTimes(2); // cached read
+
+  write(atom('x'), (state) => {
+    writeSpy(state);
+    return { ...state, value: 'baz' };
+  });
+
+  expect(writeSpy).toHaveBeenCalledWith({ id: 'x', value: 'baz' });
+  expect(read(atom('x'))).toEqual({ id: 'x', value: 'baz' });
+
+  expect(selectorReadSpy).toHaveBeenCalledTimes(3); // notify
+  expect(selector2ReadSpy).toHaveBeenCalledTimes(2); // notify, but same
+
+  expect(read(selector('x'))).toEqual('baz');
+  expect(selectorReadSpy).toHaveBeenCalledTimes(3); // cached read
+
+  expect(read(selector2('x'))).toEqual('bazbaz');
+  expect(selector2ReadSpy).toHaveBeenCalledTimes(2); // cached read
+});
+
+///
 
 test('recoil: single atomFamily', async () => {
   const atom = atomFamily({

@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { useSyncExternalStore, useCallback } from 'react';
+import isEqual from 'lodash.isequal';
 import { Callback0, Callback1 } from './types';
 
 const debug = false;
@@ -20,7 +21,8 @@ enum StoredType {
   selector,
 }
 
-enum StoredState {
+// @private
+export enum StoredState {
   loading,
   hasValue,
 }
@@ -114,7 +116,8 @@ const outdated = (promise: TODO, atom: number) => {
   return promise.version !== atom;
 };
 
-const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
+// @private
+export const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
   if (e.type && e.type === 'valueIsPromise' && e.promise.state === undefined) {
     if (debug) console.log('add then', atom.id, atom.version, e.promise);
 
@@ -239,7 +242,8 @@ const valueIsPromise = (promise: Promise<TODO>) => ({
   promise,
 });
 
-const read = (atom: Stored<any>) => {
+// @private
+export const read = (atom: Stored<any>) => {
   try {
     const value = readPlain(atom);
 
@@ -251,7 +255,6 @@ const read = (atom: Stored<any>) => {
       if (atom.state === StoredState.loading) {
         atom.state = StoredState.hasValue;
         atom.value = value;
-        // atom.version++;
         cacheAtomLoadableState(atom);
       }
       return value;
@@ -299,27 +302,37 @@ const ignoredRead = (atom: Stored<any>) => {
 };
 
 // TODO
-const JSONEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
+// const JSONEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
 
-const compare = (a: any, b: any) => {
+// @private
+export const compare = (a: any, b: any) => {
   if (isPromise(a) && isPromise(b)) {
     return (
       (a.state === StoredState.loading && b.state === StoredState.loading) ||
       (a.state === StoredState.hasValue &&
         b.state === StoredState.hasValue &&
-        JSONEqual(a.value, b.value)) ||
+        isEqual(a.value, b.value)) ||
       a === b
     );
   }
   if ((isPromise(a) && !isPromise(b)) || (isPromise(b) && !isPromise(a))) {
     return false;
   }
-  return JSONEqual(a, b);
+  return isEqual(a, b);
 };
+
+// const logTree = (atom) => {
+//   console.log([atom.id, atom.value]);
+//   console.log(
+//     '>',
+//     [...atom.dependents].map(({ id, value }) => [id, value]),
+//   );
+// };
 
 // if atom is modified, we need to notify all the dependent atoms (recursively)
 // now run callbacks for all the components that are dependent on this atom
-const notify = (atom: Stored<any>) => {
+// @private
+export const notify = (atom: Stored<any>) => {
   if (debug) console.log('notify:', atom.id);
 
   const listeners = new Set<Callback0>();
@@ -374,6 +387,7 @@ const notify = (atom: Stored<any>) => {
             return;
           }
 
+          d.state = StoredState.hasValue;
           d.value = newValue;
           cacheAtomLoadableState(d);
           notify(d).forEach((l) => listeners.add(l));
@@ -416,7 +430,12 @@ const notify = (atom: Stored<any>) => {
 type Updater<V> = (state: V) => V;
 type ValueOrUpdater<V> = V | Updater<V>;
 
-const write = <V>(atom: Stored<V>, value: ValueOrUpdater<V>, reset = false) => {
+// @private
+export const write = <V>(
+  atom: Stored<V>,
+  value: ValueOrUpdater<V>,
+  reset = false,
+) => {
   if (debug) console.log('write:', atom.id);
   if (atom.type === StoredType.atom) {
     if (typeof value === 'function') {
