@@ -3,7 +3,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { wrapper } from './shared';
 import {
-  clearStore,
   atomFamily,
   selectorFamily,
   useRecoilState,
@@ -14,6 +13,8 @@ import {
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
   ///
+  partitions,
+  ///
   compare,
   StoredState,
   read,
@@ -21,7 +22,7 @@ import {
 } from '../src/minimalRecoil';
 
 beforeEach(() => {
-  clearStore();
+  partitions.clear();
 });
 
 test('recoil internal: compare', () => {

@@ -4,6 +4,7 @@ import {
   useRecoilTransaction_UNSTABLE,
   useRecoilCallback,
   useSetRecoilState,
+  useRecoilGC_UNSTABLE,
 } from './recoilOrMinimalRecoil';
 import {
   fieldId,
@@ -64,8 +65,6 @@ export default function useForm({
   const onSubmitStable = useEventCallback(onSubmit);
   const onSubmitInvalidStable = useEventCallback(onSubmitInvalid);
 
-  // NOTE: can cause memory leaks as it can set any field,
-  // but only those registered to form are getting cleared
   const setValues = useRecoilTransaction_UNSTABLE(
     ({ get, set }) =>
       (
@@ -119,8 +118,6 @@ export default function useForm({
     [],
   );
 
-  // NOTE: can cause memory leaks as it can set any field,
-  // but only those registered to form are getting cleared
   const setInitialValues = useRecoilTransaction_UNSTABLE(
     ({ get, set }) =>
       (values: Dict<any>) => {
@@ -156,8 +153,6 @@ export default function useForm({
     [],
   );
 
-  // NOTE: can cause memory leaks as it can set any field,
-  // but only those registered to form are getting cleared
   const setErrors = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
       (errors: Dict<ValidationResult>) => {
@@ -171,8 +166,6 @@ export default function useForm({
     [],
   );
 
-  // NOTE: can cause memory leaks as it can set any field,
-  // but only those registered to form are getting cleared
   const setTouched = useRecoilTransaction_UNSTABLE(
     ({ set }) =>
       (touched: Dict<boolean>) => {
@@ -227,8 +220,6 @@ export default function useForm({
     [],
   );
 
-  // NOTE: can cause memory leaks as it can set any field,
-  // but only those registered to form are getting cleared
   const resetFields = useRecoilCallback(
     ({ snapshot, transact_UNSTABLE }) =>
       (fieldIds: string[]) => {
@@ -256,8 +247,6 @@ export default function useForm({
     [],
   );
 
-  // NOTE: can cause memory leaks as it can set any field,
-  // but only those registered to form are getting cleared
   const revalidate = useRecoilCallback(
     ({ snapshot, set }) =>
       (fieldIds: string[] = []) => {
@@ -303,10 +292,9 @@ export default function useForm({
 
   useEffect(() => {
     setValues(initialValues, { asInitialValues: true });
-    return () => {
-      clear();
-    };
   }, []);
+
+  useRecoilGC_UNSTABLE(formId);
 
   return useMemo(() => {
     const addFields = (names: string[]) => {
@@ -335,8 +323,6 @@ export default function useForm({
       }
     };
 
-    // NOTE: can cause memory leaks as it can set any field,
-    // but only those registered to form are getting cleared
     const reset = (fieldIds: string[] = []) => {
       setForm((state: FormState) => ({
         ...state,

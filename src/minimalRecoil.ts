@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
-import { useSyncExternalStore, useCallback } from 'react';
+import { useSyncExternalStore, useCallback, useEffect } from 'react';
 import isEqual from 'lodash.isequal';
+import debounce from 'lodash.debounce';
 import { Callback0, Callback1 } from './types';
 
 const debug = false;
@@ -50,6 +51,7 @@ type Atom<V> = {
   value: V;
   defaultValue: V;
   state: StoredState;
+  destroyed: boolean;
   cachedLoadableState: LoadableState<V>;
   resolve?: Callback1<any>;
   dependents: Set<Stored<any>>;
@@ -68,6 +70,7 @@ type Selector<V> = {
   factory: SelectorFactory<V>;
   value: V | Promise<V>;
   state: StoredState;
+  destroyed: boolean;
   cachedLoadableState: LoadableState<V>;
   resolve?: Callback1<any>;
   dependents: Set<Stored<any>>;
@@ -75,8 +78,6 @@ type Selector<V> = {
 };
 
 type Stored<V> = Atom<V> | Selector<V>;
-
-const store = new Map<string, Stored<any>>();
 
 const cacheAtomLoadableState = <V>(atom: Stored<V>) => {
   if (atom.state === StoredState.loading) {
@@ -126,6 +127,8 @@ export const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
     e.promise.version = atom.version;
     e.promise
       .then((resolvedValue: TODO) => {
+        if (atom.destroyed) return;
+
         if (debug)
           console.log(
             '(HTP) resolve, version',
@@ -185,6 +188,8 @@ export const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
     e.state = StoredState.loading;
     e.id = atom.id;
     e.then((resolvedValue: TODO) => {
+      if (atom.destroyed) return;
+
       if (debug)
         console.log(
           '(HTP) resolve, version',
@@ -454,6 +459,22 @@ export const write = <V>(
   throw new Error('unsupported write');
 };
 
+const destroyPartitionGC = debounce((id: string) => {
+  if (debug) console.log('running GC', id);
+
+  if (partitions.get(id) === undefined) return;
+
+  partitions.get(id)!.forEach((atom) => {
+    if (atom.destroyed) {
+      atom.dependents = new Set();
+      atom.listeners = new Set();
+      partitions.get(id)!.delete(atom.id);
+    }
+  });
+
+  partitions.delete(id);
+}, 500);
+
 const getSnapshot =
   <V>(atom: Stored<V>) =>
   () => {
@@ -482,14 +503,32 @@ const emptyLoadableState: LoadableState<undefined> = {
   getValue: () => undefined,
 };
 
+// @private
+export const partitions = new Map<string, Map<string, Stored<any>>>();
+
+const getPartition = (id: string) => {
+  let partition = partitions.get(id);
+  if (!partition) {
+    partition = new Map<string, Stored<any>>();
+    partitions.set(id, partition);
+  }
+  return partition;
+};
+
+const getPartitionFromId = (id: string) => {
+  const [partition] = id.split('/'); // TODO this is too tight to forms implementation
+  return partition;
+};
+
 export const atomFamily =
   <V, ID extends string>({ key, ...props }: AtomFamilyProps<V>) =>
   (id: ID) => {
+    const partition = getPartitionFromId(id);
     const newId = `A/${key}/${id}`;
-    let atom = store.get(newId);
+    let atom = getPartition(partition).get(newId);
     if (!atom) {
       const value = props.default(id);
-      store.set(
+      getPartition(partition).set(
         newId,
         (atom = cacheAtomLoadableState({
           id: newId,
@@ -498,6 +537,7 @@ export const atomFamily =
           value,
           defaultValue: value,
           state: StoredState.hasValue,
+          destroyed: false,
           cachedLoadableState: emptyLoadableState,
           listeners: new Set(),
           dependents: new Set(),
@@ -517,10 +557,11 @@ type SelectorFamilyProps<T> = {
 export const selectorFamily =
   <V, ID extends string>({ key, get }: SelectorFamilyProps<V>) =>
   (id: ID) => {
+    const partition = getPartitionFromId(id);
     const newId = `S/${key}/${id}`;
-    let atom = store.get(newId);
+    let atom = getPartition(partition).get(newId);
     if (!atom)
-      store.set(
+      getPartition(partition).set(
         newId,
         (atom = cacheAtomLoadableState({
           id: newId,
@@ -528,6 +569,7 @@ export const selectorFamily =
           version: 0,
           value: undef as TODO,
           state: StoredState.loading,
+          destroyed: false,
           cachedLoadableState: emptyLoadableState,
           factory: get(id),
           listeners: new Set(),
@@ -714,14 +756,19 @@ export const useRecoilTransaction_UNSTABLE = <D extends ReadonlyArray<unknown>>(
   }, deps);
 };
 
-// extra functionality that would be nice
-
-// clears atomFamily and kills all selectors
-// export const clear = (atom: Stored) => {};
-
-// export const atomFamilyWithDefaultValue = (atom: Stored, value: TODO) => {};
-
-// TODO to be able to run tests
-export const clearStore = () => {
-  store.clear();
+// TODO custom addition
+export const useRecoilGC_UNSTABLE = (id: string) => {
+  useEffect(() => {
+    const mark = (destroyed: boolean) => {
+      if (partitions.get(id) === undefined) return;
+      partitions.get(id)!.forEach((atom) => {
+        atom.destroyed = destroyed;
+      });
+    };
+    mark(false);
+    return () => {
+      mark(true);
+      destroyPartitionGC(id);
+    };
+  }, []);
 };

@@ -15,18 +15,8 @@ import {
   isError,
   createNestedName,
 } from '../src/index';
-import { clearStore } from '../src/minimalRecoil';
 
 const htmlEvent = (value: any) => ({ target: { value } });
-
-beforeEach(() => {
-  clearStore();
-});
-
-// const delay = (t: number) =>
-//   new Promise((resolve) => {
-//     setTimeout(() => resolve(t), t);
-//   });
 
 test('forms: initial values', async () => {
   const { result } = renderHook(
@@ -486,8 +476,6 @@ test('forms > field: onChange validation', async () => {
     expect(result.current.validation.state).toBe('hasValue');
   });
 
-  console.log(result.current.validation);
-
   expect(isSuccess(result.current.validation.contents)).toEqual(true);
 
   await act(() => {
@@ -854,8 +842,6 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
     expect(result.current.formDirty.state).toBe('hasValue');
     expect(result.current.fieldDirty.state).toBe('hasValue');
   });
-
-  console.log(result.current.fieldDirty);
 
   expect(result.current.formDirty.contents.dirty).toBe(false);
   expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(new Set());

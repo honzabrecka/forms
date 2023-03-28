@@ -10,6 +10,7 @@ import {
   AsyncField,
   identity,
   SubmitButton,
+  delay,
 } from './shared';
 import {
   useForm,
@@ -22,11 +23,7 @@ import {
   Dict,
   OnChange,
 } from '../src/index';
-import { clearStore } from '../src/minimalRecoil';
-
-beforeEach(() => {
-  clearStore();
-});
+import { partitions } from '../src/minimalRecoil';
 
 test('forms: basic', async () => {
   const onSubmit = jest.fn();
@@ -61,6 +58,51 @@ test('forms: basic', async () => {
       validation: { isValid: true, isValidStrict: true },
     });
   });
+});
+
+test('forms: unmount (GC)', async () => {
+  const onSubmit = jest.fn();
+  let familyId;
+  const App = () => {
+    const { Form, formId } = useForm({
+      onSubmit,
+    });
+    familyId = formId;
+    return (
+      <Form>
+        <Field name="name" label="Name" />
+        <button type="submit">submit</button>
+      </Form>
+    );
+  };
+
+  const { unmount } = render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.type(screen.getByLabelText('Name'), 'John Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['name'],
+      touched: true,
+      touchedFieldIds: new Set(['name']),
+      initialValues: {},
+      dirty: true,
+      dirtyFieldIds: new Set(['name']),
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  unmount();
+
+  await delay(250);
+  await delay(250);
+  await delay(250);
+
+  expect(partitions.get(familyId)).toEqual(undefined);
 });
 
 test('forms: double click is ignored', async () => {
