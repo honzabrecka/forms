@@ -5,6 +5,7 @@ import { wrapper } from './shared';
 import {
   atomFamily,
   selectorFamily,
+  waitForAll,
   useRecoilState,
   useSetRecoilState,
   useRecoilValue,
@@ -719,7 +720,7 @@ test('recoil (async): reactive computation with changing promise (async keyword)
   });
 });
 
-test('recoil (async): waitForAll', async () => {
+test("recoil (async): poor man's waitForAll", async () => {
   const atom = atomFamily({
     key: 'atom',
     default: () => ({ x: Promise.resolve(1), y: Promise.resolve(2) }),
@@ -767,9 +768,8 @@ test('recoil (async): waitForAll', async () => {
     const recoilCb = useRecoilCallback(
       ({ snapshot }: any) =>
         async () => {
-          // if (snapshot !== 1) return;
-          const xs = await Promise.all([snapshot.getPromise(selector3('x'))]);
-          cb(...xs);
+          const xs = await snapshot.getPromise(selector3('x'));
+          cb(xs);
         },
       [],
     );
@@ -832,6 +832,255 @@ test('recoil (async): waitForAll', async () => {
 
   await waitFor(() => {
     expect(cb).toHaveBeenLastCalledWith(/* { x: 2, y: 11 }, */ [2, 4]);
+    expect(screen.getByTestId('state')).toHaveTextContent('4');
+    // expect(selector1Spy).toHaveBeenCalledTimes(3);
+    // expect(selector2Spy).toHaveBeenCalledTimes(5);
+    // expect(selector3Spy).toHaveBeenCalledTimes(7);
+  });
+});
+
+test('recoil (async): waitForAll with array', async () => {
+  const atom = atomFamily({
+    key: 'atom',
+    default: () => ({ x: Promise.resolve(1), y: Promise.resolve(2) }),
+  });
+  const selector1Spy = jest.fn();
+  const selector1 = selectorFamily({
+    key: 'selector1',
+    get:
+      () =>
+      ({ get }) => {
+        selector1Spy();
+        return get(atom('x')).x;
+      },
+  });
+  const selector2Spy = jest.fn();
+  const selector2 = selectorFamily({
+    key: 'selector2',
+    get:
+      () =>
+      ({ get }) => {
+        selector2Spy();
+        return get(selector1('x')) * 2;
+      },
+  });
+  const selector3Spy = jest.fn();
+  const selector3 = selectorFamily({
+    key: 'selector3',
+    get:
+      () =>
+      ({ get }) => {
+        selector3Spy();
+        return [
+          get(waitForAll([])),
+          get(waitForAll([selector1('x'), selector2('x')])),
+        ];
+      },
+  });
+
+  const cb = jest.fn();
+
+  const Read = () => {
+    const state = useRecoilValue(selector2('x'));
+    return <div data-testid="state">{state}</div>;
+  };
+
+  const App = () => {
+    const setState = useSetRecoilState(atom('x')) as any;
+    const recoilCb = useRecoilCallback(
+      ({ snapshot }: any) =>
+        async () => {
+          const xs = await snapshot.getPromise(selector3('x'));
+          cb(xs);
+        },
+      [],
+    );
+
+    return (
+      <>
+        <Suspense fallback={null}>
+          <Read />
+        </Suspense>
+        <button type="button" onClick={() => recoilCb()}>
+          cb
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setState((state: any) => ({ ...state, x: Promise.resolve(2) }))
+          }
+        >
+          incx
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setState((state: any) => ({ ...state, y: Promise.resolve(11) }))
+          }
+        >
+          incy
+        </button>
+      </>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenLastCalledWith([[], [1, 2]]);
+    expect(screen.getByTestId('state')).toHaveTextContent('2');
+    // expect(selector1Spy).toHaveBeenCalledTimes(1);
+    // expect(selector2Spy).toHaveBeenCalledTimes(2);
+    // expect(selector3Spy).toHaveBeenCalledTimes(1);
+  });
+
+  await user.click(screen.getByText('incy'));
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenLastCalledWith([[], [1, 2]]);
+    expect(screen.getByTestId('state')).toHaveTextContent('2');
+    // expect(selector1Spy).toHaveBeenCalledTimes(2);
+    // expect(selector2Spy).toHaveBeenCalledTimes(2);
+    // expect(selector3Spy).toHaveBeenCalledTimes(1);
+  });
+
+  await user.click(screen.getByText('incx'));
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenLastCalledWith([[], [2, 4]]);
+    expect(screen.getByTestId('state')).toHaveTextContent('4');
+    // expect(selector1Spy).toHaveBeenCalledTimes(3);
+    // expect(selector2Spy).toHaveBeenCalledTimes(5);
+    // expect(selector3Spy).toHaveBeenCalledTimes(7);
+  });
+});
+
+test('recoil (async): waitForAll with map', async () => {
+  const atom = atomFamily({
+    key: 'atom',
+    default: () => ({ x: Promise.resolve(1), y: Promise.resolve(2) }),
+  });
+  const selector1Spy = jest.fn();
+  const selector1 = selectorFamily({
+    key: 'selector1',
+    get:
+      () =>
+      ({ get }) => {
+        selector1Spy();
+        return get(atom('x')).x;
+      },
+  });
+  const selector2Spy = jest.fn();
+  const selector2 = selectorFamily({
+    key: 'selector2',
+    get:
+      () =>
+      ({ get }) => {
+        selector2Spy();
+        return get(selector1('x')) * 2;
+      },
+  });
+  const selector3Spy = jest.fn();
+  const selector3 = selectorFamily({
+    key: 'selector3',
+    get:
+      () =>
+      ({ get }) => {
+        selector3Spy();
+        return [
+          get(waitForAll({})),
+          get(
+            waitForAll({
+              a: selector1('x'),
+              b: selector2('x'),
+            }),
+          ),
+        ];
+      },
+  });
+
+  const cb = jest.fn();
+
+  const Read = () => {
+    const state = useRecoilValue(selector2('x'));
+    return <div data-testid="state">{state}</div>;
+  };
+
+  const App = () => {
+    const setState = useSetRecoilState(atom('x')) as any;
+    const recoilCb = useRecoilCallback(
+      ({ snapshot }: any) =>
+        async () => {
+          const xs = await snapshot.getPromise(selector3('x'));
+          cb(xs);
+        },
+      [],
+    );
+
+    return (
+      <>
+        <Suspense fallback={null}>
+          <Read />
+        </Suspense>
+        <button type="button" onClick={() => recoilCb()}>
+          cb
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setState((state: any) => ({ ...state, x: Promise.resolve(2) }))
+          }
+        >
+          incx
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setState((state: any) => ({ ...state, y: Promise.resolve(11) }))
+          }
+        >
+          incy
+        </button>
+      </>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenLastCalledWith([{}, { a: 1, b: 2 }]);
+    expect(screen.getByTestId('state')).toHaveTextContent('2');
+    // expect(selector1Spy).toHaveBeenCalledTimes(1);
+    // expect(selector2Spy).toHaveBeenCalledTimes(2);
+    // expect(selector3Spy).toHaveBeenCalledTimes(1);
+  });
+
+  await user.click(screen.getByText('incy'));
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenLastCalledWith([{}, { a: 1, b: 2 }]);
+    expect(screen.getByTestId('state')).toHaveTextContent('2');
+    // expect(selector1Spy).toHaveBeenCalledTimes(2);
+    // expect(selector2Spy).toHaveBeenCalledTimes(2);
+    // expect(selector3Spy).toHaveBeenCalledTimes(1);
+  });
+
+  await user.click(screen.getByText('incx'));
+  await user.click(screen.getByText('cb'));
+
+  await waitFor(() => {
+    expect(cb).toHaveBeenLastCalledWith([{}, { a: 2, b: 4 }]);
     expect(screen.getByTestId('state')).toHaveTextContent('4');
     // expect(selector1Spy).toHaveBeenCalledTimes(3);
     // expect(selector2Spy).toHaveBeenCalledTimes(5);

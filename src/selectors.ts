@@ -1,7 +1,10 @@
-import { atomFamily, selectorFamily } from './recoilOrMinimalRecoil';
+import {
+  atomFamily,
+  selectorFamily,
+  waitForAll,
+} from './recoilOrMinimalRecoil';
 import { success, multi, isError, isWarning } from './validation';
 import {
-  Dict,
   FieldValidationResult,
   FieldState,
   FormState,
@@ -89,8 +92,12 @@ export const $fieldChildren = selectorFamily<string[], string>({
         return [];
       }
 
-      const result: string[] = field.children.map((id) =>
-        get($fieldChildren(fieldId(field.formId, id))),
+      const result: string[] = get(
+        waitForAll(
+          field.children.map((id: string) =>
+            $fieldChildren(fieldId(field.formId, id)),
+          ),
+        ),
       );
 
       return field.children.concat(...result);
@@ -107,16 +114,23 @@ export const $fieldValue = selectorFamily<any, string>({
     ({ get }) => {
       const field = get($field(id));
       if (field.type === FieldType.list) {
-        const result: any[] = field.children.map((id) =>
-          get($fieldValue(fieldId(field.formId, id))),
+        return get(
+          waitForAll(
+            field.children.map((id: string) =>
+              $fieldValue(fieldId(field.formId, id)),
+            ),
+          ),
         );
-        return result;
       }
       if (field.type === FieldType.map) {
-        const result: any[] = field.children.map((id) =>
-          get($fieldValue(fieldId(field.formId, id))),
+        const result = get(
+          waitForAll(
+            field.children.map((id: string) =>
+              $fieldValue(fieldId(field.formId, id)),
+            ),
+          ),
         );
-        return result.reduce<Dict<any>>((acc, value, i) => {
+        return result.reduce((acc, value, i) => {
           const id = last(
             field.children[i].split(nestedFieldSeparator),
           ) as string;
@@ -138,8 +152,12 @@ export const $fieldInitialValue = selectorFamily<any, string>({
     ({ get }) => {
       const field = get($field(id));
       if (field.type === FieldType.map) {
-        const result: any[] = field.children.map((id) =>
-          get($fieldInitialValue(fieldId(field.formId, id))),
+        const result: any[] = get(
+          waitForAll(
+            field.children.map((id) =>
+              $fieldInitialValue(fieldId(field.formId, id)),
+            ),
+          ),
         );
         return result.reduce<any>((acc, value, i) => {
           const id = last(
@@ -177,14 +195,22 @@ export const $fieldValidation = selectorFamily<any, string>({
     ({ get }) => {
       const field = get($field(id));
       if (field.type === FieldType.map) {
-        const result: FieldValidationResult[] = field.children.map((id) =>
-          get($fieldValidation(fieldId(field.formId, id))),
+        const result = get(
+          waitForAll(
+            field.children.map((id) =>
+              $fieldValidation(fieldId(field.formId, id)),
+            ),
+          ),
         );
         return { ...multi(result), name: field.name };
       }
       if (field.type === FieldType.list) {
-        const result: FieldValidationResult[] = field.children.map((id) =>
-          get($fieldValidation(fieldId(field.formId, id))),
+        const result: any[] = get(
+          waitForAll(
+            field.children.map((id) =>
+              $fieldValidation(fieldId(field.formId, id)),
+            ),
+          ),
         );
         return {
           ...multi([get($listValidation(id)), ...result]),
@@ -204,10 +230,9 @@ export const $formValidation = selectorFamily<FormValidationResult, string>({
     (formId: string) =>
     ({ get }) => {
       const { fieldIds } = get($form(formId));
-      const result: FieldValidationResult[] = fieldIds.map((id) =>
-        get($fieldValidation(fieldId(formId, id))),
+      const result: FieldValidationResult[] = get(
+        waitForAll(fieldIds.map((id) => $fieldValidation(fieldId(formId, id)))),
       );
-
       const errors = result.filter(isError);
       const warnings = result.filter(isWarning);
       return {
@@ -242,14 +267,14 @@ export const $values = selectorFamily<any, string>({
     (formId: string) =>
     ({ get }) => {
       const { fieldIds } = get($form(formId));
-      const values = fieldIds.reduce(
-        /* <Dict<any>> */ (acc, id) => {
-          acc[id] = get($fieldValue(fieldId(formId, id)));
-          return acc;
-        },
-        {},
+      const values = get(
+        waitForAll(
+          fieldIds.reduce((acc, id) => {
+            acc[id] = $fieldValue(fieldId(formId, id));
+            return acc;
+          }, {}),
+        ),
       );
-
       return values;
     },
   cachePolicy_UNSTABLE: {
@@ -263,14 +288,14 @@ export const $initialValues = selectorFamily<any, string>({
     (formId: string) =>
     ({ get }) => {
       const { fieldIds } = get($form(formId));
-      const values = fieldIds.reduce(
-        /* <Dict<any>> */ (acc, id) => {
-          acc[id] = get($fieldInitialValue(fieldId(formId, id)));
-          return acc;
-        },
-        {},
+      const values = get(
+        waitForAll(
+          fieldIds.reduce((acc, id) => {
+            acc[id] = $fieldInitialValue(fieldId(formId, id));
+            return acc;
+          }, {}),
+        ),
       );
-
       return values;
     },
   cachePolicy_UNSTABLE: {
@@ -285,14 +310,22 @@ export const $fieldTouched = selectorFamily<boolean, string>({
     ({ get }) => {
       const field = get($field(id));
       if (field.type === FieldType.map) {
-        const result: boolean[] = field.children.map((id) =>
-          get($fieldTouched(fieldId(field.formId, id))),
+        const result: boolean[] = get(
+          waitForAll(
+            field.children.map((id) =>
+              $fieldTouched(fieldId(field.formId, id)),
+            ),
+          ),
         );
         return result.reduce((acc: boolean, x: boolean) => acc || x, false);
       }
       if (field.type === FieldType.list) {
-        const result: boolean[] = field.children.map((id) =>
-          get($fieldTouched(fieldId(field.formId, id))),
+        const result: boolean[] = get(
+          waitForAll(
+            field.children.map((id) =>
+              $fieldTouched(fieldId(field.formId, id)),
+            ),
+          ),
         );
         return result.reduce(
           (acc: boolean, x: boolean) => acc || x,
@@ -312,8 +345,8 @@ export const $formTouched = selectorFamily({
     (formId: string) =>
     ({ get }) => {
       const { fieldIds } = get($form(formId));
-      const results = fieldIds.map((id) =>
-        get($fieldTouched(fieldId(formId, id))),
+      const results = get(
+        waitForAll(fieldIds.map((id) => $fieldTouched(fieldId(formId, id)))),
       );
       const touchedFieldIds = results.reduce((acc, result, i) => {
         if (result === true) {
@@ -350,10 +383,9 @@ export const $allFieldIds = selectorFamily<string[], string>({
     (formId: string) =>
     ({ get }) => {
       const fieldIds = get($fieldIds(formId));
-      const result = fieldIds.map((id) =>
-        get($fieldChildren(fieldId(formId, id))),
+      const result = get(
+        waitForAll(fieldIds.map((id) => $fieldChildren(fieldId(formId, id)))),
       );
-
       return fieldIds.concat(...result);
     },
   cachePolicy_UNSTABLE: {
@@ -372,15 +404,18 @@ export const $fieldDirty = selectorFamily<any, string>({
       const field = get($field(id));
       const { dirtyComparator = isNotEqual } = field;
       if (field.type === FieldType.map) {
-        const result: boolean[] = field.children.map((id) =>
-          get($fieldDirty(fieldId(field.formId, id))),
+        const result: boolean[] = get(
+          waitForAll(
+            field.children.map((id) => $fieldDirty(fieldId(field.formId, id))),
+          ),
         );
-
         return result.reduce<boolean>((acc, x) => acc || x, false);
       }
       if (field.type === FieldType.list) {
-        const result: any[] = field.children.map((id) =>
-          get($fieldValue(fieldId(field.formId, id))),
+        const result: any[] = get(
+          waitForAll(
+            field.children.map((id) => $fieldValue(fieldId(field.formId, id))),
+          ),
         );
         return dirtyComparator(result, field.initialValue);
       }
@@ -397,8 +432,8 @@ export const $formDirty = selectorFamily({
     (formId: string) =>
     ({ get }) => {
       const { fieldIds } = get($form(formId));
-      const results = fieldIds.map((id) =>
-        get($fieldDirty(fieldId(formId, id))),
+      const results = get(
+        waitForAll(fieldIds.map((id) => $fieldDirty(fieldId(formId, id)))),
       );
       const dirtyFieldIds = results.reduce((acc, result, i) => {
         if (result === true) {

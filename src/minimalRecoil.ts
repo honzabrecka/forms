@@ -47,6 +47,7 @@ type LoadableState<V> =
 type Atom<V> = {
   type: StoredType.atom;
   id: string;
+  partitionId: string;
   version: number;
   value: V;
   defaultValue: V;
@@ -66,6 +67,7 @@ type SelectorFactory<V> = ({ get }: SelectorFactoryProps) => V | Promise<V>;
 type Selector<V> = {
   type: StoredType.selector;
   id: string;
+  partitionId: string;
   version: number;
   factory: SelectorFactory<V>;
   value: V | Promise<V>;
@@ -516,6 +518,7 @@ export const atomFamily =
         newId,
         (atom = cacheAtomLoadableState({
           id: newId,
+          partitionId: partition,
           type: StoredType.atom,
           version: 0,
           value,
@@ -549,6 +552,7 @@ export const selectorFamily =
         newId,
         (atom = cacheAtomLoadableState({
           id: newId,
+          partitionId: partition,
           type: StoredType.selector,
           version: 0,
           value: undef as TODO,
@@ -618,6 +622,93 @@ export const useResetRecoilState = <V>(atom: Stored<V>) => {
     throw new Error('unsupported reset');
   };
 };
+
+type WaitFor = Stored<any>[] | { [key: string]: Stored<any> };
+
+const emptyArrayAtom = atomFamily({
+  key: 'waitForAll/emptyArray',
+  default: () => [],
+});
+
+const emptyMapAtom = atomFamily({
+  key: 'waitForAll/emptyMap',
+  default: () => ({}),
+});
+
+const waitForAllArray = (atoms: Stored<any>[]) => {
+  if (atoms.length === 0) return emptyArrayAtom('internal');
+
+  const { partitionId } = atoms[0];
+  const id = atoms.reduce((acc, { id }) => `${acc}/${id}`, partitionId);
+  let selector = getPartition(partitionId).get(id);
+
+  if (!selector) {
+    selector = selectorFamily({
+      key: 'waitForAll/array',
+      get:
+        () =>
+        ({ get }) => {
+          let throws = false;
+          const resolved = atoms.map((atom) => {
+            try {
+              return get(atom);
+            } catch (e) {
+              throws = true;
+              return null; // just to please linter
+            }
+          });
+          if (throws) throw Error('pending waitForAll');
+          return resolved;
+        },
+    })(id);
+    // no need to set it to store manually as it is done by selectorFamily call
+  }
+
+  return selector;
+};
+
+const waitForAllMap = <V>(atoms: { [key: string]: Stored<V> }) => {
+  const entries = Object.entries(atoms);
+
+  if (entries.length === 0) return emptyMapAtom('internal');
+
+  const { partitionId } = entries[0][1];
+  const id = entries.reduce((acc, [, { id }]) => `${acc}/${id}`, partitionId);
+  let selector = getPartition(partitionId).get(id);
+
+  if (!selector) {
+    selector = selectorFamily<{ [key: string]: V }, string>({
+      key: 'waitForAll/map',
+      get:
+        () =>
+        ({ get }) => {
+          let throws = false;
+          const resolved = entries.reduce((acc, [key, atom]) => {
+            try {
+              acc[key] = get(atom);
+            } catch (e) {
+              throws = true;
+            }
+            return acc;
+          }, {});
+          if (throws) throw Error('pending waitForAll');
+          return resolved;
+        },
+    })(id);
+    // no need to set it to store manually as it is done by selectorFamily call
+  }
+
+  return selector;
+};
+
+export const waitForAll = (atoms: WaitFor) => {
+  return Array.isArray(atoms) ? waitForAllArray(atoms) : waitForAllMap(atoms);
+};
+
+// waitForAny
+// waitForNone
+
+// noWait
 
 //
 
@@ -746,8 +837,9 @@ const runGC = throttle(
   () => {
     if (debug) console.log('running GC');
 
-    if (partitionsToGC.size > 0) {
-      const id = partitionsToGC.values().next().value;
+    const id = partitionsToGC.values().next().value;
+
+    if (id) {
       if (debug) console.log('running GC on partition', id);
 
       const partition = partitions.get(id);
