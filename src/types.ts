@@ -66,6 +66,7 @@ export type FormState = {
   submission: Promise<FormSubmission>;
   readyDelayKey: number;
   readyDelay: Promise<unknown>;
+  errorBannerMessage: string | null;
 };
 
 export enum FieldType {
@@ -168,6 +169,7 @@ export type UseFormProps = {
   onReady?: (bag: OnReadyBag) => any;
   initialValues?: Dict<any>;
   isValidProp?: 'isValid' | 'isValidStrict';
+  errorBannerMessage?: string | null;
 };
 
 export type UseFieldProps = {

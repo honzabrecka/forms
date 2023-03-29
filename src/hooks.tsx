@@ -10,6 +10,7 @@ import {
   $formTouched,
   $fieldDirty,
   $formDirty,
+  $errorBannerMessage,
 } from './selectors';
 import { FieldIdentification, FieldValidationResult, Validator } from './types';
 
@@ -87,6 +88,10 @@ export function useFieldValueLoadable<T>({
   return useRecoilValueLoadable<T | undefined>(
     $fieldValue(fieldId(useFormId(formId), name)),
   );
+}
+
+export function useErrorBannerMessage(formId?: string) {
+  return useRecoilValue($errorBannerMessage(useFormId(formId)));
 }
 
 export type CompareFieldValue<T> = (value: T | undefined) => boolean;

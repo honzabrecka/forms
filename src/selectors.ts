@@ -36,6 +36,7 @@ export const $form = atomFamily<FormState, string>({
     submission: Promise.resolve(null),
     readyDelayKey: 0,
     readyDelay: delay(defaultReadyDelayTimeout),
+    errorBannerMessage: null,
   }),
 });
 
@@ -440,6 +441,17 @@ export const $formReadyDelayKey = selectorFamily({
     (id: string) =>
     ({ get }) =>
       get($form(id)).readyDelayKey,
+  cachePolicy_UNSTABLE: {
+    eviction: 'most-recent',
+  },
+});
+
+export const $errorBannerMessage = selectorFamily({
+  key: 'form/errorBannerMessage',
+  get:
+    (id: string) =>
+    ({ get }) =>
+      get($form(id)).errorBannerMessage,
   cachePolicy_UNSTABLE: {
     eviction: 'most-recent',
   },

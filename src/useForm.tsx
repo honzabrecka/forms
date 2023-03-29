@@ -50,6 +50,7 @@ export default function useForm({
   onReady = noop,
   initialValues = {},
   isValidProp = 'isValid',
+  errorBannerMessage = null,
 }: UseFormProps = {}) {
   const [formId] = useState<string>(() => `form/${uid()}`);
 
@@ -346,6 +347,13 @@ export default function useForm({
       resetFields(fieldIds);
     };
 
+    const setErrorBannerMessage = (message: string | null) => {
+      setForm((state: FormState) => ({
+        ...state,
+        errorBannerMessage: message,
+      }));
+    };
+
     const submit = async (...args: any[]) => {
       const bag = {
         ...(await getBag()),
@@ -360,6 +368,7 @@ export default function useForm({
         addFields,
         removeFields,
         handleDependentFields,
+        setErrorBannerMessage,
         args,
       };
 
@@ -368,6 +377,7 @@ export default function useForm({
           await onSubmitStable(bag);
         } else {
           setAllToTouched();
+          setErrorBannerMessage(errorBannerMessage);
           await onSubmitInvalidStable(bag);
         }
       } catch (error) {
@@ -381,7 +391,11 @@ export default function useForm({
 
     const createSubmitPromise = (...args: any[]) => {
       const submission = submit(...args);
-      setForm((state: FormState) => ({ ...state, submission }));
+      setForm((state: FormState) => ({
+        ...state,
+        errorBannerMessage: null,
+        submission,
+      }));
     };
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -408,6 +422,7 @@ export default function useForm({
       addFields,
       removeFields,
       handleDependentFields,
+      setErrorBannerMessage,
     };
 
     const Form = ({ children }: { children: React.ReactNode }) => {
