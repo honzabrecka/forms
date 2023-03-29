@@ -1,9 +1,5 @@
 import isEqual from 'lodash.isequal';
-import {
-  atomFamily,
-  selectorFamily,
-  waitForAll,
-} from './recoilOrMinimalRecoil';
+import { atomFamily, selectorFamily, waitForAll } from './minimalRecoil';
 import { success, multi, isError, isWarning } from './validation';
 import {
   FieldValidationResult,

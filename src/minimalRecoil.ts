@@ -44,6 +44,8 @@ type LoadableState<V> =
       getValue: () => V;
     };
 
+export type Loadable<V> = LoadableState<V>;
+
 type Atom<V> = {
   type: StoredType.atom;
   id: string;

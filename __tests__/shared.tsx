@@ -1,7 +1,6 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import React, { useEffect, useState, useCallback, StrictMode } from 'react';
 import {
-  RecoilRoot,
   useField,
   UseFieldProps,
   useFormId,
@@ -9,9 +8,7 @@ import {
 } from '../src/index';
 
 export const wrapper = ({ children }: any) => (
-  <StrictMode>
-    <RecoilRoot>{children}</RecoilRoot>
-  </StrictMode>
+  <StrictMode>{children}</StrictMode>
 );
 
 export type FieldProps = {

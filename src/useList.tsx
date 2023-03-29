@@ -5,7 +5,7 @@ import {
   useRecoilCallback,
   /* eslint-disable-next-line camelcase */
   useRecoilTransaction_UNSTABLE,
-} from './recoilOrMinimalRecoil';
+} from './minimalRecoil';
 import {
   fieldId,
   $field,

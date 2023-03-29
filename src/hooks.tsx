@@ -1,8 +1,5 @@
 import { useContext, useState } from 'react';
-import {
-  useRecoilValue,
-  useRecoilValueLoadable,
-} from './recoilOrMinimalRecoil';
+import { useRecoilValue, useRecoilValueLoadable } from './minimalRecoil';
 import { FormContext } from './FormContext';
 import {
   fieldId,

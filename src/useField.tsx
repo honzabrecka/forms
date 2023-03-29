@@ -4,7 +4,7 @@ import {
   useRecoilState,
   useRecoilValueLoadable,
   useResetRecoilState,
-} from './recoilOrMinimalRecoil';
+} from './minimalRecoil';
 import { fieldId, $field, $fieldValidation } from './selectors';
 import { useFormId } from './hooks';
 import {

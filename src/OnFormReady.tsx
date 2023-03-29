@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useRecoilValueLoadable } from './recoilOrMinimalRecoil';
+import { useRecoilValueLoadable } from './minimalRecoil';
 import { useFormId } from './hooks';
 import { Callback0 } from './types';
 import { $values, $formReadyDelay, $formReadyDelayKey } from './selectors';

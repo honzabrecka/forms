@@ -1,7 +1,6 @@
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  RecoilRoot,
   useForm,
   OnChange,
   Validator,
@@ -59,9 +58,7 @@ const App = () => {
 const Wrapper = () => {
   return (
     <StrictMode>
-      <RecoilRoot>
-        <App />
-      </RecoilRoot>
+      <App />
     </StrictMode>
   );
 };

@@ -1,5 +1,5 @@
 import { FormEvent } from 'react';
-import { Loadable } from 'recoil';
+import { Loadable } from './minimalRecoil';
 import { ERROR, SUCCESS, WARNING } from './validation';
 
 export type Dict<T> = { [K in string]: T };

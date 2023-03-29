@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useSetRecoilState, useRecoilCallback } from './recoilOrMinimalRecoil';
+import { useSetRecoilState, useRecoilCallback } from './minimalRecoil';
 import useList from './useList';
 import { delay, $field, $fieldValue, fieldId } from './selectors';
 import { useFieldValueLoadable, useFormId } from './hooks';

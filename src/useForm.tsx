@@ -5,7 +5,7 @@ import {
   useRecoilCallback,
   useSetRecoilState,
   useRecoilGC_UNSTABLE,
-} from './recoilOrMinimalRecoil';
+} from './minimalRecoil';
 import {
   fieldId,
   $field,

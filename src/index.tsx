@@ -8,6 +8,4 @@ export * from './hooks';
 export * from './validation';
 export { createNestedName } from './nested';
 
-export { RecoilRoot } from 'recoil';
-
 export * from './types';
