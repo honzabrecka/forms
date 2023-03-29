@@ -506,8 +506,8 @@ const getPartitionFromId = (id: string) => {
 };
 
 export const atomFamily =
-  <V, ID extends string>({ key, ...props }: AtomFamilyProps<V>) =>
-  (id: ID) => {
+  <V>({ key, ...props }: AtomFamilyProps<V>) =>
+  (id: string) => {
     const partition = getPartitionFromId(id);
     const newId = `A/${key}/${id}`;
     let atom = getPartition(partition).get(newId);
@@ -541,8 +541,8 @@ type SelectorFamilyProps<T> = {
 };
 
 export const selectorFamily =
-  <V, ID extends string>({ key, get }: SelectorFamilyProps<V>) =>
-  (id: ID) => {
+  <V>({ key, get }: SelectorFamilyProps<V>) =>
+  (id: string) => {
     const partition = getPartitionFromId(id);
     const newId = `S/${key}/${id}`;
     let atom = getPartition(partition).get(newId);
@@ -642,7 +642,7 @@ const waitForAllArray = (atoms: Stored<any>[]) => {
   let selector = getPartition(partitionId).get(id);
 
   if (!selector) {
-    selector = selectorFamily({
+    selector = selectorFamily<any[]>({
       key: 'waitForAll/array',
       get:
         () =>
@@ -666,7 +666,7 @@ const waitForAllArray = (atoms: Stored<any>[]) => {
   return selector;
 };
 
-const waitForAllMap = <V>(atoms: { [key: string]: Stored<V> }) => {
+const waitForAllMap = (atoms: { [key: string]: Stored<any> }) => {
   const entries = Object.entries(atoms);
 
   if (entries.length === 0) return emptyMapAtom('internal');
@@ -676,7 +676,7 @@ const waitForAllMap = <V>(atoms: { [key: string]: Stored<V> }) => {
   let selector = getPartition(partitionId).get(id);
 
   if (!selector) {
-    selector = selectorFamily<{ [key: string]: V }, string>({
+    selector = selectorFamily<{ [key: string]: any }>({
       key: 'waitForAll/map',
       get:
         () =>

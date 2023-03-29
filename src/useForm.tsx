@@ -341,7 +341,8 @@ export default function useForm({
     };
 
     const submit = async (...args: any[]) => {
-      await delay(10);
+      await delay(10); // to get fresh bag
+
       const bag = {
         ...(await getBag()),
         setValues,

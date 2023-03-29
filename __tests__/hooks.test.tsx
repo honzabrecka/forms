@@ -122,7 +122,6 @@ test('forms: setValues with validator', async () => {
   await act(() => {
     result.current.form.setValues({ a: Promise.resolve(2) });
   });
-  console.log(validator.mock.calls);
   // NOTE (react 18) in dev mode it mounts 2x
   expect(await validator.mock.calls[2][0]).toBe(2);
   const bag = await validator.mock.calls[2][1]();

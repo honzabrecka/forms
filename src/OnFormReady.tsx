@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { useRecoilValueLoadable } from './minimalRecoil';
+import { useRecoilValue, useRecoilValueLoadable } from './minimalRecoil';
 import { useFormId } from './hooks';
 import { Callback0 } from './types';
 import { $values, $formReadyDelay, $formReadyDelayKey } from './selectors';
 
 function useFormReadyLoadable(formId: string) {
   return [
-    useRecoilValueLoadable($formReadyDelay(formId)) as any,
-    useRecoilValueLoadable($values(formId)) as any,
+    useRecoilValueLoadable($formReadyDelay(formId)),
+    useRecoilValueLoadable($values(formId)),
   ].reduce((acc, { state }) => acc && state === 'hasValue', true);
 }
 
@@ -37,8 +37,8 @@ export type OnFormReadyProps = {
 
 const OnFormReady = ({ cb, formId }: OnFormReadyProps) => {
   const formIdProp = useFormId(formId);
-  const key = useRecoilValueLoadable($formReadyDelayKey(formIdProp)) as any;
-  return <OnFormReadyInner cb={cb} formId={formIdProp} key={key.contents} />;
+  const key = useRecoilValue($formReadyDelayKey(formIdProp));
+  return <OnFormReadyInner cb={cb} formId={formIdProp} key={key} />;
 };
 
 export default OnFormReady;

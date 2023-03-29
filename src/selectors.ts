@@ -33,7 +33,7 @@ export const fieldId = (formId: string, name: string) =>
 
 export const defaultReadyDelayTimeout = 100;
 
-export const $form = atomFamily<FormState, string>({
+export const $form = atomFamily<FormState>({
   key: `form`,
   default: (id: string) => ({
     id,
@@ -45,7 +45,7 @@ export const $form = atomFamily<FormState, string>({
   }),
 });
 
-export const $formSubmission = selectorFamily<FormSubmission, string>({
+export const $formSubmission = selectorFamily<FormSubmission>({
   key: 'form/submission',
   get:
     (id) =>
@@ -56,7 +56,7 @@ export const $formSubmission = selectorFamily<FormSubmission, string>({
   },
 });
 
-export const $field = atomFamily<FieldState, string>({
+export const $field = atomFamily<FieldState>({
   key: 'field',
   default: (id) => {
     const [formId, name] = id.split(fieldIdSeparator);
@@ -78,7 +78,7 @@ export const $field = atomFamily<FieldState, string>({
   },
 });
 
-export const $fieldChildren = selectorFamily<string[], string>({
+export const $fieldChildren = selectorFamily<string[]>({
   key: 'field/children',
   get:
     (id: string) =>
@@ -104,7 +104,7 @@ export const $fieldChildren = selectorFamily<string[], string>({
   },
 });
 
-export const $fieldValue = selectorFamily<any, string>({
+export const $fieldValue = selectorFamily<any>({
   key: 'field/value',
   get:
     (id: string) =>
@@ -142,7 +142,7 @@ export const $fieldValue = selectorFamily<any, string>({
   },
 });
 
-export const $fieldInitialValue = selectorFamily<any, string>({
+export const $fieldInitialValue = selectorFamily<any>({
   key: 'field/initialValue',
   get:
     (id: string) =>
@@ -171,7 +171,7 @@ export const $fieldInitialValue = selectorFamily<any, string>({
   },
 });
 
-const $listValidation = selectorFamily<any, string>({
+const $listValidation = selectorFamily<any>({
   key: 'field/listValidation',
   get:
     (id: string) =>
@@ -185,7 +185,7 @@ const $listValidation = selectorFamily<any, string>({
   },
 });
 
-export const $fieldValidation = selectorFamily<any, string>({
+export const $fieldValidation = selectorFamily<FieldValidationResult>({
   key: 'field/validation',
   get:
     (id: string) =>
@@ -221,7 +221,7 @@ export const $fieldValidation = selectorFamily<any, string>({
   },
 });
 
-export const $formValidation = selectorFamily<FormValidationResult, string>({
+export const $formValidation = selectorFamily<FormValidationResult>({
   key: 'form/validation',
   get:
     (formId: string) =>
@@ -258,7 +258,7 @@ export const $fields = selectorFamily({
   },
 });
 
-export const $values = selectorFamily<any, string>({
+export const $values = selectorFamily<any>({
   key: 'form/values',
   get:
     (formId: string) =>
@@ -279,7 +279,7 @@ export const $values = selectorFamily<any, string>({
   },
 });
 
-export const $initialValues = selectorFamily<any, string>({
+export const $initialValues = selectorFamily<any>({
   key: 'form/initialValues',
   get:
     (formId: string) =>
@@ -300,7 +300,7 @@ export const $initialValues = selectorFamily<any, string>({
   },
 });
 
-export const $fieldTouched = selectorFamily<boolean, string>({
+export const $fieldTouched = selectorFamily<boolean>({
   key: 'field/touched',
   get:
     (id: string) =>
@@ -374,7 +374,7 @@ export const $fieldIds = selectorFamily({
   },
 });
 
-export const $allFieldIds = selectorFamily<string[], string>({
+export const $allFieldIds = selectorFamily<string[]>({
   key: 'form/allFieldIds',
   get:
     (formId: string) =>
@@ -392,7 +392,7 @@ export const $allFieldIds = selectorFamily<string[], string>({
 
 const isNotEqual = (a: any = null, b: any = null) => !isEqual(a, b);
 
-export const $fieldDirty = selectorFamily<any, string>({
+export const $fieldDirty = selectorFamily<any>({
   key: 'field/dirty',
   get:
     (id: string) =>
@@ -447,7 +447,7 @@ export const $formDirty = selectorFamily({
   },
 });
 
-export const $formReadyDelay = selectorFamily({
+export const $formReadyDelay = selectorFamily<Promise<any>>({
   key: 'form/readyDelay',
   get:
     (id: string) =>
@@ -458,7 +458,7 @@ export const $formReadyDelay = selectorFamily({
   },
 });
 
-export const $formReadyDelayKey = selectorFamily({
+export const $formReadyDelayKey = selectorFamily<string>({
   key: 'form/readyDelayKey',
   get:
     (id: string) =>
@@ -469,7 +469,7 @@ export const $formReadyDelayKey = selectorFamily({
   },
 });
 
-export const $errorBannerMessage = selectorFamily({
+export const $errorBannerMessage = selectorFamily<string | null>({
   key: 'form/errorBannerMessage',
   get:
     (id: string) =>

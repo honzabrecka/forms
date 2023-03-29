@@ -28,7 +28,7 @@ export function useFormSubmissionLoadable(formId?: string) {
 }
 
 export function useFormIsSubmitting(formId?: string) {
-  const { state } = useFormSubmissionLoadable(formId) as any;
+  const { state } = useFormSubmissionLoadable(formId);
   return state === 'loading';
 }
 
@@ -107,7 +107,7 @@ export function useDependentField<T>({
 ] {
   const value = useRecoilValueLoadable<T>(
     $fieldValue(fieldId(useFormId(formId), name)),
-  ) as any;
+  );
   const valueMaybe = value.valueMaybe();
   return [compare(valueMaybe), compare, valueMaybe];
 }
