@@ -300,7 +300,7 @@ export const read = (atom: Stored<any>) => {
   }
 };
 
-const ignoredRead = (atom: Stored<any>) => {
+const readWithIgnoredThrow = (atom: Stored<any>) => {
   try {
     read(atom);
   } catch (e) {
@@ -462,7 +462,7 @@ const getSnapshot =
   <V>(atom: Stored<V>) =>
   () => {
     // if (debug) console.log('getSnapshot', atom.id);
-    ignoredRead(atom);
+    readWithIgnoredThrow(atom);
     return atom.cachedLoadableState;
   };
 
@@ -702,11 +702,6 @@ export const waitForAll = (atoms: WaitFor) => {
   return Array.isArray(atoms) ? waitForAllArray(atoms) : waitForAllMap(atoms);
 };
 
-// waitForAny
-// waitForNone
-
-// noWait
-
 //
 
 const getPromise = <V>(atom: Stored<V>) => {
@@ -727,14 +722,15 @@ const getPromiseForSuspense = <V>(atom: Stored<V>) => {
 
 const snapshot = {
   getLoadable: <V>(atom: Stored<V>) => {
-    ignoredRead(atom);
+    readWithIgnoredThrow(atom);
     return atom.cachedLoadableState;
   },
   getPromise: <V>(atom: Stored<V>) => atom.cachedLoadableState.toPromise(),
   // custom addition
+  // useful for reading selectors that are always sync,
+  // so no need to shuffle with state & contents (TS thing, yes)
   getValue: <V>(atom: Stored<V>) => {
-    ignoredRead(atom);
-    return atom.cachedLoadableState.contents as V;
+    return getPromiseForSuspense(atom);
   },
 };
 
