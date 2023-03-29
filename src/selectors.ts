@@ -1,3 +1,4 @@
+import isEqual from 'lodash.isequal';
 import {
   atomFamily,
   selectorFamily,
@@ -393,8 +394,7 @@ export const $allFieldIds = selectorFamily<string[], string>({
   },
 });
 
-const isNotEqual = (a: any = null, b: any = null) =>
-  JSON.stringify(a) !== JSON.stringify(b);
+const isNotEqual = (a: any = null, b: any = null) => !isEqual(a, b);
 
 export const $fieldDirty = selectorFamily<any, string>({
   key: 'field/dirty',

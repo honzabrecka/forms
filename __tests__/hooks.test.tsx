@@ -998,7 +998,7 @@ test('forms: dirty - setValues + setInitialValues', async () => {
   });
 });
 
-test('forms: dirty - default dirtyComparator compares by value (JSON.stringify)', async () => {
+test('forms: dirty - default dirtyComparator compares by value (lodash.isEqual)', async () => {
   const { result } = renderHook(
     () => {
       const form = useForm({

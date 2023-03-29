@@ -308,9 +308,6 @@ const ignoredRead = (atom: Stored<any>) => {
   }
 };
 
-// TODO
-// const JSONEqual = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
-
 // @private
 export const compare = (a: any, b: any) => {
   if (isPromise(a) && isPromise(b)) {
