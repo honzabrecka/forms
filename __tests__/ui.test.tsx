@@ -100,9 +100,8 @@ test('forms: unmount (GC)', async () => {
 
   await delay(250);
   await delay(250);
-  // await delay(250);
-  // await delay(250);
-  // await delay(250);
+  await delay(250);
+  await delay(250);
 
   expect(partitions.get(familyId)).toEqual(undefined);
 });
@@ -150,9 +149,8 @@ test('forms: unmount (GC) with custom formId', async () => {
 
   await delay(250);
   await delay(250);
-  // await delay(250);
-  // await delay(250);
-  // await delay(250);
+  await delay(250);
+  await delay(250);
 
   expect(partitions.get(familyId)).toEqual(undefined);
 });

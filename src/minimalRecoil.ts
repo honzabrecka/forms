@@ -54,7 +54,7 @@ type Atom<V> = {
   value: V;
   defaultValue: V;
   state: StoredState;
-  destroyed: boolean;
+  destroyed: number;
   cachedLoadableState: LoadableState<V>;
   resolve?: Callback1<any>;
   dependents: Set<Stored<any>>;
@@ -77,7 +77,7 @@ type Selector<V> = {
   factory: SelectorFactory<V>;
   value: V | Promise<V>;
   state: StoredState;
-  destroyed: boolean;
+  destroyed: number;
   cachedLoadableState: LoadableState<V>;
   resolve?: Callback1<any>;
   dependents: Set<Stored<any>>;
@@ -137,7 +137,7 @@ export const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
     e.promise.version = atom.version;
     e.promise
       .then((resolvedValue: TODO) => {
-        if (atom.destroyed) return;
+        if (atom.destroyed > 0) return;
 
         if (debug)
           console.log(
@@ -198,7 +198,7 @@ export const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
     e.state = StoredState.loading;
     e.id = atom.id;
     e.then((resolvedValue: TODO) => {
-      if (atom.destroyed) return;
+      if (atom.destroyed > 0) return;
 
       if (debug)
         console.log(
@@ -535,7 +535,7 @@ export const atomFamily =
           value,
           defaultValue: value,
           state: StoredState.hasValue,
-          destroyed: false,
+          destroyed: 0,
           cachedLoadableState: emptyLoadableState,
           listeners: {
             components: new Set(),
@@ -576,7 +576,7 @@ export const selectorFamily =
           version: 0,
           value: undef as TODO,
           state: StoredState.loading,
-          destroyed: false,
+          destroyed: 0,
           cachedLoadableState: emptyLoadableState,
           factory: get(id),
           listeners: {
@@ -854,7 +854,7 @@ const partitionsToGC = new Set<string>();
 // clears the whole partition, nothing smart & no hard feelings
 const runPartitionGC = throttle(
   () => {
-    if (debug) console.log('running GC');
+    if (debug) console.log('running GC', partitionsToGC);
 
     const id = partitionsToGC.values().next().value;
 
@@ -864,8 +864,10 @@ const runPartitionGC = throttle(
       const partition = partitions.get(id);
 
       if (partition) {
+        const now = Date.now();
+
         partition.forEach((atom) => {
-          if (atom.destroyed) {
+          if (atom.destroyed > 0 && now > atom.destroyed) {
             atom.dependents = new Set();
             atom.listeners = {
               components: new Set(),
@@ -874,11 +876,16 @@ const runPartitionGC = throttle(
             partition.delete(atom.id);
           }
         });
-        partitions.delete(id);
+
+        if (partition.size === 0) {
+          partitions.delete(id);
+          partitionsToGC.delete(id);
+        }
       }
 
-      partitionsToGC.delete(id);
-      runPartitionGC();
+      if (partitionsToGC.size > 0) {
+        runPartitionGC();
+      }
     }
   },
   100,
@@ -888,7 +895,7 @@ const runPartitionGC = throttle(
 // TODO custom addition
 export const useRecoilPartitionGC_UNSTABLE = (id: string) => {
   useEffect(() => {
-    const mark = (destroyed: boolean) => {
+    const mark = (destroyed: number) => {
       const partition = partitions.get(id);
       if (partition) {
         partition.forEach((atom) => {
@@ -896,10 +903,11 @@ export const useRecoilPartitionGC_UNSTABLE = (id: string) => {
         });
       }
     };
-    mark(false);
+    mark(0);
     partitionsToGC.delete(id);
     return () => {
-      mark(true);
+      const now = Date.now();
+      mark(now + 100);
       partitionsToGC.add(id);
       runPartitionGC();
     };
