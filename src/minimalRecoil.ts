@@ -58,7 +58,10 @@ type Atom<V> = {
   cachedLoadableState: LoadableState<V>;
   resolve?: Callback1<any>;
   dependents: Set<Stored<any>>;
-  listeners: Set<Callback0>;
+  listeners: {
+    components: Set<Callback0>;
+    atoms: Set<Stored<any>>;
+  };
 };
 
 type SelectorFactoryProps = {
@@ -78,7 +81,10 @@ type Selector<V> = {
   cachedLoadableState: LoadableState<V>;
   resolve?: Callback1<any>;
   dependents: Set<Stored<any>>;
-  listeners: Set<Callback0>;
+  listeners: {
+    components: Set<Callback0>;
+    atoms: Set<Stored<any>>;
+  };
 };
 
 type Stored<V> = Atom<V> | Selector<V>;
@@ -235,6 +241,7 @@ const readPlain = (atom: Stored<any>) => {
   if (atom.type === StoredType.selector) {
     const get = (dependentAtom) => {
       dependentAtom.dependents.add(atom);
+      atom.listeners.atoms.add(dependentAtom);
       return read(dependentAtom);
     };
     // compute only in case it's first read
@@ -343,7 +350,7 @@ export const notify = (atom: Stored<any>) => {
 
   const listeners = new Set<Callback0>();
 
-  atom.listeners.forEach((l) => listeners.add(l));
+  atom.listeners.components.forEach((l) => listeners.add(l));
 
   atom.dependents.forEach((d) => {
     if (d !== atom) {
@@ -352,6 +359,7 @@ export const notify = (atom: Stored<any>) => {
       } else if (d.type === StoredType.selector) {
         const get = (dependentAtom) => {
           dependentAtom.dependents.add(d);
+          d.listeners.atoms.add(dependentAtom);
           return read(dependentAtom);
         };
 
@@ -501,7 +509,9 @@ const getPartition = (id: string) => {
   return partition;
 };
 
-const defaultGetPartitionFromId = () => 'global';
+const globalPartitionId = 'minimal-recoil/global';
+
+const defaultGetPartitionFromId = () => globalPartitionId;
 
 export const atomFamily =
   <V>({
@@ -527,7 +537,10 @@ export const atomFamily =
           state: StoredState.hasValue,
           destroyed: false,
           cachedLoadableState: emptyLoadableState,
-          listeners: new Set(),
+          listeners: {
+            components: new Set(),
+            atoms: new Set(),
+          },
           dependents: new Set(),
         })),
       );
@@ -566,7 +579,10 @@ export const selectorFamily =
           destroyed: false,
           cachedLoadableState: emptyLoadableState,
           factory: get(id),
-          listeners: new Set(),
+          listeners: {
+            components: new Set(),
+            atoms: new Set(),
+          },
           dependents: new Set(),
         })),
       );
@@ -587,9 +603,9 @@ export const useSetRecoilState = <V>(atom: Stored<V>) => {
 export const useRecoilValue = <V>(atom: Stored<V>) => {
   const subscribe = useCallback(
     (listener: Callback0) => {
-      atom.listeners.add(listener);
+      atom.listeners.components.add(listener);
       return () => {
-        atom.listeners.delete(listener);
+        atom.listeners.components.delete(listener);
       };
     },
     [atom],
@@ -603,9 +619,9 @@ export const useRecoilValue = <V>(atom: Stored<V>) => {
 export const useRecoilValueLoadable = <V>(atom: Stored<V>) => {
   const subscribe = useCallback(
     (listener: Callback0) => {
-      atom.listeners.add(listener);
+      atom.listeners.components.add(listener);
       return () => {
-        atom.listeners.delete(listener);
+        atom.listeners.components.delete(listener);
       };
     },
     [atom],
@@ -835,7 +851,8 @@ export const useRecoilTransaction_UNSTABLE = <D extends ReadonlyArray<unknown>>(
 
 const partitionsToGC = new Set<string>();
 
-const runGC = throttle(
+// clears the whole partition, nothing smart & no hard feelings
+const runPartitionGC = throttle(
   () => {
     if (debug) console.log('running GC');
 
@@ -850,7 +867,10 @@ const runGC = throttle(
         partition.forEach((atom) => {
           if (atom.destroyed) {
             atom.dependents = new Set();
-            atom.listeners = new Set();
+            atom.listeners = {
+              components: new Set(),
+              atoms: new Set(),
+            };
             partition.delete(atom.id);
           }
         });
@@ -858,7 +878,7 @@ const runGC = throttle(
       }
 
       partitionsToGC.delete(id);
-      runGC();
+      runPartitionGC();
     }
   },
   100,
@@ -866,7 +886,7 @@ const runGC = throttle(
 );
 
 // TODO custom addition
-export const useRecoilGC_UNSTABLE = (id: string) => {
+export const useRecoilPartitionGC_UNSTABLE = (id: string) => {
   useEffect(() => {
     const mark = (destroyed: boolean) => {
       const partition = partitions.get(id);
@@ -881,7 +901,7 @@ export const useRecoilGC_UNSTABLE = (id: string) => {
     return () => {
       mark(true);
       partitionsToGC.add(id);
-      runGC();
+      runPartitionGC();
     };
   }, [id]);
 };

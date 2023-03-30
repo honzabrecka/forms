@@ -4,7 +4,7 @@ import {
   useRecoilTransaction_UNSTABLE,
   useRecoilCallback,
   useSetRecoilState,
-  useRecoilGC_UNSTABLE,
+  useRecoilPartitionGC_UNSTABLE,
 } from './minimalRecoil';
 import {
   fieldId,
@@ -294,7 +294,7 @@ export default function useForm({
     setValues(initialValues, { asInitialValues: true });
   }, []);
 
-  useRecoilGC_UNSTABLE(formId);
+  useRecoilPartitionGC_UNSTABLE(formId);
 
   return useMemo(() => {
     const addFields = (names: string[]) => {
