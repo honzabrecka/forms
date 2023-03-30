@@ -483,12 +483,6 @@ const getSnapshotForSuspense =
     return atom.cachedLoadableState.getValue() as V;
   };
 
-type AtomFamilyProps<V> = {
-  key: string;
-  default: (id: string) => V;
-  getPartitionFromId?: (id: string) => string;
-};
-
 const emptyLoadableState: LoadableState<undefined> = {
   state: 'loading',
   contents: Promise.resolve(undefined),
@@ -512,6 +506,48 @@ const getPartition = (id: string) => {
 const globalPartitionId = 'minimal-recoil/global';
 
 const defaultGetPartitionFromId = () => globalPartitionId;
+
+type AtomProps<V> = {
+  key: string;
+  default: V;
+};
+
+// TODO test
+export const atom = <V>({ key, ...props }: AtomProps<V>) => {
+  const partition = globalPartitionId;
+  const newId = `A/${key}`;
+  let atom = getPartition(partition).get(newId);
+  if (!atom) {
+    const value = props.default;
+    getPartition(partition).set(
+      newId,
+      (atom = cacheAtomLoadableState({
+        id: newId,
+        partitionId: partition,
+        type: StoredType.atom,
+        version: 0,
+        value,
+        defaultValue: value,
+        state: StoredState.hasValue,
+        destroyed: 0,
+        cachedLoadableState: emptyLoadableState,
+        listeners: {
+          components: new Set(),
+          atoms: new Set(),
+        },
+        dependents: new Set(),
+      })),
+    );
+  }
+
+  return atom as Atom<V>;
+};
+
+type AtomFamilyProps<V> = {
+  key: string;
+  default: (id: string) => V;
+  getPartitionFromId?: (id: string) => string;
+};
 
 export const atomFamily =
   <V>({
@@ -548,6 +584,40 @@ export const atomFamily =
 
     return atom as Atom<V>;
   };
+
+type SelectorProps<T> = {
+  key: string;
+  get: ({ get }: SelectorFactoryProps) => T;
+  cachePolicy_UNSTABLE?: IGNORE;
+};
+
+// TODO test
+export const selector = <V>({ key, get }: SelectorProps<V>) => {
+  const partition = globalPartitionId;
+  const newId = `S/${key}`;
+  let atom = getPartition(partition).get(newId);
+  if (!atom)
+    getPartition(partition).set(
+      newId,
+      (atom = cacheAtomLoadableState({
+        id: newId,
+        partitionId: partition,
+        type: StoredType.selector,
+        version: 0,
+        value: undef as TODO,
+        state: StoredState.loading,
+        destroyed: 0,
+        cachedLoadableState: emptyLoadableState,
+        factory: get,
+        listeners: {
+          components: new Set(),
+          atoms: new Set(),
+        },
+        dependents: new Set(),
+      })),
+    );
+  return atom as Selector<V>;
+};
 
 type SelectorFamilyProps<T> = {
   key: string;
