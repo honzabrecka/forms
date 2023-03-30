@@ -107,6 +107,56 @@ test('forms: unmount (GC)', async () => {
   expect(partitions.get(familyId)).toEqual(undefined);
 });
 
+test('forms: unmount (GC) with custom formId', async () => {
+  const onSubmit = jest.fn();
+  let familyId;
+  const App = () => {
+    const { Form, formId } = useForm({
+      formId: 'fooForm',
+      onSubmit,
+    });
+    familyId = formId;
+    return (
+      <Form>
+        <Field name="name" label="Name" />
+        <button type="submit">submit</button>
+      </Form>
+    );
+  };
+
+  const { unmount } = render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  expect(familyId).toEqual('fooForm');
+
+  await user.type(screen.getByLabelText('Name'), 'John Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['name'],
+      touched: true,
+      touchedFieldIds: new Set(['name']),
+      initialValues: {},
+      dirty: true,
+      dirtyFieldIds: new Set(['name']),
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  unmount();
+
+  await delay(250);
+  await delay(250);
+  // await delay(250);
+  // await delay(250);
+  // await delay(250);
+
+  expect(partitions.get(familyId)).toEqual(undefined);
+});
+
 test('forms: double click is ignored', async () => {
   const onSubmit = jest.fn();
   const App = () => {

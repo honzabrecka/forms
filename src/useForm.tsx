@@ -46,6 +46,7 @@ const noop = () => undefined;
 const alwaysFalse = () => false;
 
 export default function useForm({
+  formId: formIdProp,
   onSubmit = noop,
   onSubmitInvalid = noop,
   onReady = noop,
@@ -53,7 +54,7 @@ export default function useForm({
   isValidProp = 'isValid',
   errorBannerMessage = null,
 }: UseFormProps = {}) {
-  const [formId] = useState<string>(() => `${uid()}`);
+  const [formId] = useState<string>(() => formIdProp || `${uid()}`);
 
   useWarnOnChanged('formId', formId);
 
