@@ -478,6 +478,7 @@ const getSnapshotForSuspense =
 type AtomFamilyProps<V> = {
   key: string;
   default: (id: string) => V;
+  getPartitionFromId?: (id: string) => string;
 };
 
 const emptyLoadableState: LoadableState<undefined> = {
@@ -500,13 +501,14 @@ const getPartition = (id: string) => {
   return partition;
 };
 
-const getPartitionFromId = (id: string) => {
-  const [partition] = id.split('/'); // TODO this is too tight to forms implementation
-  return partition;
-};
+const defaultGetPartitionFromId = () => 'global';
 
 export const atomFamily =
-  <V>({ key, ...props }: AtomFamilyProps<V>) =>
+  <V>({
+    key,
+    getPartitionFromId = defaultGetPartitionFromId,
+    ...props
+  }: AtomFamilyProps<V>) =>
   (id: string) => {
     const partition = getPartitionFromId(id);
     const newId = `A/${key}/${id}`;
@@ -537,11 +539,16 @@ export const atomFamily =
 type SelectorFamilyProps<T> = {
   key: string;
   get: (id: string) => ({ get }: SelectorFactoryProps) => T;
+  getPartitionFromId?: (id: string) => string;
   cachePolicy_UNSTABLE?: IGNORE;
 };
 
 export const selectorFamily =
-  <V>({ key, get }: SelectorFamilyProps<V>) =>
+  <V>({
+    key,
+    get,
+    getPartitionFromId = defaultGetPartitionFromId,
+  }: SelectorFamilyProps<V>) =>
   (id: string) => {
     const partition = getPartitionFromId(id);
     const newId = `S/${key}/${id}`;
