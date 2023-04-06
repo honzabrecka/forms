@@ -57,9 +57,6 @@ export const $formSubmission = selectorFamily<FormSubmission>({
     (id) =>
     ({ get }) =>
       get($form(id)).submission,
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -107,9 +104,6 @@ export const $fieldChildren = selectorFamily<string[]>({
 
       return field.children.concat(...result);
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -146,9 +140,6 @@ export const $fieldValue = selectorFamily<any>({
       }
       return field.value;
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -176,9 +167,6 @@ export const $fieldInitialValue = selectorFamily<any>({
       }
       return field.initialValue;
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -191,9 +179,6 @@ const $listValidation = selectorFamily<any>({
       if (field.type !== FieldType.list) return undefined;
       return field.validation;
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -228,9 +213,6 @@ export const $fieldValidation = selectorFamily<FieldValidationResult>({
       }
       return field.validation;
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -253,9 +235,6 @@ export const $formValidation = selectorFamily<FormValidationResult>({
         result,
       };
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -267,9 +246,6 @@ export const $fields = selectorFamily({
       const { fieldIds } = get($form(formId));
       return fieldIds.map((id) => get($field(fieldId(formId, id))));
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
 });
 
 export const $values = selectorFamily<any>({
@@ -288,9 +264,6 @@ export const $values = selectorFamily<any>({
       );
       return values;
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -310,9 +283,6 @@ export const $initialValues = selectorFamily<any>({
       );
       return values;
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -347,9 +317,6 @@ export const $fieldTouched = selectorFamily<boolean>({
       }
       return field.touched;
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -373,9 +340,6 @@ export const $formTouched = selectorFamily({
         touchedFieldIds,
       };
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -387,9 +351,6 @@ export const $fieldIds = selectorFamily({
     (formId: string) =>
     ({ get }) =>
       fieldsToIds(get($fields(formId))),
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -404,9 +365,6 @@ export const $allFieldIds = selectorFamily<string[]>({
       );
       return fieldIds.concat(...result);
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -437,9 +395,6 @@ export const $fieldDirty = selectorFamily<any>({
       }
       return dirtyComparator(get($fieldValue(id)), get($fieldInitialValue(id)));
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -463,9 +418,6 @@ export const $formDirty = selectorFamily({
         dirtyFieldIds,
       };
     },
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -475,9 +427,6 @@ export const $formReadyDelay = selectorFamily<Promise<any>>({
     (id: string) =>
     ({ get }) =>
       get($form(id)).readyDelay,
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -487,9 +436,6 @@ export const $formReadyDelayKey = selectorFamily<string>({
     (id: string) =>
     ({ get }) =>
       get($form(id)).readyDelayKey,
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });
 
@@ -499,8 +445,5 @@ export const $errorBannerMessage = selectorFamily<string | null>({
     (id: string) =>
     ({ get }) =>
       get($form(id)).errorBannerMessage,
-  cachePolicy_UNSTABLE: {
-    eviction: 'most-recent',
-  },
   getPartitionFromId,
 });

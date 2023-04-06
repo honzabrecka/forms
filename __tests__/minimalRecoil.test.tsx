@@ -1127,7 +1127,8 @@ test('recoil (async): override pending promise', async () => {
   const cb = jest.fn();
   const App = () => {
     const setState = useSetRecoilState(atom('x')) as any;
-    const { state, contents } = useRecoilValueLoadable(selector2('x')) as any;
+    const selector1Value = useRecoilValueLoadable(selector1('x')) as any;
+    const selector2Value = useRecoilValueLoadable(selector2('x')) as any;
     const recoilCb = useRecoilCallback(
       ({ snapshot }: any) =>
         async () => {
@@ -1142,8 +1143,15 @@ test('recoil (async): override pending promise', async () => {
     );
     return (
       <>
-        <div data-testid="state">
-          {state === 'hasValue' ? contents : 'loading'}
+        <div data-testid="state-selector1">
+          {selector1Value.state === 'hasValue'
+            ? selector1Value.contents
+            : 'loading'}
+        </div>
+        <div data-testid="state-selector2">
+          {selector2Value.state === 'hasValue'
+            ? selector2Value.contents
+            : 'loading'}
         </div>
         <button type="button" onClick={() => recoilCb()}>
           cb
@@ -1173,7 +1181,8 @@ test('recoil (async): override pending promise', async () => {
   const user = userEvent.setup();
 
   await waitFor(() => {
-    expect(screen.getByTestId('state')).toHaveTextContent('loading');
+    expect(screen.getByTestId('state-selector1')).toHaveTextContent('loading');
+    expect(screen.getByTestId('state-selector2')).toHaveTextContent('loading');
   });
 
   await user.click(screen.getByText('cb'));
@@ -1192,7 +1201,8 @@ test('recoil (async): override pending promise', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByTestId('state')).toHaveTextContent('4');
+    expect(screen.getByTestId('state-selector1')).toHaveTextContent('2');
+    expect(screen.getByTestId('state-selector2')).toHaveTextContent('4');
   });
 
   await user.click(screen.getByText('resolveX'));
@@ -1211,7 +1221,8 @@ test('recoil (async): override pending promise', async () => {
   });
 
   await waitFor(() => {
-    expect(screen.getByTestId('state')).toHaveTextContent('4');
+    expect(screen.getByTestId('state-selector1')).toHaveTextContent('2');
+    expect(screen.getByTestId('state-selector2')).toHaveTextContent('4');
   });
 });
 
@@ -1454,5 +1465,36 @@ test('recoil (async): override pending promise 3', async () => {
 
   await waitFor(() => {
     expect(screen.getByTestId('state')).toHaveTextContent('20');
+  });
+});
+
+test('recoil (async): useRecoilValueLoadable', async () => {
+  const atom = atomFamily({
+    key: 'atom',
+    default: () => ({ promise: Promise.resolve(null) }),
+  });
+  const selector1Spy = jest.fn();
+  const selector1 = selectorFamily({
+    key: 'selector1',
+    get:
+      (id) =>
+      ({ get }) => {
+        selector1Spy();
+        return get(atom(id)).promise;
+      },
+  });
+  const App = () => {
+    const value = useRecoilValueLoadable(selector1('x'));
+    return (
+      <div data-testid="state-selector1">
+        {value.state === 'hasValue' ? 'done' : 'loading'}
+      </div>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('state-selector1')).toHaveTextContent('done');
   });
 });

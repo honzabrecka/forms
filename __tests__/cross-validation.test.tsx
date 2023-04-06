@@ -46,7 +46,7 @@ test('static cross field validation', async () => {
     });
   });
 
-  await act(() => {
+  act(() => {
     result.current.form.setValues({ a: 'xyz' });
   });
 
@@ -60,7 +60,7 @@ test('static cross field validation', async () => {
     });
   });
 
-  await act(() => {
+  act(() => {
     result.current.form.setValues({ b: 'xyz' });
   });
 
@@ -74,7 +74,7 @@ test('static cross field validation', async () => {
     });
   });
 
-  await act(() => {
+  act(() => {
     result.current.form.setValues({ b: '123' });
   });
 
@@ -88,7 +88,7 @@ test('static cross field validation', async () => {
     });
   });
 
-  await act(() => {
+  act(() => {
     result.current.form.setValues({ a: '123' });
   });
 
@@ -136,7 +136,7 @@ test('dynamic cross field validation', async () => {
     });
   });
 
-  await act(() => {
+  act(() => {
     result.current.form.setValues({ a: 'xyz' });
     result.current.revalidate();
   });
@@ -151,7 +151,7 @@ test('dynamic cross field validation', async () => {
     });
   });
 
-  await act(() => {
+  act(() => {
     result.current.form.setValues({ b: 'xyz' });
     result.current.revalidate();
   });
@@ -166,7 +166,7 @@ test('dynamic cross field validation', async () => {
     });
   });
 
-  await act(() => {
+  act(() => {
     result.current.form.setValues({ b: '123' });
     result.current.revalidate();
   });
@@ -181,7 +181,7 @@ test('dynamic cross field validation', async () => {
     });
   });
 
-  await act(() => {
+  act(() => {
     result.current.form.setValues({ a: '123' });
     result.current.revalidate();
   });

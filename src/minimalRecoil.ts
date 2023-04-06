@@ -15,8 +15,6 @@ const isPromise = (value: any): boolean =>
 
 type TODO = any;
 
-type IGNORE = any;
-
 enum StoredType {
   atom,
   selector,
@@ -380,11 +378,12 @@ export const notify = (atom: Stored<any>) => {
             return;
           }
 
-          d.version++;
-
           if (isPromise(newValue) && newValue.state !== StoredState.hasValue) {
             throw valueIsPromise(newValue);
           }
+
+          if (debug) console.log('inc version (notify)', d.id);
+          d.version++;
 
           if (d.state === StoredState.loading) {
             if (d.resolve) {
@@ -412,6 +411,7 @@ export const notify = (atom: Stored<any>) => {
             (e.type === 'valueIsPromise' && e.promise.state === undefined) ||
             (isPromise(e) && e.state === undefined)
           ) {
+            if (debug) console.log('inc version (notify, catch)', d.id);
             d.version++;
           }
 
@@ -555,12 +555,15 @@ export const atomFamily =
     getPartitionFromId = defaultGetPartitionFromId,
     ...props
   }: AtomFamilyProps<V>) =>
-  (id: string) => {
+  (id: string, defaultValue?: (value: V) => V) => {
     const partition = getPartitionFromId(id);
     const newId = `A/${key}/${id}`;
     let atom = getPartition(partition).get(newId);
     if (!atom) {
-      const value = props.default(id);
+      const value =
+        typeof defaultValue === 'function'
+          ? defaultValue(props.default(id))
+          : props.default(id);
       getPartition(partition).set(
         newId,
         (atom = cacheAtomLoadableState({
@@ -588,7 +591,6 @@ export const atomFamily =
 type SelectorProps<T> = {
   key: string;
   get: ({ get }: SelectorFactoryProps) => T;
-  cachePolicy_UNSTABLE?: IGNORE;
 };
 
 // TODO test
@@ -623,7 +625,6 @@ type SelectorFamilyProps<T> = {
   key: string;
   get: (id: string) => ({ get }: SelectorFactoryProps) => T;
   getPartitionFromId?: (id: string) => string;
-  cachePolicy_UNSTABLE?: IGNORE;
 };
 
 export const selectorFamily =
@@ -958,11 +959,12 @@ const runPartitionGC = throttle(
       }
     }
   },
-  100,
+  200,
   { leading: false },
 );
 
 // TODO custom addition
+// NOTE atoms/selectors in global partition are not GCed at all
 export const useRecoilPartitionGC_UNSTABLE = (id: string) => {
   useEffect(() => {
     const mark = (destroyed: number) => {
@@ -977,7 +979,7 @@ export const useRecoilPartitionGC_UNSTABLE = (id: string) => {
     partitionsToGC.delete(id);
     return () => {
       const now = Date.now();
-      mark(now + 100);
+      mark(now + 250);
       partitionsToGC.add(id);
       runPartitionGC();
     };
