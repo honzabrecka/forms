@@ -77,7 +77,7 @@ export const AsyncInput = ({
   delayedResolve,
   ...props
 }: any) => {
-  const [state, setState] = useState(delayedResolve || '');
+  const [state, setState] = useState(delayedResolve);
 
   useEffect(() => {
     setState(value);
@@ -95,7 +95,7 @@ export const AsyncInput = ({
     <input
       // eslint-disable-next-line
       {...props}
-      value={state}
+      value={state || ''}
       onChange={({ target: { value } }) => setState(value)}
       onBlur={() => {
         onChange(delay(250).then(() => state));
