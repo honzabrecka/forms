@@ -6,14 +6,10 @@ import { Callback0, Callback1 } from './types';
 
 const debug = false;
 
-// const noop: IGNORE = () => undefined;
-
 const undef = Symbol('undef');
 
 const isPromise = (value: any): boolean =>
   value && typeof value === 'object' && typeof value.then === 'function';
-
-type TODO = any;
 
 enum StoredType {
   atom,
@@ -26,21 +22,23 @@ export enum StoredState {
   hasValue,
 }
 
-type LoadableState<V> =
-  | {
-      state: 'loading';
-      contents: Promise<V>;
-      valueMaybe: () => undefined;
-      toPromise: () => Promise<V>;
-      getValue: () => undefined;
-    }
-  | {
-      state: 'hasValue';
-      contents: V;
-      valueMaybe: () => V;
-      toPromise: () => Promise<V>;
-      getValue: () => V;
-    };
+type LoadingLoadable<V> = {
+  state: 'loading';
+  contents: undefined;
+  valueMaybe: () => undefined;
+  getValue: () => undefined;
+  toPromise: () => Promise<V>;
+};
+
+type ValueLoadable<V> = {
+  state: 'hasValue';
+  contents: V;
+  valueMaybe: () => V;
+  getValue: () => V;
+  toPromise: () => Promise<V>;
+};
+
+type LoadableState<V> = ValueLoadable<V> | LoadingLoadable<V>;
 
 export type Loadable<V> = LoadableState<V>;
 
@@ -92,7 +90,7 @@ const cacheAtomLoadableState = <V>(atom: Stored<V>) => {
     // (async atom) contents: (pending) Promise
     atom.cachedLoadableState = {
       state: 'loading',
-      contents: atom.value as unknown as Promise<V>,
+      contents: undefined,
       valueMaybe: () => undefined,
       toPromise: () => getPromise(atom),
       getValue: () => getPromiseForSuspense(atom),
@@ -120,21 +118,41 @@ const cacheAtomLoadableState = <V>(atom: Stored<V>) => {
   return atom;
 };
 
-const outdated = (promise: TODO, atom: number) => {
+type P = Promise<any> & {
+  id?: string;
+  state?: StoredState;
+  version?: number;
+  internalPromise?: boolean;
+  value?: any;
+};
+
+const outdated = (promise: P, atom: number) => {
   if (promise.internalPromise) return false;
   return promise.version !== atom;
 };
 
+type ValueIsPromise = {
+  type: 'valueIsPromise';
+  promise: P;
+};
+
+type E = ValueIsPromise | P | Error;
+
+const eIsValueIsPromise = (e: any): e is ValueIsPromise =>
+  e.type && e.type === 'valueIsPromise';
+
+const eIsP = (e: any): e is P => isPromise(e);
+
 // @private
-export const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
-  if (e.type && e.type === 'valueIsPromise' && e.promise.state === undefined) {
+export const handleThrowPromise = (atom: Stored<any>, e: E) => {
+  if (eIsValueIsPromise(e) && e.promise.state === undefined) {
     if (debug) console.log('add then', atom.id, atom.version, e.promise);
 
     e.promise.state = StoredState.loading;
     e.promise.id = atom.id;
     e.promise.version = atom.version;
     e.promise
-      .then((resolvedValue: TODO) => {
+      .then((resolvedValue: any) => {
         if (atom.destroyed > 0) return;
 
         if (debug)
@@ -181,21 +199,18 @@ export const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
         }
       })
       .catch((e) => {
-        // TODO why?
         if (debug) console.log('[catch]', atom.id, e);
-        // console.error(atom, e);
-
         handleThrowPromise(atom, e);
       });
     return;
   }
 
-  if (isPromise(e) && e.state === undefined) {
+  if (eIsP(e) && e.state === undefined) {
     if (debug) console.log('add then', atom.id, atom.version, e);
     e.version = atom.version;
     e.state = StoredState.loading;
     e.id = atom.id;
-    e.then((resolvedValue: TODO) => {
+    e.then((resolvedValue: any) => {
       if (atom.destroyed > 0) return;
 
       if (debug)
@@ -225,10 +240,7 @@ export const handleThrowPromise = (atom: Stored<any>, e: TODO) => {
 
       notify(atom).forEach((l) => l());
     }).catch((e) => {
-      // TODO why?
       if (debug) console.log('[catch]', atom.id, e);
-      // console.error(atom, e);
-
       handleThrowPromise(atom, e);
     });
   }
@@ -251,7 +263,7 @@ const readPlain = (atom: Stored<any>) => {
   throw new Error('unsupported read');
 };
 
-const valueIsPromise = (promise: Promise<TODO>) => ({
+const valueIsPromise = (promise: Promise<any>): ValueIsPromise => ({
   type: 'valueIsPromise',
   promise,
 });
@@ -273,7 +285,7 @@ export const read = (atom: Stored<any>) => {
       }
       return value;
     }
-  } catch (e: TODO) {
+  } catch (e: any) {
     if (debug) console.log('read (catch)', atom.id, e);
 
     handleThrowPromise(atom, e);
@@ -289,7 +301,7 @@ export const read = (atom: Stored<any>) => {
       atom.value = new Promise((resolve) => {
         atom.resolve = (value) => {
           if (isPromise(value)) {
-            console.error('resolve with promise???', atom);
+            if (debug) console.error('resolve with promise???', atom);
           }
           if (debug) console.log('resolved with', atom.id, value);
           resolve(value);
@@ -299,7 +311,7 @@ export const read = (atom: Stored<any>) => {
       cacheAtomLoadableState(atom);
     }
 
-    if (e.type && e.type === 'valueIsPromise') {
+    if (eIsValueIsPromise(e)) {
       throw e.promise;
     }
 
@@ -404,11 +416,11 @@ export const notify = (atom: Stored<any>) => {
           d.value = newValue;
           cacheAtomLoadableState(d);
           notify(d).forEach((l) => listeners.add(l));
-        } catch (e: TODO) {
+        } catch (e: any) {
           if (debug) console.log('thrown', d.id, e);
 
           if (
-            (e.type === 'valueIsPromise' && e.promise.state === undefined) ||
+            (eIsValueIsPromise(e) && e.promise.state === undefined) ||
             (isPromise(e) && e.state === undefined)
           ) {
             if (debug) console.log('inc version (notify, catch)', d.id);
@@ -423,7 +435,7 @@ export const notify = (atom: Stored<any>) => {
             d.value = new Promise((resolve) => {
               d.resolve = (value) => {
                 if (isPromise(value)) {
-                  console.error('resolve with promise???', atom);
+                  if (debug) console.error('resolve with promise???', atom);
                 }
                 if (debug) console.log('resolved with', d.id, value);
                 resolve(value);
@@ -485,7 +497,7 @@ const getSnapshotForSuspense =
 
 const emptyLoadableState: LoadableState<undefined> = {
   state: 'loading',
-  contents: Promise.resolve(undefined),
+  contents: undefined,
   valueMaybe: () => undefined,
   toPromise: () => Promise.resolve(undefined),
   getValue: () => undefined,
@@ -606,7 +618,7 @@ export const selector = <V>({ key, get }: SelectorProps<V>) => {
         partitionId: partition,
         type: StoredType.selector,
         version: 0,
-        value: undef as TODO,
+        value: undef as any,
         state: StoredState.loading,
         destroyed: 0,
         cachedLoadableState: emptyLoadableState,
@@ -645,7 +657,7 @@ export const selectorFamily =
           partitionId: partition,
           type: StoredType.selector,
           version: 0,
-          value: undef as TODO,
+          value: undef as any,
           state: StoredState.loading,
           destroyed: 0,
           cachedLoadableState: emptyLoadableState,

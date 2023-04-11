@@ -206,7 +206,7 @@ test('forms: setErrors', async () => {
         name: 'b',
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation } as any;
+      return { form, a, b, validation };
     },
     { wrapper },
   );
@@ -222,15 +222,17 @@ test('forms: setErrors', async () => {
 
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
+
+    const bag = result.current;
+
+    if (result.current.validation.state === 'hasValue') {
+      expect(bag.validation.contents.isValid).toEqual(false);
+      expect(bag.validation.contents.isValidStrict).toEqual(false);
+      expect(bag.validation.contents.errors.length).toEqual(1);
+      expect(bag.validation.contents.warnings.length).toEqual(1);
+      expect(bag.validation.contents.result[0].name).toBe('a');
+    }
   });
-
-  const bag = result.current;
-
-  expect(bag.validation.contents.isValid).toEqual(false);
-  expect(bag.validation.contents.isValidStrict).toEqual(false);
-  expect(bag.validation.contents.errors.length).toEqual(1);
-  expect(bag.validation.contents.warnings.length).toEqual(1);
-  expect(bag.validation.contents.result[0].name).toBe('a');
 });
 
 test('forms: setTouched + resetTouched', async () => {
@@ -526,7 +528,7 @@ test('forms > field: onChange validation', async () => {
         formId: form.formId,
         name: 'a',
       });
-      return { form, a, b, validation } as any;
+      return { form, a, b, validation };
     },
     {
       wrapper,
@@ -536,9 +538,8 @@ test('forms > field: onChange validation', async () => {
 
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
+    expect(isSuccess(result.current.validation.contents)).toEqual(true);
   });
-
-  expect(isSuccess(result.current.validation.contents)).toEqual(true);
 
   act(() => {
     result.current.a.onChange(htmlEvent(2));
@@ -546,9 +547,8 @@ test('forms > field: onChange validation', async () => {
 
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
+    expect(isError(result.current.validation.contents)).toEqual(true);
   });
-
-  expect(isError(result.current.validation.contents)).toEqual(true);
 
   expect(validatorA).toHaveBeenCalledTimes(1);
   expect(validatorA.mock.calls[0][0]).toEqual(2);
@@ -568,7 +568,10 @@ test('forms > field: onChange validation', async () => {
   expect(validatorA).toHaveBeenCalledTimes(1);
   expect(validatorB).toHaveBeenCalledTimes(0);
 
-  expect(isError(result.current.validation.contents)).toEqual(true);
+  await waitFor(() => {
+    expect(result.current.validation.state).toBe('hasValue');
+    expect(isError(result.current.validation.contents)).toEqual(true);
+  });
 
   // change of the validator reruns validation
   const validatorA2 = jest.fn().mockReturnValue(warning('fail'));
@@ -580,9 +583,8 @@ test('forms > field: onChange validation', async () => {
 
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
+    expect(isWarning(result.current.validation.contents)).toEqual(true);
   });
-
-  expect(isWarning(result.current.validation.contents)).toEqual(true);
 
   expect(validatorA).toHaveBeenCalledTimes(1);
   expect(validatorA2).toHaveBeenCalledTimes(1);
@@ -613,7 +615,7 @@ test('forms: submit invalid form + call onSubmitInvalid', async () => {
         name: 'b',
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation } as any;
+      return { form, a, b, validation };
     },
     { wrapper },
   );
@@ -666,7 +668,7 @@ test('forms: submit invalid form (strict) + call onSubmitInvalid', async () => {
         name: 'b',
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation } as any;
+      return { form, a, b, validation };
     },
     { wrapper },
   );
@@ -852,7 +854,7 @@ test('forms: validate via useFormValidation - without any argument all fields ar
         validator: validatorB,
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation } as any;
+      return { form, a, b, validation };
     },
     {
       wrapper,
@@ -862,9 +864,8 @@ test('forms: validate via useFormValidation - without any argument all fields ar
 
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
+    expect(result.current.validation.contents.isValid).toEqual(true);
   });
-
-  expect(result.current.validation.contents.isValid).toEqual(true);
 
   act(() => {
     result.current.form.revalidate();
@@ -872,10 +873,9 @@ test('forms: validate via useFormValidation - without any argument all fields ar
 
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
+    expect(result.current.validation.contents.isValid).toEqual(false);
+    expect(result.current.validation.contents.errors.length).toBe(2);
   });
-
-  expect(result.current.validation.contents.isValid).toEqual(false);
-  expect(result.current.validation.contents.errors.length).toBe(2);
 });
 
 test('forms: validate via useFormValidation - only specified field is revalidated', async () => {
@@ -897,7 +897,7 @@ test('forms: validate via useFormValidation - only specified field is revalidate
         validator: validatorB,
       });
       const validation = useFormValidationLoadable(form.formId);
-      return { form, a, b, validation } as any;
+      return { form, a, b, validation };
     },
     {
       wrapper,
@@ -907,9 +907,8 @@ test('forms: validate via useFormValidation - only specified field is revalidate
 
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
+    expect(result.current.validation.contents.isValid).toEqual(true);
   });
-
-  expect(result.current.validation.contents.isValid).toEqual(true);
 
   act(() => {
     result.current.form.revalidate(['b']);
@@ -917,10 +916,9 @@ test('forms: validate via useFormValidation - only specified field is revalidate
 
   await waitFor(() => {
     expect(result.current.validation.state).toBe('hasValue');
+    expect(result.current.validation.contents.isValid).toEqual(false);
+    expect(result.current.validation.contents.errors.length).toBe(1);
   });
-
-  expect(result.current.validation.contents.isValid).toEqual(false);
-  expect(result.current.validation.contents.errors.length).toBe(1);
 });
 
 test('forms: dirty - field onChange + setInitialValues', async () => {
@@ -934,7 +932,7 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
         formId: form.formId,
         name: 'a',
       });
-      return { form, a, formDirty, fieldDirty } as any;
+      return { form, a, formDirty, fieldDirty };
     },
     { wrapper },
   );
@@ -962,13 +960,12 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   await waitFor(() => {
     expect(result.current.formDirty.state).toBe('hasValue');
     expect(result.current.fieldDirty.state).toBe('hasValue');
+    expect(result.current.formDirty.contents.dirty).toBe(true);
+    expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(
+      new Set(['a']),
+    );
+    expect(result.current.fieldDirty.contents).toBe(true);
   });
-
-  expect(result.current.formDirty.contents.dirty).toBe(true);
-  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(
-    new Set(['a']),
-  );
-  expect(result.current.fieldDirty.contents).toBe(true);
 
   await expectFormViaGetBag(result, {
     dirty: true,
@@ -985,11 +982,10 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   await waitFor(() => {
     expect(result.current.formDirty.state).toBe('hasValue');
     expect(result.current.fieldDirty.state).toBe('hasValue');
+    expect(result.current.formDirty.contents.dirty).toBe(false);
+    expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(new Set());
+    expect(result.current.fieldDirty.contents).toBe(false);
   });
-
-  expect(result.current.formDirty.contents.dirty).toBe(false);
-  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(new Set());
-  expect(result.current.fieldDirty.contents).toBe(false);
 
   await expectFormViaGetBag(result, {
     dirty: false,
@@ -1005,13 +1001,12 @@ test('forms: dirty - field onChange + setInitialValues', async () => {
   await waitFor(() => {
     expect(result.current.formDirty.state).toBe('hasValue');
     expect(result.current.fieldDirty.state).toBe('hasValue');
+    expect(result.current.formDirty.contents.dirty).toBe(true);
+    expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(
+      new Set(['a']),
+    );
+    expect(result.current.fieldDirty.contents).toBe(true);
   });
-
-  expect(result.current.formDirty.contents.dirty).toBe(true);
-  expect(result.current.formDirty.contents.dirtyFieldIds).toEqual(
-    new Set(['a']),
-  );
-  expect(result.current.fieldDirty.contents).toBe(true);
 
   await expectFormViaGetBag(result, {
     dirty: true,
@@ -1028,17 +1023,17 @@ test('forms: dirty - setValues + setInitialValues', async () => {
       const form = useForm({ initialValues: { a: 3 } });
       const a = useField({ formId: form.formId, name: 'a', onChange });
       const dirty = useFormDirtyLoadable(form.formId);
-      return { form, a, dirty } as any;
+      return { form, a, dirty };
     },
     { wrapper },
   );
 
   await waitFor(() => {
     expect(result.current.dirty.state).toBe('hasValue');
+    expect(result.current.dirty.contents.dirty).toBe(false);
+    expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set());
   });
 
-  expect(result.current.dirty.contents.dirty).toBe(false);
-  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set());
   await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: new Set(),
@@ -1052,10 +1047,10 @@ test('forms: dirty - setValues + setInitialValues', async () => {
 
   await waitFor(() => {
     expect(result.current.dirty.state).toBe('hasValue');
+    expect(result.current.dirty.contents.dirty).toBe(true);
+    expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set(['a']));
   });
 
-  expect(result.current.dirty.contents.dirty).toBe(true);
-  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set(['a']));
   await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: new Set(['a']),
@@ -1070,10 +1065,10 @@ test('forms: dirty - setValues + setInitialValues', async () => {
 
   await waitFor(() => {
     expect(result.current.dirty.state).toBe('hasValue');
+    expect(result.current.dirty.contents.dirty).toBe(false);
+    expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set());
   });
 
-  expect(result.current.dirty.contents.dirty).toBe(false);
-  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set());
   await expectFormViaGetBag(result, {
     dirty: false,
     dirtyFieldIds: new Set(),
@@ -1087,10 +1082,10 @@ test('forms: dirty - setValues + setInitialValues', async () => {
 
   await waitFor(() => {
     expect(result.current.dirty.state).toBe('hasValue');
+    expect(result.current.dirty.contents.dirty).toBe(true);
+    expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set(['a']));
   });
 
-  expect(result.current.dirty.contents.dirty).toBe(true);
-  expect(result.current.dirty.contents.dirtyFieldIds).toEqual(new Set(['a']));
   await expectFormViaGetBag(result, {
     dirty: true,
     dirtyFieldIds: new Set(['a']),
