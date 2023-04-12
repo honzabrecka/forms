@@ -65,7 +65,7 @@ export default function useField({
 
   const [inited, setInited] = useState(false);
   const [fieldState, setFieldState] = useRecoilState(
-    $field(fieldId(formId, name), initialValue),
+    $field(fieldId(formId, name)),
   );
   const reset = useResetRecoilState($field(fieldId(formId, name)));
   const validationResult = useRecoilValueLoadable(
