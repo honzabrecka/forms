@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import React, { useEffect, useState, useMemo, FormEvent } from 'react';
+import React, { useState, useMemo, FormEvent } from 'react';
 import {
   useRecoilTransaction_UNSTABLE,
   useRecoilCallback,
@@ -21,6 +21,7 @@ import {
   useFieldRegistration,
   useEventCallback,
   useWarnOnChanged,
+  useOnFirstRender,
 } from './internalHooks';
 import {
   Dict,
@@ -291,9 +292,9 @@ export default function useForm({
     [],
   );
 
-  useEffect(() => {
+  useOnFirstRender(() => {
     setValues(initialValues, { asInitialValues: true });
-  }, []);
+  });
 
   useRecoilPartitionGC_UNSTABLE(formId);
 

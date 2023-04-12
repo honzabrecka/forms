@@ -189,3 +189,12 @@ export function useEventCallback(cb: any) {
 
   return useCallback((...args: any[]) => cbRef.current(...args), []);
 }
+
+export function useOnFirstRender(cb: any) {
+  const run = useRef(false);
+
+  if (!run.current) {
+    run.current = true;
+    cb();
+  }
+}

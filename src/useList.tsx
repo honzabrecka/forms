@@ -16,7 +16,11 @@ import {
   $fieldInitialValue,
 } from './selectors';
 import { useFormId } from './hooks';
-import { useFieldRegistration, useWarnOnChanged } from './internalHooks';
+import {
+  useFieldRegistration,
+  useWarnOnChanged,
+  useOnFirstRender,
+} from './internalHooks';
 import {
   Dict,
   FieldType,
@@ -218,9 +222,7 @@ const useList = ({
     [],
   );
 
-  useEffect(() => {
-    registration.add([name]);
-
+  useOnFirstRender(() => {
     const [children, values] = initialValue.length
       ? createRows(initialValue)
       : [[], {}];
@@ -242,7 +244,10 @@ const useList = ({
         }, {}),
       );
     }
+  });
 
+  useEffect(() => {
+    registration.add([name]);
     return () => {
       if (!preserveStateAfterUnmount) {
         reset();

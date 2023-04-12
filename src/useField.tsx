@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect, useState } from 'react';
+import { useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   // Loadable,
   useRecoilState,
@@ -23,6 +23,7 @@ import {
   OnChangeEvent,
   UseFieldProps,
   UseFieldResult,
+  Validator,
 } from './types';
 
 const isPromise = (value: any) =>
@@ -63,16 +64,44 @@ export default function useField({
   const fromStable = useEventCallback(from);
   const toStable = useEventCallback(to);
 
-  const [inited, setInited] = useState(false);
+  const getBag = useGetBag(formId);
+  const getBagForValidator = useGetBagForValidator(formId);
+
   const [fieldState, setFieldState] = useRecoilState(
-    $field(fieldId(formId, name), initialValue),
+    $field(fieldId(formId, name), (initialState) => {
+      const wrappedValidator: NamedValidator = async (value, meta) => {
+        try {
+          await Promise.resolve(0); // to get fresh bag
+          // delay(0) does not work due to some reason
+          const result = await validator(value, getBagForValidator, meta);
+          return {
+            name,
+            ...result,
+          };
+        } catch (err) {
+          return {
+            name,
+            ...error(`${err}`),
+          };
+        }
+      };
+      console.log('init', initialValue);
+      return {
+        ...initialState,
+        value: initialValue,
+        initialValue,
+        dirtyComparator,
+        validator: wrappedValidator,
+        validation: validateOnMount
+          ? wrappedValidator(initialValue, undefined)
+          : initialState.validation,
+      };
+    }),
   );
   const reset = useResetRecoilState($field(fieldId(formId, name)));
   const validationResult = useRecoilValueLoadable(
     $fieldValidation(fieldId(formId, name)),
   );
-  const getBag = useGetBag(formId);
-  const getBagForValidator = useGetBagForValidator(formId);
   const registration = useFieldRegistration(formId);
 
   const onFocusStable = useEventCallback(() => onFocusCb({ name }, getBag));
@@ -129,18 +158,6 @@ export default function useField({
 
   useEffect(() => {
     registration.add([name]);
-
-    setFieldState((state) => ({
-      ...state,
-      inited: true,
-      value: state.value === undefined ? initialValue : state.value,
-      initialValue:
-        state.initialValue === undefined ? initialValue : state.initialValue,
-      dirtyComparator,
-    }));
-
-    setInited(true);
-
     return () => {
       if (!preserveStateAfterUnmount) {
         reset();
@@ -149,7 +166,12 @@ export default function useField({
     };
   }, []);
 
+  const validatorRef = useRef<Validator | undefined>();
   useEffect(() => {
+    if (validator === validatorRef.current) return;
+
+    validatorRef.current = validator;
+
     setFieldState((state) => {
       const wrappedValidator: NamedValidator = async (value, meta) => {
         try {
@@ -171,11 +193,9 @@ export default function useField({
         ...state,
         validator: wrappedValidator,
         validation:
-          // validation runs conditionally on mount
-          // or when validator is changed during field's life
-          (!inited && validateOnMount) || inited
-            ? wrappedValidator(state.value, state.meta)
-            : state.validation,
+          // validation runs when is changed during field's life
+          wrappedValidator(state.value, state.meta),
+        // TODO validateOnMount : state.validation,
       };
     });
   }, [validator]);
@@ -187,7 +207,6 @@ export default function useField({
 
   return {
     ...fieldState,
-    inited,
     value: transformedValue,
     validationResult,
     onFocus,

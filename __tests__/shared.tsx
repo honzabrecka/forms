@@ -17,29 +17,25 @@ export type FieldProps = {
 } & UseFieldProps;
 
 export const Field = ({ label, ...props }: FieldProps) => {
-  const { inited, onChange, onFocus, onBlur, name, id, value } =
-    useField(props);
+  const { onChange, onFocus, onBlur, name, id, value } = useField(props);
   return (
     <>
       <label htmlFor={id}>{label}</label>
-      {inited ? (
-        <input
-          type="text"
-          id={id}
-          name={name}
-          value={value || ''}
-          onChange={onChange}
-          onBlur={onBlur}
-          onFocus={onFocus}
-        />
-      ) : null}
+      <input
+        type="text"
+        id={id}
+        name={name}
+        value={value || ''}
+        onChange={onChange}
+        onBlur={onBlur}
+        onFocus={onFocus}
+      />
     </>
   );
 };
 
 export const LazyField = ({ label, ...props }: FieldProps) => {
-  const { inited, onChange, onFocus, onBlur, name, id, value } =
-    useField(props);
+  const { onChange, onFocus, onBlur, name, id, value } = useField(props);
   const [state, setState] = useState<string>(value || '');
   const localOnBlur = useCallback(() => {
     onChange({ target: { value: state } });
@@ -51,17 +47,15 @@ export const LazyField = ({ label, ...props }: FieldProps) => {
   return (
     <>
       <label htmlFor={id}>{label}</label>
-      {inited ? (
-        <input
-          type="text"
-          id={id}
-          name={name}
-          value={state}
-          onChange={(event) => setState(event.target.value)}
-          onBlur={localOnBlur}
-          onFocus={onFocus}
-        />
-      ) : null}
+      <input
+        type="text"
+        id={id}
+        name={name}
+        value={state}
+        onChange={(event) => setState(event.target.value)}
+        onBlur={localOnBlur}
+        onFocus={onFocus}
+      />
     </>
   );
 };
@@ -115,23 +109,20 @@ export const AsyncField = ({
   delayedResolve,
   ...props
 }: AsyncFieldProps) => {
-  const { inited, onChange, onFocus, onBlur, name, id, value } =
-    useField(props);
+  const { onChange, onFocus, onBlur, name, id, value } = useField(props);
   return (
     <>
       <label htmlFor={id}>{label}</label>
-      {inited ? (
-        <AsyncInput
-          type="text"
-          id={id}
-          name={name}
-          value={value}
-          onChange={onChange}
-          onBlur={onBlur}
-          onFocus={onFocus}
-          delayedResolve={delayedResolve}
-        />
-      ) : null}
+      <AsyncInput
+        type="text"
+        id={id}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        onFocus={onFocus}
+        delayedResolve={delayedResolve}
+      />
     </>
   );
 };

@@ -143,6 +143,7 @@ test('forms: setValues with validator', async () => {
     result.current.form.setValues({ a: Promise.resolve(2) });
   });
   await waitFor(async () => {
+    console.log(validator.mock.calls);
     // NOTE (react 18) in dev mode it mounts 2x
     expect(await validator.mock.calls[2][0]).toBe(2);
   });
@@ -1296,10 +1297,6 @@ test('forms: validator that throws is converted to one that returns error', asyn
       wrapper,
     },
   );
-
-  await waitFor(async () => {
-    expect(result.current.a.inited).toBe(true);
-  });
 
   const bag = await result.current.form.getBag();
   expect(bag.validation.isValid).toBe(false);

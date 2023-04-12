@@ -194,7 +194,6 @@ export type UseFieldProps = {
 export type UseFieldResult = {
   formId: string;
   touched: boolean;
-  inited: boolean;
   onChange: (value: any, meta?: any) => void;
   onFocus: () => void;
   onBlur: () => void;
