@@ -6,6 +6,7 @@ import {
   useFormId,
   useFormIsSubmitting,
 } from '../src/index';
+import { Loadable, ValueLoadable } from '../src/minimalRecoil';
 
 export const wrapper = ({ children }: any) => (
   <StrictMode>{children}</StrictMode>
@@ -160,3 +161,10 @@ export const expectBag = (bag: any, expected: any) => {
 
 export const expectFormViaGetBag = async (result: any, expected: any) =>
   expectBag(await result.current.form.getBag(), expected);
+
+export const expectIsLoadableValue = <T,>(
+  value: Loadable<T>,
+): value is ValueLoadable<T> => {
+  expect(value.state).toBe('hasValue');
+  return value.state === 'hasValue';
+};

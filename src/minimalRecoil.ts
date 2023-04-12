@@ -22,7 +22,7 @@ export enum StoredState {
   hasValue,
 }
 
-type LoadingLoadable<V> = {
+export type LoadingLoadable<V> = {
   state: 'loading';
   contents: undefined;
   valueMaybe: () => undefined;
@@ -30,7 +30,7 @@ type LoadingLoadable<V> = {
   toPromise: () => Promise<V>;
 };
 
-type ValueLoadable<V> = {
+export type ValueLoadable<V> = {
   state: 'hasValue';
   contents: V;
   valueMaybe: () => V;
@@ -38,9 +38,7 @@ type ValueLoadable<V> = {
   toPromise: () => Promise<V>;
 };
 
-type LoadableState<V> = ValueLoadable<V> | LoadingLoadable<V>;
-
-export type Loadable<V> = LoadableState<V>;
+export type Loadable<V> = ValueLoadable<V> | LoadingLoadable<V>;
 
 type Atom<V> = {
   type: StoredType.atom;
@@ -51,7 +49,7 @@ type Atom<V> = {
   defaultValue: V;
   state: StoredState;
   destroyed: number;
-  cachedLoadableState: LoadableState<V>;
+  cachedLoadableState: Loadable<V>;
   resolve?: Callback1<any>;
   dependents: Set<Stored<any>>;
   listeners: {
@@ -74,7 +72,7 @@ type Selector<V> = {
   value: V | Promise<V>;
   state: StoredState;
   destroyed: number;
-  cachedLoadableState: LoadableState<V>;
+  cachedLoadableState: Loadable<V>;
   resolve?: Callback1<any>;
   dependents: Set<Stored<any>>;
   listeners: {
@@ -495,7 +493,7 @@ const getSnapshotForSuspense =
     return atom.cachedLoadableState.getValue() as V;
   };
 
-const emptyLoadableState: LoadableState<undefined> = {
+const emptyLoadableState: Loadable<undefined> = {
   state: 'loading',
   contents: undefined,
   valueMaybe: () => undefined,
@@ -709,7 +707,7 @@ export const useRecoilValueLoadable = <V>(atom: Stored<V>) => {
     },
     [atom],
   );
-  return useSyncExternalStore<LoadableState<V>>(subscribe, getSnapshot(atom));
+  return useSyncExternalStore<Loadable<V>>(subscribe, getSnapshot(atom));
 };
 
 export const useRecoilState = <V>(atom: Stored<V>) => {
