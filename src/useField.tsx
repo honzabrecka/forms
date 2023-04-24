@@ -4,6 +4,7 @@ import {
   useRecoilState,
   useRecoilValueLoadable,
   useResetRecoilState,
+  useRecoilCallback,
 } from './minimalRecoil';
 import { fieldId, $field, $fieldValidation } from './selectors';
 import { useFormId } from './hooks';
@@ -13,6 +14,7 @@ import {
   useFieldRegistration,
   useEventCallback,
   useWarnOnChanged,
+  useOnFirstRender,
 } from './internalHooks';
 import { success, error } from './validation';
 import {
@@ -68,35 +70,7 @@ export default function useField({
   const getBagForValidator = useGetBagForValidator(formId);
 
   const [fieldState, setFieldState] = useRecoilState(
-    $field(fieldId(formId, name), (initialState) => {
-      const wrappedValidator: NamedValidator = async (value, meta) => {
-        try {
-          await Promise.resolve(0); // to get fresh bag
-          // delay(0) does not work due to some reason
-          const result = await validator(value, getBagForValidator, meta);
-          return {
-            name,
-            ...result,
-          };
-        } catch (err) {
-          return {
-            name,
-            ...error(`${err}`),
-          };
-        }
-      };
-      console.log('init', initialValue);
-      return {
-        ...initialState,
-        value: initialValue,
-        initialValue,
-        dirtyComparator,
-        validator: wrappedValidator,
-        validation: validateOnMount
-          ? wrappedValidator(initialValue, undefined)
-          : initialState.validation,
-      };
-    }),
+    $field(fieldId(formId, name)),
   );
   const reset = useResetRecoilState($field(fieldId(formId, name)));
   const validationResult = useRecoilValueLoadable(
@@ -155,6 +129,49 @@ export default function useField({
     },
     [validateOnChange],
   );
+
+  const init = useRecoilCallback(
+    ({ set }) =>
+      () => {
+        const wrappedValidator: NamedValidator = async (value, meta) => {
+          try {
+            await Promise.resolve(0); // to get fresh bag
+            // delay(0) does not work due to some reason
+            const result = await validator(value, getBagForValidator, meta);
+            return {
+              name,
+              ...result,
+            };
+          } catch (err) {
+            return {
+              name,
+              ...error(`${err}`),
+            };
+          }
+        };
+        set($field(fieldId(formId, name)), (state) => {
+          const value = state.value === undefined ? initialValue : state.value;
+          return {
+            ...state,
+            value,
+            initialValue:
+              state.initialValue === undefined
+                ? initialValue
+                : state.initialValue,
+            dirtyComparator,
+            validator: wrappedValidator,
+            validation: validateOnMount
+              ? wrappedValidator(value, undefined)
+              : state.validation,
+          };
+        });
+      },
+    [],
+  );
+
+  useOnFirstRender(() => {
+    init();
+  });
 
   useEffect(() => {
     registration.add([name]);

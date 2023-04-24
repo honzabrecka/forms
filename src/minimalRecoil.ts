@@ -565,14 +565,12 @@ export const atomFamily =
     getPartitionFromId = defaultGetPartitionFromId,
     ...props
   }: AtomFamilyProps<V>) =>
-  (id: string, defaultValue?: (value: V) => V) => {
+  (id: string) => {
     const partition = getPartitionFromId(id);
     const newId = `A/${key}/${id}`;
     let atom = getPartition(partition).get(newId);
     if (!atom) {
-      const value = defaultValue
-        ? defaultValue(props.default(id))
-        : props.default(id);
+      const value = props.default(id);
       getPartition(partition).set(
         newId,
         (atom = cacheAtomLoadableState({
