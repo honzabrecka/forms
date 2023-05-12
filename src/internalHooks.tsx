@@ -14,6 +14,7 @@ import {
   $formTouched,
   $initialValues,
   $formDirty,
+  oneTickToGetFreshData,
 } from './selectors';
 import { FieldType, Bag } from './types';
 import { nestedFieldSeparator } from './nested';
@@ -22,6 +23,7 @@ export function useGetBag(formId: string) {
   return useRecoilCallback<[], Promise<Bag>>(
     ({ snapshot }) =>
       async () => {
+        await oneTickToGetFreshData();
         const fieldIds = snapshot.getValue($fieldIds(formId));
         const touched = snapshot.getValue($formTouched(formId));
         const [values, validation, initialValues, dirty] = await Promise.all([
@@ -44,11 +46,12 @@ export function useGetBag(formId: string) {
   );
 }
 
-// same as getBag, but does not return "validation"
+// same as getBag, but does not wait on "validation"
 export function useGetBagForValidator(formId: string) {
   return useRecoilCallback<[], Promise<Omit<Bag, 'validation'>>>(
     ({ snapshot }) =>
       async () => {
+        await oneTickToGetFreshData();
         const fieldIds = snapshot.getValue($fieldIds(formId));
         const touched = snapshot.getValue($formTouched(formId));
         const [values, initialValues, dirty] = await Promise.all([

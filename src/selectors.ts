@@ -14,6 +14,8 @@ import { nestedFieldSeparator } from './nested';
 
 const last = <T>(xs: T[]) => xs[xs.length - 1];
 
+export const oneTickToGetFreshData = () => Promise.resolve(undefined);
+
 export const delay = (t: number) =>
   new Promise((res) => {
     setTimeout(() => {

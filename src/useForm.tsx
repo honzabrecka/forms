@@ -342,8 +342,6 @@ export default function useForm({
     };
 
     const submit = async (...args: any[]) => {
-      await Promise.resolve(0); // to get fresh bag
-
       const bag = {
         ...(await getBag()),
         setValues,
@@ -385,6 +383,7 @@ export default function useForm({
         errorBannerMessage: null,
         submission,
       }));
+      return submission;
     };
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

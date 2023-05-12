@@ -5,7 +5,12 @@ import {
   useRecoilValueLoadable,
   useResetRecoilState,
 } from './minimalRecoil';
-import { fieldId, $field, $fieldValidation } from './selectors';
+import {
+  fieldId,
+  $field,
+  $fieldValidation,
+  oneTickToGetFreshData,
+} from './selectors';
 import { useFormId } from './hooks';
 import {
   useGetBag,
@@ -153,8 +158,7 @@ export default function useField({
     setFieldState((state) => {
       const wrappedValidator: NamedValidator = async (value, meta) => {
         try {
-          await Promise.resolve(0); // to get fresh bag
-          // delay(0) does not work due to some reason
+          await oneTickToGetFreshData();
           const result = await validator(value, getBagForValidator, meta);
           return {
             name,
