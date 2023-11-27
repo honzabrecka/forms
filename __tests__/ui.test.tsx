@@ -507,6 +507,68 @@ test('forms: field state is preserved in between mounts', async () => {
   });
 });
 
+test('forms: field state is not preserved in between mounts with flag', async () => {
+  const onSubmit = jest.fn();
+  const App = () => {
+    const [key, setKey] = useState(1);
+    const { Form } = useForm({
+      onSubmit,
+    });
+    return (
+      <Form>
+        <Field
+          name="name"
+          label="Name"
+          key={key}
+          initialValue="John"
+          preserveStateAfterUnmount={false}
+        />
+        <button type="submit">submit</button>
+        <button type="button" onClick={() => setKey((k) => k + 1)}>
+          change key
+        </button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.type(screen.getByLabelText('Name'), ' Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['name'],
+      touched: true,
+      touchedFieldIds: new Set(['name']),
+      initialValues: { name: 'John' },
+      values: { name: 'John Doe' },
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getByText('change key'));
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectBag(onSubmit.mock.calls[1][0], {
+      fieldIds: ['name'],
+      touched: false,
+      touchedFieldIds: new Set(),
+      initialValues: { name: 'John' },
+      values: { name: 'John' },
+      dirty: false,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+});
+
 test('forms: field state is reset', async () => {
   const onSubmit = jest.fn();
   const App = () => {

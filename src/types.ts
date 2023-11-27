@@ -188,6 +188,7 @@ export type UseFieldProps = {
   to?: ToTransformer;
   required?: boolean;
   dirtyComparator?: DirtyComparator;
+  preserveStateAfterUnmount?: boolean;
 };
 
 export type UseFieldResult = {
@@ -210,6 +211,7 @@ export type UseFieldResult = {
 export type UseListProps = FieldIdentification & {
   initialValue?: Dict<any>[];
   dirtyComparator?: DirtyComparator;
+  preserveStateAfterUnmount?: boolean;
 };
 
 export type MappedFieldProp = {

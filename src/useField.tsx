@@ -3,6 +3,7 @@ import {
   // Loadable,
   useRecoilState,
   useRecoilValueLoadable,
+  useResetRecoilState,
 } from './minimalRecoil';
 import {
   fieldId,
@@ -57,6 +58,7 @@ export default function useField({
   to = identity,
   // NOTE: should be unchanged - used only when initializing, any other update has no effect
   dirtyComparator,
+  preserveStateAfterUnmount = true,
 }: UseFieldProps): UseFieldResult {
   const formId = useFormId(formIdProp);
 
@@ -70,6 +72,7 @@ export default function useField({
   const [fieldState, setFieldState] = useRecoilState(
     $field(fieldId(formId, name)),
   );
+  const reset = useResetRecoilState($field(fieldId(formId, name)));
   const validationResult = useRecoilValueLoadable(
     $fieldValidation(fieldId(formId, name)),
   );
@@ -144,6 +147,9 @@ export default function useField({
     setInited(true);
 
     return () => {
+      if (!preserveStateAfterUnmount) {
+        reset();
+      }
       registration.remove([name]);
     };
   }, []);
