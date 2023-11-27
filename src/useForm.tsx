@@ -248,6 +248,26 @@ export default function useForm({
     [],
   );
 
+  /**
+   * Field component no more clears field on unmount.
+   * Call this function manually to clear fields.
+   */
+  const clearFields = useRecoilCallback(
+    ({ snapshot, transact_UNSTABLE }) =>
+      (fieldIds: string[]) => {
+        const fieldIdsToReset =
+          fieldIds.length > 0
+            ? fieldIds
+            : snapshot.getValue($allFieldIds(formId));
+        transact_UNSTABLE(({ reset }) => {
+          fieldIdsToReset.forEach((id: string) =>
+            reset($field(fieldId(formId, id))),
+          );
+        });
+      },
+    [],
+  );
+
   const revalidate = useRecoilCallback(
     ({ snapshot, set }) =>
       (fieldIds: string[] = []) => {
@@ -352,6 +372,8 @@ export default function useForm({
         reset,
         resetFields,
         clear,
+        clearFields,
+        revalidate,
         addFields,
         removeFields,
         handleDependentFields,
@@ -402,15 +424,16 @@ export default function useForm({
       setAllToTouched,
       reset,
       resetFields,
-      revalidate,
       clear,
-      getBag,
-      submit: createSubmitPromise,
-      handleSubmit,
+      clearFields,
+      revalidate,
       addFields,
       removeFields,
       handleDependentFields,
       setErrorBannerMessage,
+      getBag,
+      submit: createSubmitPromise,
+      handleSubmit,
     };
 
     const Form = ({ children }: { children: React.ReactNode }) => {
