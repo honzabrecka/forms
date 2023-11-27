@@ -507,25 +507,19 @@ test('forms: field state is preserved in between mounts', async () => {
   });
 });
 
-test('forms: field state is not preserved in between mounts with flag', async () => {
+test('forms: field is not kept registered in form after unmount', async () => {
   const onSubmit = jest.fn();
   const App = () => {
-    const [key, setKey] = useState(1);
+    const [hidden, setHidden] = useState(false);
     const { Form } = useForm({
       onSubmit,
     });
     return (
       <Form>
-        <Field
-          name="name"
-          label="Name"
-          key={key}
-          initialValue="John"
-          preserveStateAfterUnmount={false}
-        />
+        {!hidden && <Field name="name" label="Name" initialValue="John" />}
         <button type="submit">submit</button>
-        <button type="button" onClick={() => setKey((k) => k + 1)}>
-          change key
+        <button type="button" onClick={() => setHidden(true)}>
+          hide
         </button>
       </Form>
     );
@@ -551,7 +545,70 @@ test('forms: field state is not preserved in between mounts with flag', async ()
     });
   });
 
-  await user.click(screen.getByText('change key'));
+  await user.click(screen.getByText('hide'));
+
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    expectBag(onSubmit.mock.calls[1][0], {
+      fieldIds: [],
+      touched: false,
+      touchedFieldIds: new Set(),
+      initialValues: {},
+      values: {},
+      dirty: false,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+});
+
+test('forms: field is kept registered in form after unmount with flag', async () => {
+  const onSubmit = jest.fn();
+  const App = () => {
+    const [hidden, setHidden] = useState(false);
+    const { Form } = useForm({
+      onSubmit,
+    });
+    return (
+      <Form>
+        {!hidden && (
+          <Field
+            name="name"
+            label="Name"
+            initialValue="John"
+            keepInFormAfterUnmount
+          />
+        )}
+        <button type="submit">submit</button>
+        <button type="button" onClick={() => setHidden(true)}>
+          hide
+        </button>
+      </Form>
+    );
+  };
+
+  render(<App />, { wrapper });
+
+  const user = userEvent.setup();
+
+  await user.type(screen.getByLabelText('Name'), ' Doe');
+  await user.click(screen.getByText('submit'));
+
+  await waitFor(() => {
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expectBag(onSubmit.mock.calls[0][0], {
+      fieldIds: ['name'],
+      touched: true,
+      touchedFieldIds: new Set(['name']),
+      initialValues: { name: 'John' },
+      values: { name: 'John Doe' },
+      dirty: true,
+      validation: { isValid: true, isValidStrict: true },
+    });
+  });
+
+  await user.click(screen.getByText('hide'));
 
   await user.click(screen.getByText('submit'));
 
@@ -559,11 +616,11 @@ test('forms: field state is not preserved in between mounts with flag', async ()
     expect(onSubmit).toHaveBeenCalledTimes(2);
     expectBag(onSubmit.mock.calls[1][0], {
       fieldIds: ['name'],
-      touched: false,
-      touchedFieldIds: new Set(),
+      touched: true,
+      touchedFieldIds: new Set(['name']),
       initialValues: { name: 'John' },
-      values: { name: 'John' },
-      dirty: false,
+      values: { name: 'John Doe' },
+      dirty: true,
       validation: { isValid: true, isValidStrict: true },
     });
   });
